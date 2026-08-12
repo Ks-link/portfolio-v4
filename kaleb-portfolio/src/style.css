@@ -78,8 +78,7 @@ body {
 }
 
 .blob--endcap {
-  border-radius: 48%;
-  opacity: 0 !important;
+  border-radius: 50%;
   pointer-events: none;
 }
 

@@ -83,7 +83,8 @@ const rand = (min, max) => min + Math.random() * (max - min)
 const damp = (current, target, lambda, dt) =>
   current + (target - current) * (1 - Math.exp(-lambda * dt))
 
-const ABSORB = 0.2
+const ABSORB = 0.16
+const OVERSCAN = 0.2
 
 const createBlob = (el, index) => {
   const size = rand(0.07, 0.4)
@@ -91,8 +92,7 @@ const createBlob = (el, index) => {
   return {
     el,
     index,
-    // 0 at top pool, 1 at bottom pool
-    progress: rand(ABSORB, 1 - ABSORB),
+    progress: rand(ABSORB + 0.06, 1 - ABSORB - 0.06),
     dir: Math.random() > 0.5 ? 1 : -1,
     lane,
     targetLane: lane,
@@ -115,8 +115,8 @@ const createBlob = (el, index) => {
 const blobs = blobEls.map((el, i) => createBlob(el, i))
 
 const endcaps = {
-  top: { el: topCapEl, swell: 1, x: 0, y: 0, w: 0, h: 0 },
-  bottom: { el: bottomCapEl, swell: 1, x: 0, y: 0, w: 0, h: 0 },
+  top: { el: topCapEl, swell: 1, ripple: 0, x: 0, y: 0, w: 0, h: 0 },
+  bottom: { el: bottomCapEl, swell: 1, ripple: 0, x: 0, y: 0, w: 0, h: 0 },
 }
 
 const sizePx = (blob) => Math.min(window.innerWidth, window.innerHeight) * blob.size
@@ -125,6 +125,11 @@ const nestAmount = (progress) => {
   if (progress < ABSORB) return progress / ABSORB
   if (progress > 1 - ABSORB) return (1 - progress) / ABSORB
   return 1
+}
+
+const progressToY = (progress, h) => {
+  const pad = h * OVERSCAN
+  return -pad + progress * (h + pad * 2)
 }
 
 const syncBlobSize = (blob) => {
@@ -137,28 +142,27 @@ const syncBlobSize = (blob) => {
 const layoutEndcaps = (t = 0) => {
   const w = window.innerWidth
   const h = window.innerHeight
-  const capW = w * 1.25
-  const capH = h * 0.28
-
-  endcaps.top.w = capW
-  endcaps.top.h = capH * endcaps.top.swell
-  endcaps.top.x = w / 2
-  endcaps.top.y = h * 0.02
-
-  endcaps.bottom.w = capW
-  endcaps.bottom.h = capH * endcaps.bottom.swell
-  endcaps.bottom.x = w / 2
-  endcaps.bottom.y = h * 0.98
+  // Huge circles centered beyond the edges — only the inner skin shows
+  const diameter = Math.max(w * 1.6, h * 0.9)
 
   ;[
     [endcaps.top, 0],
     [endcaps.bottom, 1],
   ].forEach(([cap, offset]) => {
+    const size = diameter * cap.swell
+    cap.w = size
+    cap.h = size
+    cap.x = w / 2 + Math.sin(t * 0.11 + offset * 2.1) * w * 0.02
+    // Sit mostly outside; expose a soft curved membrane along the edge
+    const inset = h * (0.045 + cap.ripple * 0.04)
+    cap.y = offset === 0 ? -size / 2 + inset : h + size / 2 - inset
+
     const el = cap.el
     el.style.width = `${cap.w}px`
     el.style.height = `${cap.h}px`
-    const rx = 46 + Math.sin(t * 0.12 + offset) * 6
-    el.style.borderRadius = `${rx}%`
+    el.style.opacity = '1'
+    const wave = Math.sin(t * 0.2 + offset) * 3 + Math.sin(t * 0.33 + offset * 1.4) * 2
+    el.style.borderRadius = `${50 + wave * 0.15}%`
     el.style.transform = `translate3d(${(cap.x - cap.w / 2).toFixed(2)}px, ${(cap.y - cap.h / 2).toFixed(2)}px, 0)`
   })
 }
@@ -166,12 +170,14 @@ const layoutEndcaps = (t = 0) => {
 const placeStaticBlobs = () => {
   endcaps.top.swell = 1
   endcaps.bottom.swell = 1
+  endcaps.top.ripple = 0
+  endcaps.bottom.ripple = 0
   layoutEndcaps()
   blobs.forEach((blob) => {
     syncBlobSize(blob)
     const s = sizePx(blob)
     const x = blob.lane * window.innerWidth - s / 2
-    const y = blob.progress * window.innerHeight - s / 2
+    const y = progressToY(blob.progress, window.innerHeight) - s / 2
     blob.el.style.transform = `translate(${x}px, ${y}px)`
   })
 }
@@ -235,7 +241,6 @@ if (reduceMotion) {
     let topAbsorb = 0
     let bottomAbsorb = 0
 
-    // Vertical lava travel + pull into endcaps near edges
     blobs.forEach((blob) => {
       blob.progress += blob.dir * blob.riseSpeed * dt
 
@@ -253,13 +258,6 @@ if (reduceMotion) {
 
       const nest = nestAmount(blob.progress)
       blob.nest = damp(blob.nest, nest, 3.2, dt)
-
-      // Drift toward pool center while being absorbed / emerging
-      const edgePull = 1 - nest
-      if (edgePull > 0) {
-        blob.targetLane = damp(blob.targetLane, 0.5, 1.8 * edgePull, dt)
-      }
-
       blob.lane = damp(blob.lane, blob.targetLane, 0.55, dt)
 
       const targetStretch =
@@ -272,8 +270,7 @@ if (reduceMotion) {
         Math.sin(t * 0.09 + blob.phase * 1.7) * swayAmp * 0.35 * w
 
       blob.x = blob.lane * w + swayX
-      // Keep motion within the open column between pools
-      blob.y = blob.progress * h
+      blob.y = progressToY(blob.progress, h)
       blob.attractX = 0
       blob.attractY = 0
 
@@ -281,16 +278,23 @@ if (reduceMotion) {
       if (blob.progress > 1 - ABSORB) bottomAbsorb += 1 - nest
     })
 
-    endcaps.top.swell = damp(endcaps.top.swell, 1 + Math.min(0.22, topAbsorb * 0.08), 2.4, dt)
+    // Membrane reacts like blob skin when absorbing / releasing
+    endcaps.top.swell = damp(endcaps.top.swell, 1 + Math.min(0.12, topAbsorb * 0.05), 2.2, dt)
     endcaps.bottom.swell = damp(
       endcaps.bottom.swell,
-      1 + Math.min(0.22, bottomAbsorb * 0.08),
-      2.4,
+      1 + Math.min(0.12, bottomAbsorb * 0.05),
+      2.2,
+      dt,
+    )
+    endcaps.top.ripple = damp(endcaps.top.ripple, Math.min(1, topAbsorb * 0.45), 3, dt)
+    endcaps.bottom.ripple = damp(
+      endcaps.bottom.ripple,
+      Math.min(1, bottomAbsorb * 0.45),
+      3,
       dt,
     )
     layoutEndcaps(t)
 
-    // Soft attraction so blobs can merge, then drift apart
     for (let i = 0; i < blobs.length; i++) {
       for (let j = i + 1; j < blobs.length; j++) {
         const a = blobs[i]
@@ -320,16 +324,16 @@ if (reduceMotion) {
       }
     }
 
-    // Pull floating blobs into the nearest endcap as they arrive
+    // Merge into the edge membrane (outer blob layer)
     blobs.forEach((blob) => {
       const nest = blob.nest
       if (nest >= 0.999) return
+      const flat = 1 - nest
       const cap = blob.progress < 0.5 ? endcaps.top : endcaps.bottom
-      const dx = cap.x - blob.x
-      const dy = cap.y - blob.y
-      const pull = (1 - nest) * 28
-      blob.attractX += dx * 0.04 * pull
-      blob.attractY += dy * 0.05 * pull
+      // Aim for the visible skin along the viewport edge
+      const skinY = blob.progress < 0.5 ? h * 0.02 : h * 0.98
+      blob.attractX += (cap.x - blob.x) * 0.03 * flat
+      blob.attractY += (skinY - blob.y) * 0.07 * flat
     })
 
     blobs.forEach((blob, i) => {
@@ -344,19 +348,22 @@ if (reduceMotion) {
       blob.pushY = damp(blob.pushY, targetPushY, 3.5, dt)
 
       const s = sizePx(blob)
+      const flat = 1 - blob.nest
       const x = blob.x + blob.pushX - s / 2
       const y = blob.y + blob.pushY - s / 2
-      // Shrink into the pool instead of fading out
-      const absorbScale = 0.18 + blob.nest * 0.82
-      const scale =
-        (0.96 + Math.sin(t * blob.wobble * 0.7 + blob.phase) * 0.04) * absorbScale
+      const base = 0.96 + Math.sin(t * blob.wobble * 0.7 + blob.phase) * 0.04
+      const scaleX = base * (1 + flat * 3.8)
+      const scaleY = base * blob.stretch * (1 - flat * 0.88)
       const rx1 = 48 + Math.sin(t * 0.18 + i) * 10
       const rx2 = 52 + Math.cos(t * 0.16 + i) * 9
       const rx3 = 46 + Math.sin(t * 0.14 + i * 1.1) * 11
       const rx4 = 54 + Math.cos(t * 0.17 + i) * 8
+      const atTop = blob.progress < 0.5
 
+      blob.el.style.transformOrigin =
+        flat > 0.02 ? (atTop ? '50% 0%' : '50% 100%') : '50% 50%'
       blob.el.style.borderRadius = `${rx1}% ${rx2}% ${rx3}% ${rx4}%`
-      blob.el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(3)}, ${(scale * blob.stretch).toFixed(3)})`
+      blob.el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scaleX.toFixed(3)}, ${Math.max(0.08, scaleY).toFixed(3)})`
     })
 
     rafId = requestAnimationFrame(tick)
