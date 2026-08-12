@@ -98,7 +98,10 @@ const createBlob = (el, index) => {
     targetLane: lane,
     size,
     phase: rand(0, Math.PI * 2),
-    riseSpeed: rand(0.012, 0.028),
+    speed: rand(0.01, 0.028),
+    accel: rand(-0.012, 0.012),
+    targetAccel: rand(-0.018, 0.02),
+    accelChangeAt: rand(0.4, 2.5),
     sway: rand(0.03, 0.08),
     wobble: rand(0.15, 0.4),
     stretch: 1,
@@ -145,26 +148,26 @@ const layoutEndcaps = (t = 0) => {
   // Huge circles centered beyond the edges — only the inner skin shows
   const diameter = Math.max(w * 1.6, h * 0.9)
 
-  ;[
-    [endcaps.top, 0],
-    [endcaps.bottom, 1],
-  ].forEach(([cap, offset]) => {
-    const size = diameter * cap.swell
-    cap.w = size
-    cap.h = size
-    cap.x = w / 2 + Math.sin(t * 0.11 + offset * 2.1) * w * 0.02
-    // Sit mostly outside; expose a soft curved membrane along the edge
-    const inset = h * (0.045 + cap.ripple * 0.04)
-    cap.y = offset === 0 ? -size / 2 + inset : h + size / 2 - inset
+    ;[
+      [endcaps.top, 0],
+      [endcaps.bottom, 1],
+    ].forEach(([cap, offset]) => {
+      const size = diameter * cap.swell
+      cap.w = size
+      cap.h = size
+      cap.x = w / 2 + Math.sin(t * 0.11 + offset * 2.1) * w * 0.02
+      // Sit mostly outside; expose a soft curved membrane along the edge
+      const inset = h * (0.045 + cap.ripple * 0.04)
+      cap.y = offset === 0 ? -size / 2 + inset : h + size / 2 - inset
 
-    const el = cap.el
-    el.style.width = `${cap.w}px`
-    el.style.height = `${cap.h}px`
-    el.style.opacity = '1'
-    const wave = Math.sin(t * 0.2 + offset) * 3 + Math.sin(t * 0.33 + offset * 1.4) * 2
-    el.style.borderRadius = `${50 + wave * 0.15}%`
-    el.style.transform = `translate3d(${(cap.x - cap.w / 2).toFixed(2)}px, ${(cap.y - cap.h / 2).toFixed(2)}px, 0)`
-  })
+      const el = cap.el
+      el.style.width = `${cap.w}px`
+      el.style.height = `${cap.h}px`
+      el.style.opacity = '1'
+      const wave = Math.sin(t * 0.2 + offset) * 3 + Math.sin(t * 0.33 + offset * 1.4) * 2
+      el.style.borderRadius = `${50 + wave * 0.15}%`
+      el.style.transform = `translate3d(${(cap.x - cap.w / 2).toFixed(2)}px, ${(cap.y - cap.h / 2).toFixed(2)}px, 0)`
+    })
 }
 
 const placeStaticBlobs = () => {
@@ -242,18 +245,38 @@ if (reduceMotion) {
     let bottomAbsorb = 0
 
     blobs.forEach((blob) => {
-      blob.progress += blob.dir * blob.riseSpeed * dt
+      if (t >= blob.accelChangeAt) {
+        // Random acceleration bursts — some near-idle, some strong surges
+        const surge = Math.random()
+        if (surge < 0.2) {
+          blob.targetAccel = rand(-0.004, 0.004)
+        } else if (surge < 0.55) {
+          blob.targetAccel = rand(-0.014, 0.016)
+        } else {
+          blob.targetAccel = rand(-0.028, 0.032)
+        }
+        blob.accelChangeAt = t + rand(0.8, 3.8)
+      }
+
+      blob.accel = damp(blob.accel, blob.targetAccel, 1.8, dt)
+      blob.speed += blob.accel * dt
+      blob.speed = Math.min(0.052, Math.max(0.004, blob.speed))
+      blob.progress += blob.dir * blob.speed * dt
 
       if (blob.progress >= 1) {
         blob.progress = 1
         blob.dir = -1
         blob.targetLane = rand(0.22, 0.78)
-        blob.riseSpeed = rand(0.012, 0.028)
+        blob.speed = rand(0.008, 0.024)
+        blob.targetAccel = rand(-0.02, 0.01)
+        blob.accelChangeAt = t + rand(0.5, 2)
       } else if (blob.progress <= 0) {
         blob.progress = 0
         blob.dir = 1
         blob.targetLane = rand(0.22, 0.78)
-        blob.riseSpeed = rand(0.012, 0.028)
+        blob.speed = rand(0.008, 0.024)
+        blob.targetAccel = rand(-0.01, 0.022)
+        blob.accelChangeAt = t + rand(0.5, 2)
       }
 
       const nest = nestAmount(blob.progress)

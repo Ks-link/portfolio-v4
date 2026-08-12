@@ -1,20 +1,20 @@
 :root,
-[data-theme='light'] {
+[data-theme="light"] {
   --bg: #fffff4;
   --text: #322f2f;
   --accent: #ee8533;
-  --blob: #d9d5c8;
-  --blobs-opacity: 0.85;
-  --display: 'Rammetto One', 'Arial Rounded MT Bold', sans-serif;
-  --sans: 'Outfit', 'Avenir Next', sans-serif;
+  --blob: #f0ece2;
+  --blobs-opacity: 0.5;
+  --display: "Rammetto One", "Arial Rounded MT Bold", sans-serif;
+  --sans: "Outfit", "Avenir Next", sans-serif;
 }
 
-[data-theme='dark'] {
+[data-theme="dark"] {
   --bg: #141211;
   --text: #fffff4;
   --accent: #ee8533;
-  --blob: #2c2825;
-  --blobs-opacity: 0.9;
+  --blob: #1a1715;
+  --blobs-opacity: 0.55;
 }
 
 *,
@@ -34,7 +34,9 @@ body {
   font-family: var(--sans);
   color: var(--text);
   background-color: var(--bg);
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -62,7 +64,7 @@ body {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  filter: url('#goo');
+  filter: url("#goo");
   opacity: var(--blobs-opacity);
   transition: opacity 0.25s ease;
 }
@@ -98,7 +100,9 @@ body {
   background: transparent;
   color: var(--text);
   cursor: pointer;
-  transition: color 0.25s ease, opacity 0.2s ease;
+  transition:
+    color 0.25s ease,
+    opacity 0.2s ease;
 }
 
 .theme-toggle:hover {
@@ -138,7 +142,7 @@ body {
 }
 
 .name::after {
-  content: '';
+  content: "";
   display: block;
   width: 2.5rem;
   height: 2px;
