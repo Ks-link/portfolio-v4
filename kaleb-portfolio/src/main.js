@@ -17,7 +17,18 @@ const moonIcon = `
 
 const BLOB_COUNT = 6
 
-document.querySelector('#app').innerHTML = `
+const navArrow = `
+  <span class="nav-blob-shape">
+    <svg class="nav-blob-arrow" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+        d="M10 5l7 7-7 7"/>
+    </svg>
+  </span>
+`
+
+const app = document.querySelector('#app')
+
+app.innerHTML = `
   <svg class="goo-svg" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <defs>
       <filter id="goo" color-interpolation-filters="sRGB">
@@ -43,10 +54,60 @@ document.querySelector('#app').innerHTML = `
   <button type="button" class="theme-toggle" aria-label="Toggle dark mode">
     ${moonIcon}
   </button>
-  <main class="hero">
-    <h1 class="name">Kaleb Link</h1>
-    <p class="title">web developer</p>
-  </main>
+  <button type="button" class="nav-blob nav-blob--right" data-nav="work" aria-label="View work">
+    ${navArrow}
+  </button>
+  <button type="button" class="nav-blob nav-blob--bottom" data-nav="about" aria-label="About">
+    ${navArrow}
+  </button>
+  <button type="button" class="nav-blob nav-blob--left" data-nav="home" aria-label="Back to home">
+    ${navArrow}
+  </button>
+  <button type="button" class="nav-blob nav-blob--top" data-nav="home" aria-label="Back to home">
+    ${navArrow}
+  </button>
+  <div class="stage">
+    <section class="screen screen--home" aria-label="Home">
+      <main class="hero">
+        <h1 class="name">Kaleb Link</h1>
+        <p class="title">web developer</p>
+      </main>
+    </section>
+    <section class="screen screen--work" aria-labelledby="work-heading">
+      <div class="screen-inner">
+        <h2 id="work-heading" class="screen-title">Work</h2>
+        <ul class="project-grid">
+          <li class="project-card">
+            <h3 class="project-name">Project one</h3>
+            <p class="project-desc">A short line about this project.</p>
+          </li>
+          <li class="project-card">
+            <h3 class="project-name">Project two</h3>
+            <p class="project-desc">A short line about this project.</p>
+          </li>
+          <li class="project-card">
+            <h3 class="project-name">Project three</h3>
+            <p class="project-desc">A short line about this project.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+    <section class="screen screen--about" aria-labelledby="about-heading">
+      <div class="screen-inner">
+        <h2 id="about-heading" class="screen-title">About</h2>
+        <p class="about-bio">
+          I’m a web developer who likes making interfaces that feel a little alive.
+          More about me soon.
+        </p>
+        <h3 class="contact-heading">Contact</h3>
+        <ul class="contact-list">
+          <li><a href="mailto:hello@kaleblink.com">hello@kaleblink.com</a></li>
+          <li><a href="#">GitHub</a></li>
+          <li><a href="#">LinkedIn</a></li>
+        </ul>
+      </div>
+    </section>
+  </div>
 `
 
 const root = document.documentElement
@@ -72,6 +133,37 @@ toggle.addEventListener('click', () => {
   const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
   applyTheme(next)
 })
+
+const screens = new Set(['home', 'work', 'about'])
+
+const screenFromHash = () => {
+  const path = window.location.hash.replace(/^#\/?/, '').replace(/\/$/, '')
+  return screens.has(path) ? path : 'home'
+}
+
+const hashForScreen = (screen) => (screen === 'home' ? '#/' : `#/${screen}`)
+
+const setScreen = (screen, { push = false } = {}) => {
+  if (!screens.has(screen)) screen = 'home'
+  app.dataset.screen = screen
+  const nextHash = hashForScreen(screen)
+  if (window.location.hash !== nextHash) {
+    if (push) history.pushState({ screen }, '', nextHash)
+    else history.replaceState({ screen }, '', nextHash)
+  }
+}
+
+document.querySelectorAll('.nav-blob').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    setScreen(btn.dataset.nav, { push: true })
+  })
+})
+
+window.addEventListener('popstate', () => {
+  setScreen(screenFromHash())
+})
+
+setScreen(screenFromHash())
 
 const hero = document.querySelector('.hero')
 const blobEls = [...document.querySelectorAll('.blob[data-blob]')]
