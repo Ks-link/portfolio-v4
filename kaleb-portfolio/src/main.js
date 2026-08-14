@@ -114,8 +114,8 @@ app.innerHTML = `
         <h3 class="contact-heading">Contact</h3>
         <ul class="contact-list">
           <li><a href="mailto:contact@kaleblink.com">contact@kaleblink.com</a></li>
-          <li><a target="_blank" rel="noopener noreferrer href="https://github.com/Ks-link">GitHub</a></li>
-          <li><a target="_blank" rel="noopener noreferrer href="https://www.linkedin.com/in/kaleblink/">LinkedIn</a></li>
+          <li><a target="_blank" rel="noopener noreferrer" href="https://github.com/Ks-link">GitHub</a></li>
+          <li><a target="_blank" rel="noopener noreferrer" href="https://www.linkedin.com/in/kaleblink/">LinkedIn</a></li>
         </ul>
       </div>
     </section>
