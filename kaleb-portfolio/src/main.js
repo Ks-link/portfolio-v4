@@ -66,6 +66,18 @@ app.innerHTML = `
   <button type="button" class="nav-blob nav-blob--top" data-nav="home" aria-label="Back to home">
     ${navArrow}
   </button>
+  <div class="swipe-hints" aria-hidden="true">
+    <p class="swipe-hints__set swipe-hints__set--home">
+      <span>swipe left — work</span>
+      <span>swipe up — about</span>
+    </p>
+    <p class="swipe-hints__set swipe-hints__set--work">
+      <span>swipe right — home</span>
+    </p>
+    <p class="swipe-hints__set swipe-hints__set--about">
+      <span>swipe down — home</span>
+    </p>
+  </div>
   <div class="stage">
     <section class="screen screen--home" aria-label="Home">
       <main class="hero">
@@ -101,9 +113,9 @@ app.innerHTML = `
         </p>
         <h3 class="contact-heading">Contact</h3>
         <ul class="contact-list">
-          <li><a href="mailto:hello@kaleblink.com">hello@kaleblink.com</a></li>
-          <li><a href="#">GitHub</a></li>
-          <li><a href="#">LinkedIn</a></li>
+          <li><a href="mailto:contact@kaleblink.com">contact@kaleblink.com</a></li>
+          <li><a href="https://github.com/Ks-link">GitHub</a></li>
+          <li><a href="https://www.linkedin.com/in/kaleblink/">LinkedIn</a></li>
         </ul>
       </div>
     </section>
@@ -164,6 +176,179 @@ window.addEventListener('popstate', () => {
 })
 
 setScreen(screenFromHash())
+
+const swipeMq = window.matchMedia('(max-width: 48rem)')
+const SWIPE_MIN = 56
+const AXIS_LOCK = 10
+const swipeRoutes = {
+  home: { x: 'work', y: 'about' },
+  work: { x: 'home' },
+  about: { y: 'home' },
+}
+
+const aboutScreen = document.querySelector('.screen--about')
+
+let swipeStart = null
+
+const isInteractiveTarget = (el) => Boolean(el.closest?.('button'))
+
+const aboutScrolledToTop = () => !aboutScreen || aboutScreen.scrollTop <= 1
+
+const syncAboutPan = () => {
+  aboutScreen?.classList.toggle('is-at-top', aboutScrolledToTop())
+}
+
+syncAboutPan()
+aboutScreen?.addEventListener('scroll', syncAboutPan, { passive: true })
+
+const setSwipeOffset = (x, y) => {
+  app.style.setProperty('--swipe-x', `${x}px`)
+  app.style.setProperty('--swipe-y', `${y}px`)
+}
+
+const resetSwipeOffset = () => {
+  app.classList.remove('is-swiping')
+  setSwipeOffset(0, 0)
+}
+
+const beginSwipe = (id, x, y, target) => {
+  if (!swipeMq.matches || swipeStart) return
+  if (isInteractiveTarget(target)) return
+  swipeStart = {
+    id,
+    x,
+    y,
+    lastX: x,
+    lastY: y,
+    axis: null,
+    atTop: aboutScrolledToTop(),
+    claimed: false,
+  }
+}
+
+const offsetForGesture = (dx, dy) => {
+  const screen = app.dataset.screen || 'home'
+  const { axis, atTop } = swipeStart
+  if (screen === 'home' && axis === 'x' && dx < 0) return { x: dx, y: 0, claim: true }
+  if (screen === 'home' && axis === 'y' && dy < 0) return { x: 0, y: dy, claim: true }
+  if (screen === 'work' && axis === 'x' && dx > 0) return { x: dx, y: 0, claim: true }
+  if (screen === 'about' && axis === 'y' && dy > 0 && atTop) return { x: 0, y: dy, claim: true }
+  return { x: 0, y: 0, claim: false }
+}
+
+const moveSwipe = (id, x, y, preventDefault) => {
+  if (!swipeStart || swipeStart.id !== id) return
+  const dx = x - swipeStart.x
+  const dy = y - swipeStart.y
+  swipeStart.lastX = x
+  swipeStart.lastY = y
+
+  if (!swipeStart.axis) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < AXIS_LOCK) return
+    swipeStart.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+  }
+
+  const screen = app.dataset.screen || 'home'
+  if (screen === 'about' && swipeStart.axis === 'y' && dy < 0 && swipeStart.atTop) {
+    aboutScreen.scrollTop = -dy
+    return
+  }
+
+  const { x: ox, y: oy, claim } = offsetForGesture(dx, dy)
+  if (!claim) return
+
+  swipeStart.claimed = true
+  preventDefault?.()
+  app.classList.add('is-swiping')
+  setSwipeOffset(ox, oy)
+}
+
+const endSwipe = (id) => {
+  if (!swipeStart || swipeStart.id !== id) return
+  const { x, y, lastX, lastY, axis, atTop, claimed } = swipeStart
+  swipeStart = null
+
+  const dx = lastX - x
+  const dy = lastY - y
+  const dist = axis === 'y' ? dy : dx
+  const abs = Math.abs(dist)
+  const screen = app.dataset.screen || 'home'
+  const next = axis ? swipeRoutes[screen]?.[axis] : null
+  const validDir =
+    (screen === 'home' && axis === 'x' && dx < 0) ||
+    (screen === 'home' && axis === 'y' && dy < 0) ||
+    (screen === 'work' && axis === 'x' && dx > 0) ||
+    (screen === 'about' && axis === 'y' && dy > 0 && atTop)
+
+  app.classList.remove('is-swiping')
+
+  if (claimed && validDir && abs >= SWIPE_MIN && next) {
+    setSwipeOffset(0, 0)
+    setScreen(next, { push: true })
+    return
+  }
+
+  resetSwipeOffset()
+}
+
+const touchPoint = (e) => e.changedTouches[0]
+
+app.addEventListener(
+  'touchstart',
+  (e) => {
+    const t = touchPoint(e)
+    beginSwipe(t.identifier, t.clientX, t.clientY, e.target)
+  },
+  { passive: true, capture: true },
+)
+
+app.addEventListener(
+  'touchmove',
+  (e) => {
+    const t = touchPoint(e)
+    moveSwipe(t.identifier, t.clientX, t.clientY, () => {
+      if (e.cancelable) e.preventDefault()
+    })
+  },
+  { passive: false, capture: true },
+)
+
+app.addEventListener(
+  'touchend',
+  (e) => {
+    endSwipe(touchPoint(e).identifier)
+  },
+  { passive: true, capture: true },
+)
+
+app.addEventListener(
+  'touchcancel',
+  (e) => {
+    endSwipe(touchPoint(e).identifier)
+  },
+  { passive: true, capture: true },
+)
+
+app.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'touch') return
+  if (e.button !== 0) return
+  beginSwipe(e.pointerId, e.clientX, e.clientY, e.target)
+})
+
+window.addEventListener('pointermove', (e) => {
+  if (e.pointerType === 'touch') return
+  moveSwipe(e.pointerId, e.clientX, e.clientY)
+})
+
+window.addEventListener('pointerup', (e) => {
+  if (e.pointerType === 'touch') return
+  endSwipe(e.pointerId)
+})
+
+window.addEventListener('pointercancel', (e) => {
+  if (e.pointerType === 'touch') return
+  endSwipe(e.pointerId)
+})
 
 const hero = document.querySelector('.hero')
 const blobEls = [...document.querySelectorAll('.blob[data-blob]')]
@@ -296,6 +481,13 @@ if (reduceMotion) {
   const blobPush = 40
   const mergeRadius = 180
   const attractStrength = 12
+  const magnetReach = 150
+  const magnetMax = 7
+  const navMagnets = [...document.querySelectorAll('.nav-blob')].map((el) => ({
+    el,
+    x: 0,
+    y: 0,
+  }))
 
   blobs.forEach(syncBlobSize)
   layoutEndcaps()
@@ -332,6 +524,28 @@ if (reduceMotion) {
     if (hero) {
       hero.style.transform = `translate(${heroX.toFixed(2)}px, ${heroY.toFixed(2)}px)`
     }
+
+    const magnetOn = !swipeMq.matches
+    navMagnets.forEach((item) => {
+      let targetX = 0
+      let targetY = 0
+      if (magnetOn && getComputedStyle(item.el).visibility === 'visible') {
+        const rect = item.el.getBoundingClientRect()
+        const cx = rect.left + rect.width / 2 - item.x
+        const cy = rect.top + rect.height / 2 - item.y
+        const dx = mouseX - cx
+        const dy = mouseY - cy
+        const dist = Math.hypot(dx, dy) || 1
+        const proximity = Math.max(0, 1 - dist / magnetReach)
+        const force = magnetMax * proximity * proximity
+        targetX = (dx / dist) * force
+        targetY = (dy / dist) * force
+      }
+      item.x = damp(item.x, targetX, 8, dt)
+      item.y = damp(item.y, targetY, 8, dt)
+      item.el.style.setProperty('--magnet-x', `${item.x.toFixed(2)}px`)
+      item.el.style.setProperty('--magnet-y', `${item.y.toFixed(2)}px`)
+    })
 
     let topAbsorb = 0
     let bottomAbsorb = 0

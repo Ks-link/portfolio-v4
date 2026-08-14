@@ -47,6 +47,8 @@ body {
   position: relative;
   height: 100dvh;
   overflow: hidden;
+  --swipe-x: 0px;
+  --swipe-y: 0px;
 }
 
 .stage {
@@ -59,16 +61,20 @@ body {
   will-change: transform;
 }
 
+#app.is-swiping .stage {
+  transition: none;
+}
+
 #app[data-screen="home"] .stage {
-  transform: translate(0, 0);
+  transform: translate(var(--swipe-x), var(--swipe-y));
 }
 
 #app[data-screen="work"] .stage {
-  transform: translate(-100vw, 0);
+  transform: translate(calc(-100vw + var(--swipe-x)), var(--swipe-y));
 }
 
 #app[data-screen="about"] .stage {
-  transform: translate(0, -100dvh);
+  transform: translate(var(--swipe-x), calc(-100dvh + var(--swipe-y)));
 }
 
 .screen {
@@ -226,8 +232,8 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 4.5rem;
-  height: 4.5rem;
+  width: 3.25rem;
+  height: 3.25rem;
   padding: 0;
   border: none;
   background: transparent;
@@ -236,6 +242,8 @@ body {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+  --magnet-x: 0px;
+  --magnet-y: 0px;
   transition:
     opacity 0.35s ease,
     visibility 0.35s ease;
@@ -256,8 +264,8 @@ body {
 }
 
 .nav-blob-arrow {
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 1.05rem;
+  height: 1.05rem;
   display: block;
   opacity: 0.75;
 }
@@ -265,7 +273,7 @@ body {
 .nav-blob--right {
   top: 50%;
   right: 0.85rem;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translate(var(--magnet-x), var(--magnet-y));
 }
 
 .nav-blob--right .nav-blob-arrow {
@@ -275,7 +283,7 @@ body {
 .nav-blob--bottom {
   bottom: 0.85rem;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translate(var(--magnet-x), var(--magnet-y));
 }
 
 .nav-blob--bottom .nav-blob-shape {
@@ -289,7 +297,7 @@ body {
 .nav-blob--left {
   top: 50%;
   left: 0.85rem;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translate(var(--magnet-x), var(--magnet-y));
 }
 
 .nav-blob--left .nav-blob-shape {
@@ -303,7 +311,7 @@ body {
 .nav-blob--top {
   top: 0.85rem;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translate(var(--magnet-x), var(--magnet-y));
 }
 
 .nav-blob--top .nav-blob-shape {
@@ -336,6 +344,33 @@ body {
 .nav-blob:focus-visible .nav-blob-shape {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+}
+
+.swipe-hints {
+  display: none;
+  position: fixed;
+  z-index: 10;
+  left: 1.25rem;
+  right: 1.25rem;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+.swipe-hints__set {
+  display: none;
+  margin: 0;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.5rem;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: var(--text);
+  opacity: 0.5;
+  text-align: center;
 }
 
 .screen-title {
@@ -485,5 +520,39 @@ body {
   .nav-blob-shape {
     animation: none;
     border-radius: 52% 44% 56% 48% / 46% 54% 42% 56%;
+  }
+}
+
+@media (max-width: 48rem) {
+  .nav-blob {
+    display: none;
+  }
+
+  .swipe-hints {
+    display: block;
+  }
+
+  #app[data-screen="home"] .swipe-hints__set--home,
+  #app[data-screen="work"] .swipe-hints__set--work,
+  #app[data-screen="about"] .swipe-hints__set--about {
+    display: flex;
+  }
+
+  .screen {
+    padding-bottom: 4.25rem;
+  }
+
+  .screen-inner {
+    padding-bottom: 5rem;
+  }
+
+  .screen--home,
+  .screen--about.is-at-top {
+    touch-action: none;
+  }
+
+  .screen--work,
+  .screen--about {
+    touch-action: pan-y;
   }
 }
