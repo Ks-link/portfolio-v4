@@ -54,16 +54,16 @@ app.innerHTML = `
   <button type="button" class="theme-toggle" aria-label="Toggle dark mode">
     ${moonIcon}
   </button>
-  <button type="button" class="nav-blob nav-blob--right" data-nav="work" aria-label="View work">
+  <button type="button" class="nav-blob nav-blob--right" data-edge="right" aria-label="View work">
     ${navArrow}
   </button>
-  <button type="button" class="nav-blob nav-blob--bottom" data-nav="about" aria-label="About">
+  <button type="button" class="nav-blob nav-blob--bottom" data-edge="bottom" aria-label="About">
     ${navArrow}
   </button>
-  <button type="button" class="nav-blob nav-blob--left" data-nav="home" aria-label="Back to home">
+  <button type="button" class="nav-blob nav-blob--left" data-edge="left" aria-label="Back to home">
     ${navArrow}
   </button>
-  <button type="button" class="nav-blob nav-blob--top" data-nav="home" aria-label="Back to home">
+  <button type="button" class="nav-blob nav-blob--top" data-edge="top" aria-label="Back to home">
     ${navArrow}
   </button>
   <div class="swipe-hints" aria-hidden="true">
@@ -73,9 +73,15 @@ app.innerHTML = `
     </p>
     <p class="swipe-hints__set swipe-hints__set--work">
       <span>swipe right — home</span>
+      <span>swipe up — experience</span>
     </p>
     <p class="swipe-hints__set swipe-hints__set--about">
       <span>swipe down — home</span>
+      <span>swipe left — experience</span>
+    </p>
+    <p class="swipe-hints__set swipe-hints__set--experience">
+      <span>swipe right — about</span>
+      <span>swipe down — work</span>
     </p>
   </div>
   <div class="stage">
@@ -119,6 +125,34 @@ app.innerHTML = `
         </ul>
       </div>
     </section>
+    <section class="screen screen--experience" aria-labelledby="experience-heading">
+      <div class="screen-inner">
+        <h2 id="experience-heading" class="screen-title">Experience</h2>
+        <ul class="experience-list">
+          <li class="experience-card">
+            <h3 class="experience-role">Lead Web Developer</h3>
+            <p class="experience-meta">Stoney Hill Marketing · 20XX — Present</p>
+            <p class="experience-desc">
+              Building high-performance marketing sites with React, Vite, and WordPress.
+            </p>
+          </li>
+          <li class="experience-card">
+            <h3 class="experience-role">Web Developer</h3>
+            <p class="experience-meta">JM Web Design · 20XX — 20XX</p>
+            <p class="experience-desc">
+              Custom websites, SEO, and branding for Vancouver Island clients.
+            </p>
+          </li>
+          <li class="experience-card">
+            <h3 class="experience-role">Aerospace Manufacturer / Electronic Technician</h3>
+            <p class="experience-meta">Skye Avionics Ltd. · 20XX — 20XX</p>
+            <p class="experience-desc">
+              Seven years of precision manufacturing — Fusion 360, CNC, 3D printing, and avionics hardware.
+            </p>
+          </li>
+        </ul>
+      </div>
+    </section>
   </div>
 `
 
@@ -146,7 +180,7 @@ toggle.addEventListener('click', () => {
   applyTheme(next)
 })
 
-const screens = new Set(['home', 'work', 'about'])
+const screens = new Set(['home', 'work', 'about', 'experience'])
 
 const screenFromHash = () => {
   const path = window.location.hash.replace(/^#\/?/, '').replace(/\/$/, '')
@@ -155,9 +189,35 @@ const screenFromHash = () => {
 
 const hashForScreen = (screen) => (screen === 'home' ? '#/' : `#/${screen}`)
 
+const edgeNav = {
+  home: { right: 'work', bottom: 'about' },
+  work: { left: 'home', bottom: 'experience' },
+  about: { top: 'home', right: 'experience' },
+  experience: { left: 'about', top: 'work' },
+}
+
+const ariaForDest = (dest) => {
+  if (dest === 'home') return 'Back to home'
+  if (dest === 'work') return 'View work'
+  if (dest === 'about') return 'About'
+  if (dest === 'experience') return 'Experience'
+  return dest
+}
+
+const navBlobs = [...document.querySelectorAll('.nav-blob')]
+
+const syncNavLabels = (screen) => {
+  navBlobs.forEach((btn) => {
+    const dest = edgeNav[screen]?.[btn.dataset.edge]
+    if (!dest) return
+    btn.setAttribute('aria-label', ariaForDest(dest))
+  })
+}
+
 const setScreen = (screen, { push = false } = {}) => {
   if (!screens.has(screen)) screen = 'home'
   app.dataset.screen = screen
+  syncNavLabels(screen)
   const nextHash = hashForScreen(screen)
   if (window.location.hash !== nextHash) {
     if (push) history.pushState({ screen }, '', nextHash)
@@ -165,9 +225,11 @@ const setScreen = (screen, { push = false } = {}) => {
   }
 }
 
-document.querySelectorAll('.nav-blob').forEach((btn) => {
+navBlobs.forEach((btn) => {
   btn.addEventListener('click', () => {
-    setScreen(btn.dataset.nav, { push: true })
+    const screen = app.dataset.screen || 'home'
+    const dest = edgeNav[screen]?.[btn.dataset.edge]
+    if (dest) setScreen(dest, { push: true })
   })
 })
 
@@ -180,26 +242,57 @@ setScreen(screenFromHash())
 const swipeMq = window.matchMedia('(max-width: 48rem)')
 const SWIPE_MIN = 56
 const AXIS_LOCK = 10
-const swipeRoutes = {
-  home: { x: 'work', y: 'about' },
-  work: { x: 'home' },
-  about: { y: 'home' },
+const swipeMap = {
+  home: {
+    x: { dir: -1, to: 'work' },
+    y: { dir: -1, to: 'about' },
+  },
+  work: {
+    x: { dir: 1, to: 'home' },
+    y: { dir: -1, to: 'experience', needBottom: true },
+  },
+  about: {
+    x: { dir: -1, to: 'experience' },
+    y: { dir: 1, to: 'home', needTop: true },
+  },
+  experience: {
+    x: { dir: 1, to: 'about' },
+    y: { dir: 1, to: 'work', needTop: true },
+  },
 }
 
-const aboutScreen = document.querySelector('.screen--about')
+const screenEls = {
+  work: document.querySelector('.screen--work'),
+  about: document.querySelector('.screen--about'),
+  experience: document.querySelector('.screen--experience'),
+}
 
 let swipeStart = null
 
 const isInteractiveTarget = (el) => Boolean(el.closest?.('button'))
 
-const aboutScrolledToTop = () => !aboutScreen || aboutScreen.scrollTop <= 1
+const scrolledToTop = (el) => !el || el.scrollTop <= 1
 
-const syncAboutPan = () => {
-  aboutScreen?.classList.toggle('is-at-top', aboutScrolledToTop())
+const scrolledToBottom = (el) => {
+  if (!el) return true
+  return el.scrollTop + el.clientHeight >= el.scrollHeight - 1
 }
 
-syncAboutPan()
-aboutScreen?.addEventListener('scroll', syncAboutPan, { passive: true })
+const currentScreenEl = () => screenEls[app.dataset.screen]
+
+const syncScrollEdges = () => {
+  const work = screenEls.work
+  const about = screenEls.about
+  const experience = screenEls.experience
+  work?.classList.toggle('is-at-bottom', scrolledToBottom(work))
+  about?.classList.toggle('is-at-top', scrolledToTop(about))
+  experience?.classList.toggle('is-at-top', scrolledToTop(experience))
+}
+
+syncScrollEdges()
+Object.values(screenEls).forEach((el) => {
+  el?.addEventListener('scroll', syncScrollEdges, { passive: true })
+})
 
 const setSwipeOffset = (x, y) => {
   app.style.setProperty('--swipe-x', `${x}px`)
@@ -211,9 +304,18 @@ const resetSwipeOffset = () => {
   setSwipeOffset(0, 0)
 }
 
+const gestureMatches = (route, delta, atTop, atBottom) => {
+  if (!route) return false
+  if (route.dir > 0 ? delta <= 0 : delta >= 0) return false
+  if (route.needTop && !atTop) return false
+  if (route.needBottom && !atBottom) return false
+  return true
+}
+
 const beginSwipe = (id, x, y, target) => {
   if (!swipeMq.matches || swipeStart) return
   if (isInteractiveTarget(target)) return
+  const el = currentScreenEl()
   swipeStart = {
     id,
     x,
@@ -221,19 +323,19 @@ const beginSwipe = (id, x, y, target) => {
     lastX: x,
     lastY: y,
     axis: null,
-    atTop: aboutScrolledToTop(),
+    atTop: scrolledToTop(el),
+    atBottom: scrolledToBottom(el),
     claimed: false,
   }
 }
 
 const offsetForGesture = (dx, dy) => {
   const screen = app.dataset.screen || 'home'
-  const { axis, atTop } = swipeStart
-  if (screen === 'home' && axis === 'x' && dx < 0) return { x: dx, y: 0, claim: true }
-  if (screen === 'home' && axis === 'y' && dy < 0) return { x: 0, y: dy, claim: true }
-  if (screen === 'work' && axis === 'x' && dx > 0) return { x: dx, y: 0, claim: true }
-  if (screen === 'about' && axis === 'y' && dy > 0 && atTop) return { x: 0, y: dy, claim: true }
-  return { x: 0, y: 0, claim: false }
+  const { axis, atTop, atBottom } = swipeStart
+  const route = swipeMap[screen]?.[axis]
+  const delta = axis === 'y' ? dy : dx
+  if (!gestureMatches(route, delta, atTop, atBottom)) return { x: 0, y: 0, claim: false }
+  return axis === 'y' ? { x: 0, y: dy, claim: true } : { x: dx, y: 0, claim: true }
 }
 
 const moveSwipe = (id, x, y, preventDefault) => {
@@ -249,9 +351,17 @@ const moveSwipe = (id, x, y, preventDefault) => {
   }
 
   const screen = app.dataset.screen || 'home'
-  if (screen === 'about' && swipeStart.axis === 'y' && dy < 0 && swipeStart.atTop) {
-    aboutScreen.scrollTop = -dy
-    return
+  const el = screenEls[screen]
+  const yRoute = swipeMap[screen]?.y
+  if (swipeStart.axis === 'y' && el && yRoute) {
+    if (yRoute.needTop && swipeStart.atTop && dy < 0) {
+      el.scrollTop = -dy
+      return
+    }
+    if (yRoute.needBottom && swipeStart.atBottom && dy > 0) {
+      el.scrollTop = el.scrollHeight - el.clientHeight - dy
+      return
+    }
   }
 
   const { x: ox, y: oy, claim } = offsetForGesture(dx, dy)
@@ -265,7 +375,7 @@ const moveSwipe = (id, x, y, preventDefault) => {
 
 const endSwipe = (id) => {
   if (!swipeStart || swipeStart.id !== id) return
-  const { x, y, lastX, lastY, axis, atTop, claimed } = swipeStart
+  const { x, y, lastX, lastY, axis, atTop, atBottom, claimed } = swipeStart
   swipeStart = null
 
   const dx = lastX - x
@@ -273,12 +383,9 @@ const endSwipe = (id) => {
   const dist = axis === 'y' ? dy : dx
   const abs = Math.abs(dist)
   const screen = app.dataset.screen || 'home'
-  const next = axis ? swipeRoutes[screen]?.[axis] : null
-  const validDir =
-    (screen === 'home' && axis === 'x' && dx < 0) ||
-    (screen === 'home' && axis === 'y' && dy < 0) ||
-    (screen === 'work' && axis === 'x' && dx > 0) ||
-    (screen === 'about' && axis === 'y' && dy > 0 && atTop)
+  const route = axis ? swipeMap[screen]?.[axis] : null
+  const next = route?.to
+  const validDir = gestureMatches(route, dist, atTop, atBottom)
 
   app.classList.remove('is-swiping')
 
