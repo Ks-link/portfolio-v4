@@ -15,6 +15,37 @@ const moonIcon = `
   </svg>
 `
 
+const homeIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="currentColor" fill-rule="evenodd"
+      d="M12.03125 1.5A1.0001 1.0001 0 0 0 11.492188 1.6386719L1.9921875 7.2265625A1.0001 1.0001 0 1 0 3 8.953125L3 20A1.0001 1.0001 0 0 0 4 21L20 21A1.0001 1.0001 0 0 0 21 20L21 8.953125A1.0001 1.0001 0 1 0 22.007812 7.2265625L12.507812 1.6386719A1.0001 1.0001 0 0 0 12.03125 1.5zM12 3.6601562L19 7.7773438L19 19L16 19L16 12A1.0001 1.0001 0 0 0 15 11L9 11A1.0001 1.0001 0 0 0 8 12L8 19L5 19L5 7.7773438L12 3.6601562zM10 13L14 13L14 19L10 19L10 13z"/>
+  </svg>
+`
+
+const lavaLampOnIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="currentColor"
+      d="M8.55 2.5a1.2 1.2 0 0 1 1.2-1.2h4.5a1.2 1.2 0 0 1 0 2.4h-4.5a1.2 1.2 0 0 1-1.2-1.2z"/>
+    <path fill="currentColor" fill-rule="evenodd"
+      d="M9.5 4.15h5L16.95 15.2H7.05z
+         M12.85 7.55a.95 .95 0 1 0 1.9 0a.95 .95 0 1 0-1.9 0z
+         M8.85 11.35c.85-.7 2.55-.55 3.55.25.7.55.7 1.4 0 1.75-1.05.55-2.7.3-3.45-.5-.55-.55-.6-1-.1-1.5z"/>
+    <path fill="currentColor"
+      d="M7.2 16.4h9.6l-2.05 2.45 2.7 3.9H6.55l2.7-3.9z"/>
+  </svg>
+`
+
+const lavaLampOffIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="currentColor"
+      d="M8.55 2.5a1.2 1.2 0 0 1 1.2-1.2h4.5a1.2 1.2 0 0 1 0 2.4h-4.5a1.2 1.2 0 0 1-1.2-1.2z"/>
+    <path fill="currentColor"
+      d="M9.5 4.15h5L16.95 15.2H7.05z"/>
+    <path fill="currentColor"
+      d="M7.2 16.4h9.6l-2.05 2.45 2.7 3.9H6.55l2.7-3.9z"/>
+  </svg>
+`
+
 const BLOB_COUNT = 6
 
 const navArrow = `
@@ -51,9 +82,17 @@ app.innerHTML = `
     <span class="blob blob--endcap" data-endcap="bottom"></span>
     ${Array.from({ length: BLOB_COUNT }, (_, i) => `<span class="blob" data-blob="${i}"></span>`).join('')}
   </div>
-  <button type="button" class="theme-toggle" aria-label="Toggle dark mode">
-    ${moonIcon}
+  <button type="button" class="corner-btn home-toggle" aria-label="Home">
+    ${homeIcon}
   </button>
+  <div class="corner-cluster corner-cluster--right">
+    <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
+      ${lavaLampOnIcon}
+    </button>
+    <button type="button" class="corner-btn theme-toggle" aria-label="Toggle dark mode">
+      ${moonIcon}
+    </button>
+  </div>
   <button type="button" class="nav-blob nav-blob--right" data-edge="right" aria-label="View work">
     ${navArrow}
   </button>
@@ -180,6 +219,31 @@ toggle.addEventListener('click', () => {
   applyTheme(next)
 })
 
+const blobsToggle = document.querySelector('.blobs-toggle')
+const homeToggle = document.querySelector('.home-toggle')
+
+const getPreferredBlobs = () => {
+  const stored = localStorage.getItem('blobSpawn')
+  if (stored === 'off' || stored === 'on') return stored
+  return 'on'
+}
+
+const applyBlobs = (state) => {
+  const on = state !== 'off'
+  app.dataset.blobs = on ? 'on' : 'off'
+  localStorage.setItem('blobSpawn', on ? 'on' : 'off')
+  blobsToggle.innerHTML = on ? lavaLampOnIcon : lavaLampOffIcon
+  blobsToggle.setAttribute('aria-label', on ? 'Stop creating blobs' : 'Start creating blobs')
+  blobsToggle.setAttribute('aria-pressed', on ? 'true' : 'false')
+  blobsToggle.classList.toggle('is-off', !on)
+}
+
+applyBlobs(getPreferredBlobs())
+
+blobsToggle.addEventListener('click', () => {
+  applyBlobs(app.dataset.blobs === 'off' ? 'on' : 'off')
+})
+
 const screens = new Set(['home', 'work', 'about', 'experience'])
 
 const screenFromHash = () => {
@@ -238,6 +302,10 @@ window.addEventListener('popstate', () => {
 })
 
 setScreen(screenFromHash())
+
+homeToggle.addEventListener('click', () => {
+  setScreen('home', { push: true })
+})
 
 const swipeMq = window.matchMedia('(max-width: 48rem)')
 const SWIPE_MIN = 56
@@ -496,10 +564,31 @@ const createBlob = (el, index) => {
     pushY: 0,
     attractX: 0,
     attractY: 0,
+    retired: false,
   }
 }
 
 const blobs = blobEls.map((el, i) => createBlob(el, i))
+const spawnEnabled = () => app.dataset.blobs !== 'off'
+
+const bounceBlob = (blob, t, atBottom) => {
+  blob.retired = false
+  blob.el.style.opacity = '1'
+  blob.progress = atBottom ? 1 : 0
+  blob.dir = atBottom ? -1 : 1
+  blob.targetLane = rand(0.22, 0.78)
+  blob.speed = rand(0.008, 0.024)
+  blob.targetAccel = atBottom ? rand(-0.02, 0.01) : rand(-0.01, 0.022)
+  blob.accelChangeAt = t + rand(0.5, 2)
+}
+
+if (!spawnEnabled()) {
+  blobs.forEach((blob) => {
+    blob.retired = true
+    blob.progress = Math.random() > 0.5 ? 0 : 1
+    blob.nest = 0
+  })
+}
 
 const endcaps = {
   top: { el: topCapEl, swell: 1, ripple: 0, x: 0, y: 0, w: 0, h: 0 },
@@ -654,10 +743,28 @@ if (reduceMotion) {
       item.el.style.setProperty('--magnet-y', `${item.y.toFixed(2)}px`)
     })
 
+    const spawnOn = spawnEnabled()
     let topAbsorb = 0
     let bottomAbsorb = 0
 
     blobs.forEach((blob) => {
+      if (blob.retired) {
+        if (spawnOn) {
+          bounceBlob(blob, t, blob.progress >= 0.5)
+        } else {
+          blob.nest = damp(blob.nest, 0, 3.2, dt)
+          blob.x = blob.lane * w
+          blob.y = progressToY(blob.progress, h)
+          blob.attractX = 0
+          blob.attractY = 0
+          if (blob.nest > 0.02) {
+            if (blob.progress < 0.5) topAbsorb += 1 - blob.nest
+            else bottomAbsorb += 1 - blob.nest
+          }
+          return
+        }
+      }
+
       if (t >= blob.accelChangeAt) {
         // Random acceleration bursts — some near-idle, some strong surges
         const surge = Math.random()
@@ -677,19 +784,19 @@ if (reduceMotion) {
       blob.progress += blob.dir * blob.speed * dt
 
       if (blob.progress >= 1) {
-        blob.progress = 1
-        blob.dir = -1
-        blob.targetLane = rand(0.22, 0.78)
-        blob.speed = rand(0.008, 0.024)
-        blob.targetAccel = rand(-0.02, 0.01)
-        blob.accelChangeAt = t + rand(0.5, 2)
+        if (spawnOn) {
+          bounceBlob(blob, t, true)
+        } else {
+          blob.progress = 1
+          blob.retired = true
+        }
       } else if (blob.progress <= 0) {
-        blob.progress = 0
-        blob.dir = 1
-        blob.targetLane = rand(0.22, 0.78)
-        blob.speed = rand(0.008, 0.024)
-        blob.targetAccel = rand(-0.01, 0.022)
-        blob.accelChangeAt = t + rand(0.5, 2)
+        if (spawnOn) {
+          bounceBlob(blob, t, false)
+        } else {
+          blob.progress = 0
+          blob.retired = true
+        }
       }
 
       const nest = nestAmount(blob.progress)
@@ -732,9 +839,11 @@ if (reduceMotion) {
     layoutEndcaps(t)
 
     for (let i = 0; i < blobs.length; i++) {
+      if (blobs[i].retired) continue
       for (let j = i + 1; j < blobs.length; j++) {
         const a = blobs[i]
         const b = blobs[j]
+        if (b.retired) continue
         const dx = b.x - a.x
         const dy = b.y - a.y
         const dist = Math.hypot(dx, dy) || 1
