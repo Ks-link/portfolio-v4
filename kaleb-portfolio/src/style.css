@@ -156,13 +156,31 @@ body {
 .blob--endcap {
   border-radius: 50%;
   pointer-events: none;
+  opacity: 1;
 }
 
-.theme-toggle {
+.corner-cluster {
   position: fixed;
   top: 1.25rem;
   left: 1.25rem;
   z-index: 10;
+  display: flex;
+  align-items: center;
+}
+
+.corner-cluster--right {
+  left: auto;
+  right: 1.25rem;
+}
+
+.home-toggle {
+  position: fixed;
+  top: 1.25rem;
+  left: 1.25rem;
+  z-index: 10;
+}
+
+.corner-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -179,13 +197,26 @@ body {
     opacity 0.2s ease;
 }
 
-.theme-toggle:hover {
+.corner-btn:hover {
   opacity: 0.7;
 }
 
-.theme-toggle:focus-visible {
+.corner-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+}
+
+.corner-btn.is-off {
+  opacity: 0.4;
+}
+
+.corner-btn.is-off:hover {
+  opacity: 0.7;
+}
+
+.home-toggle .theme-icon {
+  width: 1.12rem;
+  height: 1.12rem;
 }
 
 .theme-icon {
@@ -570,6 +601,10 @@ body {
   .nav-blob-shape {
     animation: none;
     border-radius: 52% 44% 56% 48% / 46% 54% 42% 56%;
+  }
+
+  #app[data-blobs="off"] .blob:not(.blob--endcap) {
+    opacity: 0;
   }
 }
 
