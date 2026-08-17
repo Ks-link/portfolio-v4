@@ -170,9 +170,10 @@ body {
 }
 
 .screen-inner {
+  --screen-pad-top: 15dvh;
   max-width: 40rem;
   margin: 0 auto;
-  padding: 5.5rem 0.5rem 4rem;
+  padding: var(--screen-pad-top) 0.5rem 4rem;
 }
 
 .goo-svg {
@@ -457,7 +458,7 @@ body {
   margin: 0;
   justify-content: center;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.85rem 1.5rem;
   font-family: var(--sans);
   font-weight: 300;
@@ -467,6 +468,10 @@ body {
   color: var(--text);
   opacity: 0.5;
   text-align: center;
+}
+
+.swipe-hints__set span {
+  white-space: nowrap;
 }
 
 .screen-title {
@@ -531,29 +536,37 @@ body {
 .project-desc-row {
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
+  width: 100%;
 }
 
 .project-desc-text {
   min-width: 0;
+  margin-right: 0.4rem;
   opacity: 0.75;
 }
 
+.project-desc-arrow-track {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0.72rem;
+}
+
 .project-desc-arrow {
+  position: relative;
+  left: 0;
   width: 0.72rem;
   height: 0.72rem;
-  flex-shrink: 0;
   opacity: 0.5;
   transform: translateY(0.08em);
   transition:
-    transform 0.25s ease,
+    left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.2s ease;
 }
 
 .project-link:hover .project-desc-arrow,
 .project-link:focus-visible .project-desc-arrow {
+  left: calc(100% - 0.72rem);
   opacity: 0.9;
-  transform: translate(0.18rem, 0.08em);
 }
 
 .project-underline {
@@ -585,14 +598,22 @@ body {
   }
 }
 
+.work-detail .screen-inner {
+  position: relative;
+}
+
 .work-back {
+  position: absolute;
+  top: var(--screen-pad-top);
+  left: 0.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  margin: 0 0 1.25rem;
+  margin: 0;
   padding: 0;
   border: none;
   background: none;
+  transform: translateY(calc(-100% - 0.85rem));
   font-family: var(--sans);
   font-weight: 500;
   font-size: 0.85rem;
@@ -667,31 +688,32 @@ body {
 
 .project-preview {
   position: absolute;
-  right: 1.35rem;
-  bottom: 4.5rem;
+  right: 0;
+  bottom: 0;
   z-index: 2;
-  width: min(12.5rem, 38vw);
+  width: clamp(22rem, 36vw, 48rem);
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
-  transform: scale(0.92) translateY(0.6rem);
+  transform-origin: 100% 100%;
+  transform: translate(52%, 52%) scale(0.88);
   transition:
     opacity 0.35s ease,
     visibility 0.35s ease,
-    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .project-preview.is-visible {
   opacity: 1;
   visibility: visible;
-  transform: scale(1) translateY(0);
+  transform: translate(14%, 14%) scale(1);
 }
 
 #app[data-project] .project-preview,
 #app[data-project] .project-preview.is-visible {
   opacity: 0;
   visibility: hidden;
-  transform: scale(0.92) translateY(0.6rem);
+  transform: translate(52%, 52%) scale(0.88);
 }
 
 @media (hover: none) {
@@ -947,6 +969,11 @@ body {
     display: block;
   }
 
+  .swipe-hints__set {
+    gap: 0.85rem 1rem;
+    letter-spacing: 0.12em;
+  }
+
   #app[data-screen="home"] .swipe-hints__set--home,
   #app[data-screen="work"]:not([data-project]) .swipe-hints__set--work,
   #app[data-screen="work"][data-project] .swipe-hints__set--work-detail,
@@ -959,6 +986,10 @@ body {
     padding-bottom: 4.25rem;
   }
 
+  .screen--home {
+    padding-bottom: 1.5rem;
+  }
+
   .screen--work {
     padding-bottom: 0;
   }
@@ -968,7 +999,12 @@ body {
   }
 
   .screen-inner {
+    --screen-pad-top: 12dvh;
     padding-bottom: 5rem;
+  }
+
+  .screen--experience .screen-inner {
+    padding-bottom: 0;
   }
 
   .screen--about .about-layout {
@@ -989,8 +1025,6 @@ body {
   }
 
   .project-preview {
-    right: 1rem;
-    bottom: 5.25rem;
-    width: min(9.5rem, 42vw);
+    width: min(16.5rem, 64vw);
   }
 }
