@@ -150,19 +150,31 @@ app.innerHTML = `
       </div>
     </section>
     <section class="screen screen--about" aria-labelledby="about-heading">
-      <div class="screen-inner">
-        <h2 id="about-heading" class="screen-title">About</h2>
-        <p class="about-bio">
-          I’m a web developer who likes making interfaces that feel a little alive.
-          More about me soon.
-        </p>
-        <h3 class="contact-heading">Contact</h3>
-        <ul class="contact-list">
-          <li><a href="mailto:contact@kaleblink.com">contact@kaleblink.com</a></li>
-          <li><a target="_blank" rel="noopener noreferrer" href="https://github.com/Ks-link">GitHub</a></li>
-          <li><a target="_blank" rel="noopener noreferrer" href="https://www.linkedin.com/in/kaleblink/">LinkedIn</a></li>
-        </ul>
-      </div>
+        <div class="screen-inner about-layout">
+          <h2 id="about-heading" class="screen-title">About</h2>
+          <p class="about-bio">
+            Hey there, I'm Kaleb  👋  
+            <br>I'm a web developer based out of Abbotsford, BC.
+          </p>
+          <h3 class="contact-heading">Contact</h3>
+          <ul class="contact-list">
+            <li><a href="mailto:contact@kaleblink.com">contact@kaleblink.com</a></li>
+            <li><a target="_blank" rel="noopener noreferrer" href="https://github.com/Ks-link">GitHub</a></li>
+            <li><a target="_blank" rel="noopener noreferrer" href="https://www.linkedin.com/in/kaleblink/">LinkedIn</a></li>
+          </ul>
+          <div class="profile-blob">
+            <span class="profile-blob-shape">
+              <img
+                class="profile-blob-img"
+                src="/profile.jpg"
+                alt="Portrait of Kaleb Link"
+                width="460"
+                height="460"
+                decoding="async"
+              />
+            </span>
+          </div>
+        </div>
     </section>
     <section class="screen screen--experience" aria-labelledby="experience-heading">
       <div class="screen-inner">
@@ -571,6 +583,128 @@ const createBlob = (el, index) => {
 const blobs = blobEls.map((el, i) => createBlob(el, i))
 const spawnEnabled = () => app.dataset.blobs !== 'off'
 
+const profileWrap = document.querySelector('.profile-blob')
+const profileShape = document.querySelector('.profile-blob-shape')
+const profileImg = document.querySelector('.profile-blob-img')
+
+const createProfileBlob = () => ({
+  wrap: profileWrap,
+  el: profileShape,
+  img: profileImg,
+  progress: rand(0.18, 0.82),
+  dir: Math.random() > 0.5 ? 1 : -1,
+  lane: rand(0.22, 0.78),
+  targetLane: rand(0.22, 0.78),
+  phase: rand(0, Math.PI * 2),
+  speed: rand(0.01, 0.028),
+  accel: rand(-0.012, 0.012),
+  targetAccel: rand(-0.018, 0.02),
+  accelChangeAt: rand(0.4, 2.5),
+  sway: rand(0.03, 0.08),
+  wobble: rand(0.15, 0.4),
+  x: 0,
+  y: 0,
+  pushX: 0,
+  pushY: 0,
+})
+
+const profileBlob = profileWrap && profileShape ? createProfileBlob() : null
+
+const profileSizePx = (cw, ch) => Math.min(cw, ch) * 0.88
+
+const bounceProfile = (blob, t, atBottom) => {
+  blob.progress = atBottom ? 1 : 0
+  blob.dir = atBottom ? -1 : 1
+  blob.targetLane = rand(0.22, 0.78)
+  blob.speed = rand(0.008, 0.024)
+  blob.targetAccel = atBottom ? rand(-0.02, 0.01) : rand(-0.01, 0.022)
+  blob.accelChangeAt = t + rand(0.5, 2)
+}
+
+const paintProfileBlob = (blob, x, y, s, radius) => {
+  const { el, img } = blob
+  el.style.width = `${s}px`
+  el.style.height = `${s}px`
+  el.style.borderRadius = radius
+  if (img) img.style.borderRadius = radius
+  el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`
+}
+
+const placeStaticProfile = () => {
+  if (!profileBlob) return
+  const { wrap } = profileBlob
+  const cw = wrap.clientWidth
+  const ch = wrap.clientHeight
+  if (cw < 2 || ch < 2) return
+  const s = profileSizePx(cw, ch)
+  paintProfileBlob(
+    profileBlob,
+    (cw - s) / 2,
+    (ch - s) / 2,
+    s,
+    '52% 44% 56% 48% / 46% 54% 42% 56%',
+  )
+}
+
+const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
+  const { wrap } = blob
+  const cw = wrap.clientWidth
+  const ch = wrap.clientHeight
+  if (cw < 2 || ch < 2) return
+
+  const s = profileSizePx(cw, ch)
+  const speedScale = window.innerHeight / ch * 0.55
+
+  if (t >= blob.accelChangeAt) {
+    const surge = Math.random()
+    if (surge < 0.2) blob.targetAccel = rand(-0.004, 0.004)
+    else if (surge < 0.55) blob.targetAccel = rand(-0.014, 0.016)
+    else blob.targetAccel = rand(-0.028, 0.032)
+    blob.accelChangeAt = t + rand(0.8, 3.8)
+  }
+
+  blob.accel = damp(blob.accel, blob.targetAccel, 1.8, dt)
+  blob.speed += blob.accel * dt
+  blob.speed = Math.min(0.052, Math.max(0.004, blob.speed))
+  blob.progress += blob.dir * blob.speed * speedScale * dt
+
+  if (blob.progress >= 1) bounceProfile(blob, t, true)
+  else if (blob.progress <= 0) bounceProfile(blob, t, false)
+
+  blob.lane = damp(blob.lane, blob.targetLane, 0.55, dt)
+
+  const travelX = Math.max(0, cw - s)
+  const travelY = Math.max(0, ch - s)
+  const swayX =
+    Math.sin(t * (0.18 + blob.wobble * 0.12) + blob.phase) * blob.sway * cw +
+    Math.sin(t * 0.09 + blob.phase * 1.7) * blob.sway * 0.35 * cw
+
+  const localX = Math.min(travelX, Math.max(0, blob.lane * travelX + swayX))
+  const localY = Math.min(travelY, Math.max(0, blob.progress * travelY))
+  blob.x = localX + s / 2
+  blob.y = localY + s / 2
+
+  const rect = wrap.getBoundingClientRect()
+  const screenX = rect.left + blob.x + blob.pushX
+  const screenY = rect.top + blob.y + blob.pushY
+  const mdx = mouseX - screenX
+  const mdy = mouseY - screenY
+  const dist = Math.hypot(mdx, mdy) || 1
+  const proximity = Math.max(0, 1 - dist / blobReach)
+  const force = blobPush * proximity * proximity
+  blob.pushX = damp(blob.pushX, (-mdx / dist) * force, 3.5, dt)
+  blob.pushY = damp(blob.pushY, (-mdy / dist) * force, 3.5, dt)
+
+  const x = Math.min(travelX, Math.max(0, localX + blob.pushX))
+  const y = Math.min(travelY, Math.max(0, localY + blob.pushY))
+  const rx1 = 48 + Math.sin(t * 0.18 + 3) * 10
+  const rx2 = 52 + Math.cos(t * 0.16 + 3) * 9
+  const rx3 = 46 + Math.sin(t * 0.14 + 3.3) * 11
+  const rx4 = 54 + Math.cos(t * 0.17 + 3) * 8
+
+  paintProfileBlob(blob, x, y, s, `${rx1}% ${rx2}% ${rx3}% ${rx4}%`)
+}
+
 const bounceBlob = (blob, t, atBottom) => {
   blob.retired = false
   blob.el.style.opacity = '1'
@@ -656,6 +790,7 @@ const placeStaticBlobs = () => {
     const y = progressToY(blob.progress, window.innerHeight) - s / 2
     blob.el.style.transform = `translate(${x}px, ${y}px)`
   })
+  placeStaticProfile()
 }
 
 if (reduceMotion) {
@@ -687,6 +822,7 @@ if (reduceMotion) {
 
   blobs.forEach(syncBlobSize)
   layoutEndcaps()
+  if (profileBlob) tickProfileBlob(profileBlob, 0, 0, mouseX, mouseY, blobReach, blobPush)
 
   window.addEventListener('pointermove', (e) => {
     mouseX = e.clientX
@@ -910,6 +1046,8 @@ if (reduceMotion) {
       blob.el.style.borderRadius = `${rx1}% ${rx2}% ${rx3}% ${rx4}%`
       blob.el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scaleX.toFixed(3)}, ${Math.max(0.08, scaleY).toFixed(3)})`
     })
+
+    if (profileBlob) tickProfileBlob(profileBlob, t, dt, mouseX, mouseY, blobReach, blobPush)
 
     rafId = requestAnimationFrame(tick)
   }

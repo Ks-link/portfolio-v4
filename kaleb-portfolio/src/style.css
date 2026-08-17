@@ -78,7 +78,10 @@ body {
 }
 
 #app[data-screen="experience"] .stage {
-  transform: translate(calc(-100vw + var(--swipe-x)), calc(-100dvh + var(--swipe-y)));
+  transform: translate(
+    calc(-100vw + var(--swipe-x)),
+    calc(-100dvh + var(--swipe-y))
+  );
 }
 
 .screen {
@@ -108,8 +111,7 @@ body {
 .screen--about {
   grid-column: 1;
   grid-row: 2;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
 }
 
 .screen--experience {
@@ -499,16 +501,77 @@ body {
   opacity: 0.75;
 }
 
+.about-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  height: 100%;
+  min-height: 0;
+}
+
+.profile-blob {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  align-self: stretch;
+  overflow: hidden;
+}
+
+.profile-blob-shape {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  overflow: hidden;
+  width: 14rem;
+  height: 14rem;
+  padding: 0.42rem;
+  background: var(--nav-blob);
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  will-change: transform, border-radius;
+}
+
+.profile-blob-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center;
+  border-radius: inherit;
+}
+
 .about-bio {
-  margin: 1.75rem 0 0;
+  margin: 0;
   font-weight: 300;
   font-size: 1.05rem;
   line-height: 1.65;
   max-width: 32rem;
 }
 
+@media (min-width: 48rem) {
+  .about-layout {
+    grid-template-columns: minmax(0, 1fr) 16.5rem;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    gap: 1.5rem 2.25rem;
+  }
+
+  .about-layout > :not(.profile-blob) {
+    grid-column: 1;
+  }
+
+  .profile-blob {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    width: auto;
+  }
+}
+
 .contact-heading {
-  margin: 2.5rem 0 0;
+  margin: 1rem 0 0;
   font-family: var(--sans);
   font-weight: 500;
   font-size: 0.85rem;
@@ -519,7 +582,7 @@ body {
 
 .contact-list {
   list-style: none;
-  margin: 0.85rem 0 0;
+  margin-top: -0.65rem;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -532,7 +595,9 @@ body {
   font-weight: 300;
   font-size: 1.05rem;
   opacity: 0.8;
-  transition: opacity 0.2s ease, color 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    color 0.2s ease;
 }
 
 .contact-list a:hover,
@@ -598,9 +663,15 @@ body {
     transition: none;
   }
 
-  .nav-blob-shape {
+  .nav-blob-shape,
+  .profile-blob-shape,
+  .profile-blob-img {
     animation: none;
     border-radius: 52% 44% 56% 48% / 46% 54% 42% 56%;
+  }
+
+  .profile-blob-shape {
+    will-change: auto;
   }
 
   #app[data-blobs="off"] .blob:not(.blob--endcap) {
@@ -630,6 +701,10 @@ body {
 
   .screen-inner {
     padding-bottom: 5rem;
+  }
+
+  .screen--about .about-layout {
+    padding-bottom: 1rem;
   }
 
   .screen--home,
