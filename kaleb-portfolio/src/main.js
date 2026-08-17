@@ -435,28 +435,30 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
     workDetailEl?.removeAttribute('data-project-id')
     if (workListEl) workListEl.inert = false
     workScreen?.setAttribute('aria-labelledby', 'work-heading')
-    hideProjectPreview()
-    if (focus && prevId) {
-      document.querySelector(`.project-link[data-project="${prevId}"]`)?.focus()
-    }
-    return
-  }
-
-  if (titleEl) titleEl.textContent = project.name
-  if (descEl) descEl.textContent = project.description
-  if (imgEl) {
-    if (imgEl.getAttribute('src') !== project.image) imgEl.src = project.image
-    imgEl.alt = project.alt
-  }
-  workDetailEl?.setAttribute('aria-hidden', 'false')
-  if (workDetailEl) {
-    workDetailEl.inert = false
-    workDetailEl.dataset.projectId = project.id
-  }
-  if (workListEl) workListEl.inert = true
-  workScreen?.setAttribute('aria-labelledby', 'work-detail-heading')
   hideProjectPreview()
-  if (focus) workBack?.focus()
+  if (focus && prevId) {
+    document.querySelector(`.project-link[data-project="${prevId}"]`)?.focus({
+      preventScroll: true,
+    })
+  }
+  return
+}
+
+if (titleEl) titleEl.textContent = project.name
+if (descEl) descEl.textContent = project.description
+if (imgEl) {
+  if (imgEl.getAttribute('src') !== project.image) imgEl.src = project.image
+  imgEl.alt = project.alt
+}
+workDetailEl?.setAttribute('aria-hidden', 'false')
+if (workDetailEl) {
+  workDetailEl.inert = false
+  workDetailEl.dataset.projectId = project.id
+  workDetailEl.scrollTop = 0
+}
+if (workListEl) workListEl.inert = true
+workScreen?.setAttribute('aria-labelledby', 'work-detail-heading')
+hideProjectPreview()
 }
 
 const setRoute = (screen, project = '', { push = false, focus = false } = {}) => {
@@ -468,14 +470,29 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
   if (project && !projectById.has(project)) project = ''
 
   const prevProject = app.dataset.project || ''
+  const shouldFocus = focus && prevProject !== project
+  const opening = Boolean(project) && !prevProject
+
   app.dataset.screen = screen
+  app.style.setProperty('--work-swipe', '0px')
+  syncNavLabels(screen, project)
+
+  if (opening && workDetailEl) {
+    applyProjectDetail(project, { focus: false })
+    void workDetailEl.offsetWidth
+  }
+
   if (project) app.dataset.project = project
   else delete app.dataset.project
-  app.style.setProperty('--work-swipe', '0px')
 
-  syncNavLabels(screen, project)
-  applyProjectDetail(project, { focus: focus && prevProject !== project })
-  if (project && workDetailEl) workDetailEl.scrollTop = 0
+  if (!opening) {
+    applyProjectDetail(project, { focus: shouldFocus })
+  } else if (shouldFocus) {
+    window.setTimeout(() => {
+      workBack?.focus({ preventScroll: true })
+    }, 700)
+  }
+
   routeEffects.syncScroll()
 
   const nextHash = hashForRoute(screen, project)

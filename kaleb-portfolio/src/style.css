@@ -56,8 +56,6 @@ body {
   overflow: hidden;
   --swipe-x: 0px;
   --swipe-y: 0px;
-  --work-list-x: 0%;
-  --work-detail-x: 100%;
   --work-swipe: 0px;
 }
 
@@ -115,11 +113,6 @@ body {
   grid-row: 1;
 }
 
-#app[data-project] {
-  --work-list-x: -100%;
-  --work-detail-x: 0%;
-}
-
 .screen--work {
   grid-column: 2;
   grid-row: 1;
@@ -142,18 +135,24 @@ body {
   overflow: hidden;
   padding: 1.5rem;
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
 
 .work-list {
-  transform: translate3d(calc(var(--work-list-x) + var(--work-swipe)), 0, 0);
+  transform: translate3d(var(--work-swipe), 0, 0);
 }
 
 .work-detail {
-  transform: translate3d(calc(var(--work-detail-x) + var(--work-swipe)), 0, 0);
+  transform: translate3d(calc(100% + var(--work-swipe)), 0, 0);
   z-index: 1;
 }
 
+#app[data-project] .work-list {
+  transform: translate3d(calc(-100% + var(--work-swipe)), 0, 0);
+}
+
 #app[data-project] .work-detail {
+  transform: translate3d(var(--work-swipe), 0, 0);
   z-index: 2;
 }
 
