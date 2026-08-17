@@ -47,7 +47,7 @@ const lavaLampOffIcon = `
 `
 
 const BLOB_COUNT = 6
-const UNDERLINE_POINTS = 24
+const UNDERLINE_POINTS = 40
 
 const projects = [
   {
@@ -84,7 +84,14 @@ const projectById = new Map(projects.map((project) => [project.id, project]))
 const underlineSvg = `
   <svg class="project-underline" viewBox="0 0 100 16" preserveAspectRatio="none" aria-hidden="true">
     <path class="project-underline-path" d="M 0 8 L 100 8" fill="none" stroke="currentColor"
-      stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+  </svg>
+`
+
+const projectArrow = `
+  <svg class="project-desc-arrow" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+      d="M10 5l7 7-7 7"/>
   </svg>
 `
 
@@ -93,13 +100,14 @@ const projectCardsHtml = projects
     (project) => `
           <li class="project-card">
             <a class="project-link" href="#/work/${project.id}" data-project="${project.id}">
-              <h3 class="project-name">
-                <span class="project-name-row">
-                  <span class="project-name-text">${project.name}</span>
-                  ${underlineSvg}
+              <h3 class="project-name">${project.name}</h3>
+              <p class="project-desc">
+                <span class="project-desc-row">
+                  <span class="project-desc-text">${project.summary}</span>
+                  ${projectArrow}
                 </span>
-              </h3>
-              <p class="project-desc">${project.summary}</p>
+                ${underlineSvg}
+              </p>
             </a>
           </li>`,
   )
@@ -201,7 +209,7 @@ app.innerHTML = `
             </ul>
           </div>
         </div>
-        <div class="work-pane work-detail" aria-hidden="true" inert>
+        <div class="work-pane work-detail" aria-hidden="true">
           <div class="screen-inner">
             <button type="button" class="work-back" aria-label="Back to work">Work</button>
             <h2 id="work-detail-heading" class="screen-title work-detail-title"></h2>
@@ -335,15 +343,12 @@ blobsToggle.addEventListener('click', () => {
 })
 
 const screens = new Set(['home', 'work', 'about', 'experience'])
-const hoverPreviewMq = window.matchMedia('(hover: hover) and (pointer: fine)')
+const hoverPreviewMq = window.matchMedia('(hover: hover)')
 
 const workScreen = document.querySelector('.screen--work')
 const workListEl = document.querySelector('.work-list')
 const workDetailEl = document.querySelector('.work-detail')
 const workBack = document.querySelector('.work-back')
-const workDetailTitle = document.querySelector('.work-detail-title')
-const workDetailDesc = document.querySelector('.work-detail-desc')
-const workDetailImg = document.querySelector('.work-detail-blob-img')
 const projectPreview = document.querySelector('.project-preview')
 const projectPreviewImg = document.querySelector('.project-preview-img')
 const projectLinks = [...document.querySelectorAll('.project-link')]
@@ -415,6 +420,9 @@ const canHoverPreview = () =>
 const applyProjectDetail = (id, { focus = false } = {}) => {
   const prevId = workDetailEl?.dataset.projectId || ''
   const project = projectById.get(id)
+  const titleEl = workDetailEl?.querySelector('.work-detail-title')
+  const descEl = workDetailEl?.querySelector('.work-detail-desc')
+  const imgEl = workDetailEl?.querySelector('.work-detail-blob-img')
 
   projectLinks.forEach((link) => {
     if (link.dataset.project === id) link.setAttribute('aria-current', 'page')
@@ -423,9 +431,9 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
 
   if (!project) {
     workDetailEl?.setAttribute('aria-hidden', 'true')
-    workDetailEl?.setAttribute('inert', '')
+    if (workDetailEl) workDetailEl.inert = true
     workDetailEl?.removeAttribute('data-project-id')
-    workListEl?.removeAttribute('inert')
+    if (workListEl) workListEl.inert = false
     workScreen?.setAttribute('aria-labelledby', 'work-heading')
     hideProjectPreview()
     if (focus && prevId) {
@@ -434,16 +442,18 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
     return
   }
 
-  workDetailTitle.textContent = project.name
-  workDetailDesc.textContent = project.description
-  if (workDetailImg.getAttribute('src') !== project.image) {
-    workDetailImg.src = project.image
+  if (titleEl) titleEl.textContent = project.name
+  if (descEl) descEl.textContent = project.description
+  if (imgEl) {
+    if (imgEl.getAttribute('src') !== project.image) imgEl.src = project.image
+    imgEl.alt = project.alt
   }
-  workDetailImg.alt = project.alt
-  workDetailEl.setAttribute('aria-hidden', 'false')
-  workDetailEl.removeAttribute('inert')
-  workDetailEl.dataset.projectId = project.id
-  workListEl?.setAttribute('inert', '')
+  workDetailEl?.setAttribute('aria-hidden', 'false')
+  if (workDetailEl) {
+    workDetailEl.inert = false
+    workDetailEl.dataset.projectId = project.id
+  }
+  if (workListEl) workListEl.inert = true
   workScreen?.setAttribute('aria-labelledby', 'work-detail-heading')
   hideProjectPreview()
   if (focus) workBack?.focus()
@@ -785,16 +795,18 @@ const rand = (min, max) => min + Math.random() * (max - min)
 const damp = (current, target, lambda, dt) =>
   current + (target - current) * (1 - Math.exp(-lambda * dt))
 
-const underlines = projectLinks.map((link, index) => {
+const underlines = projectLinks.map((link) => {
   const svg = link.querySelector('.project-underline')
   const path = link.querySelector('.project-underline-path')
   return {
     link,
     svg,
     path,
-    phase: index * 1.7,
     active: 0,
-    points: Array.from({ length: UNDERLINE_POINTS }, () => ({ y: 0 })),
+    hovering: false,
+    contacting: false,
+    points: Array.from({ length: UNDERLINE_POINTS }, () => ({ y: 0, v: 0 })),
+    splashes: [],
   }
 })
 
@@ -815,42 +827,78 @@ const pathFromPoints = (pts) => {
   return d
 }
 
+const addSplash = (u, x, w, t, amp = 1) => {
+  u.splashes.push({
+    x: Math.min(w, Math.max(0, x)),
+    born: t,
+    amp,
+    speed: Math.max(90, w * 0.62),
+    width: Math.max(10, w * 0.055),
+  })
+  if (u.splashes.length > 4) u.splashes.shift()
+}
+
 const tickUnderlines = (t, dt, mouseX, mouseY) => {
   const onList = app.dataset.screen === 'work' && !app.dataset.project
   underlines.forEach((u) => {
     if (!u.path || !u.svg) return
     const hovered =
       onList && hoverPreviewMq.matches && (u.link.matches(':hover') || u.link.matches(':focus-visible'))
-    u.active = damp(u.active, hovered ? 1 : 0, 14, dt)
+    u.active = damp(u.active, hovered || u.splashes.length ? 1 : 0, 14, dt)
 
     const rect = u.svg.getBoundingClientRect()
     const w = Math.max(1, rect.width)
-    const midY = 8
+    const height = Math.max(1, rect.height)
+    const n = u.points.length
+    const localMx = mouseX - rect.left
+    const localMy = mouseY - rect.top
+    const midPx = height * 0.5
+    const nearLine =
+      hovered &&
+      localMx >= -16 &&
+      localMx <= w + 16 &&
+      Math.abs(localMy - midPx) < 36
+
+    if (hovered && !u.hovering) addSplash(u, localMx, w, t, 1)
+    else if (nearLine && !u.contacting) addSplash(u, localMx, w, t, 0.72)
+    u.hovering = hovered
+    u.contacting = nearLine
+
+    u.splashes = u.splashes.filter((splash) => t - splash.born < 2.6)
+
+    const ys = u.points.map((p) => p.y)
     const samples = []
 
-    for (let i = 0; i < UNDERLINE_POINTS; i++) {
-      const xNorm = i / (UNDERLINE_POINTS - 1)
-      const x = xNorm * 100
-      const rest =
-        Math.sin(t * 1.05 + xNorm * 6.3 + u.phase) * 1.35 +
-        Math.sin(t * 0.62 + xNorm * 11.1 + u.phase * 1.4) * 0.85 +
-        Math.sin(t * 1.55 + xNorm * 3.4) * 0.45
+    for (let i = 0; i < n; i++) {
+      const xNorm = i / (n - 1)
+      const px = xNorm * w
+      const left = ys[Math.max(0, i - 1)]
+      const right = ys[Math.min(n - 1, i + 1)]
+      const spread = (left + right - 2 * ys[i]) * 70
 
-      const px = rect.left + xNorm * w
-      const py = rect.top + h * 0.5
-      const dx = mouseX - px
-      const dy = mouseY - py
-      const dist = Math.hypot(dx, dy * 0.4)
-      const sigma = Math.max(28, w * 0.2)
-      const poke = Math.exp(-(dist * dist) / (2 * sigma * sigma)) * 5.8
-      const dir = dy >= 0 ? -1 : 1
-      const target = rest + poke * dir
-      u.points[i].y = damp(u.points[i].y, hovered ? target : 0, 16, dt)
-      samples.push({ x, y: midY + u.points[i].y * u.active })
+      let wave = 0
+      for (const splash of u.splashes) {
+        const age = t - splash.born
+        const fade = Math.exp(-age * 1.45)
+        const dist = Math.abs(px - splash.x)
+        const r1 = splash.speed * age
+        const r2 = splash.speed * age * 0.68
+        const crater = Math.exp(-age * 7.5) * Math.exp(-(dist * dist) / (2 * (splash.width * 0.85) ** 2))
+        const ring =
+          Math.exp(-((dist - r1) ** 2) / (2 * splash.width ** 2)) -
+          0.62 * Math.exp(-((dist - r2) ** 2) / (2 * (splash.width * 1.2) ** 2))
+        wave += splash.amp * fade * (ring * 6.4 - crater * 5.2)
+      }
+
+      const p = u.points[i]
+      p.v += (spread + wave * 38 - p.y * 22) * dt
+      p.v *= Math.exp(-3.8 * dt)
+      p.y += p.v * dt
+      p.y = Math.max(-7.4, Math.min(7.4, p.y))
+      samples.push({ x: xNorm * 100, y: 8 + p.y * u.active })
     }
 
     if (u.active > 0.01) u.path.setAttribute('d', pathFromPoints(samples))
-    u.svg.style.opacity = u.active.toFixed(3)
   })
 }
 

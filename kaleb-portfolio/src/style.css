@@ -28,8 +28,12 @@
 html,
 body {
   margin: 0;
-  min-height: 100%;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -45,11 +49,15 @@ body {
 
 #app {
   position: relative;
+  width: 100%;
+  height: 100%;
   height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
   --swipe-x: 0px;
   --swipe-y: 0px;
-  --work-x: 0%;
+  --work-list-x: 0%;
+  --work-detail-x: 100%;
   --work-swipe: 0px;
 }
 
@@ -64,7 +72,8 @@ body {
 }
 
 #app.is-swiping .stage,
-#app.is-swiping .work-panes {
+#app.is-swiping .work-list,
+#app.is-swiping .work-detail {
   transition: none;
 }
 
@@ -91,7 +100,9 @@ body {
   position: relative;
   z-index: 1;
   width: 100vw;
+  height: 100%;
   height: 100dvh;
+  max-height: 100dvh;
   padding: 1.5rem;
   overflow: hidden;
 }
@@ -105,7 +116,8 @@ body {
 }
 
 #app[data-project] {
-  --work-x: -50%;
+  --work-list-x: -100%;
+  --work-detail-x: 0%;
 }
 
 .screen--work {
@@ -116,23 +128,33 @@ body {
 }
 
 .work-panes {
-  display: flex;
-  width: 200%;
+  position: relative;
+  width: 100%;
   height: 100%;
-  transform: translate3d(calc(var(--work-x) + var(--work-swipe)), 0, 0);
-  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
+  overflow: hidden;
 }
 
 .work-pane {
-  flex: 0 0 50%;
-  width: 50%;
+  position: absolute;
+  inset: 0;
+  width: 100%;
   height: 100%;
-  min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
   padding: 1.5rem;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.work-list {
+  transform: translate3d(calc(var(--work-list-x) + var(--work-swipe)), 0, 0);
+}
+
+.work-detail {
+  transform: translate3d(calc(var(--work-detail-x) + var(--work-swipe)), 0, 0);
+  z-index: 1;
+}
+
+#app[data-project] .work-detail {
+  z-index: 2;
 }
 
 .screen--about {
@@ -497,32 +519,71 @@ body {
   color: var(--text);
 }
 
-.project-name-row {
+.project-desc {
   position: relative;
-  display: inline-block;
-  padding-bottom: 0.55rem;
+  margin: 0.35rem 0 0;
+  padding-bottom: 0.85rem;
+  font-weight: 300;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.project-desc-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.project-desc-text {
+  min-width: 0;
+  opacity: 0.75;
+}
+
+.project-desc-arrow {
+  width: 0.72rem;
+  height: 0.72rem;
+  flex-shrink: 0;
+  opacity: 0.5;
+  transform: translateY(0.08em);
+  transition:
+    transform 0.25s ease,
+    opacity 0.2s ease;
+}
+
+.project-link:hover .project-desc-arrow,
+.project-link:focus-visible .project-desc-arrow {
+  opacity: 0.9;
+  transform: translate(0.18rem, 0.08em);
 }
 
 .project-underline {
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(100% - 0.42rem);
+  bottom: 0;
   width: 100%;
   height: 14px;
   overflow: visible;
   opacity: 0;
   pointer-events: none;
-  color: var(--accent);
+  color: var(--text);
+  transition: opacity 0.2s ease;
 }
 
-.project-desc {
-  margin: 0.15rem 0 0;
-  font-weight: 300;
-  font-size: 0.98rem;
-  line-height: 1.5;
-  color: var(--text);
-  opacity: 0.75;
+.project-underline-path {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (hover: hover) {
+  .project-link:hover .project-underline,
+  .project-link:focus-visible .project-underline {
+    opacity: 1;
+  }
 }
 
 .work-back {
@@ -634,7 +695,7 @@ body {
   transform: scale(0.92) translateY(0.6rem);
 }
 
-@media (hover: none), (pointer: coarse) {
+@media (hover: none) {
   .project-underline,
   .project-preview {
     display: none;
@@ -831,12 +892,14 @@ body {
   .hero,
   .blob,
   .stage,
-  .work-panes {
+  .work-list,
+  .work-detail {
     will-change: auto;
   }
 
   .stage,
-  .work-panes,
+  .work-list,
+  .work-detail,
   .project-preview {
     transition: none;
   }
@@ -860,15 +923,14 @@ body {
     display: none;
   }
 
-  .project-name-text {
+  .project-desc-text {
     box-shadow: none;
-    transition: box-shadow 0.2s ease;
   }
 
-  @media (hover: hover) and (pointer: fine) {
-    .project-link:hover .project-name-text,
-    .project-link:focus-visible .project-name-text {
-      box-shadow: 0 2px 0 var(--accent);
+  @media (hover: hover) {
+    .project-link:hover .project-desc-text,
+    .project-link:focus-visible .project-desc-text {
+      box-shadow: 0 1px 0 var(--text);
     }
   }
 
