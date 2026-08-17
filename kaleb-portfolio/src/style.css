@@ -458,7 +458,7 @@ body {
   margin: 0;
   justify-content: center;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.85rem 1.5rem;
   font-family: var(--sans);
   font-weight: 300;
@@ -468,6 +468,10 @@ body {
   color: var(--text);
   opacity: 0.5;
   text-align: center;
+}
+
+.swipe-hints__set span {
+  white-space: nowrap;
 }
 
 .screen-title {
@@ -965,6 +969,11 @@ body {
     display: block;
   }
 
+  .swipe-hints__set {
+    gap: 0.85rem 1rem;
+    letter-spacing: 0.12em;
+  }
+
   #app[data-screen="home"] .swipe-hints__set--home,
   #app[data-screen="work"]:not([data-project]) .swipe-hints__set--work,
   #app[data-screen="work"][data-project] .swipe-hints__set--work-detail,
@@ -990,8 +999,12 @@ body {
   }
 
   .screen-inner {
-    --screen-pad-top: 10dvh;
+    --screen-pad-top: 12dvh;
     padding-bottom: 5rem;
+  }
+
+  .screen--experience .screen-inner {
+    padding-bottom: 0;
   }
 
   .screen--about .about-layout {
