@@ -89,10 +89,12 @@ const underlineSvg = `
 `
 
 const projectArrow = `
-  <svg class="project-desc-arrow" viewBox="0 0 24 24" aria-hidden="true">
-    <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
-      d="M10 5l7 7-7 7"/>
-  </svg>
+  <span class="project-desc-arrow-track" aria-hidden="true">
+    <svg class="project-desc-arrow" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+        d="M10 5l7 7-7 7"/>
+    </svg>
+  </span>
 `
 
 const projectCardsHtml = projects
