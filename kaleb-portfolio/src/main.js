@@ -47,6 +47,63 @@ const lavaLampOffIcon = `
 `
 
 const BLOB_COUNT = 6
+const UNDERLINE_POINTS = 24
+
+const projects = [
+  {
+    id: 'project-one',
+    name: 'Project one',
+    summary: 'A short line about this project.',
+    description:
+      'A closer look at this project. Placeholder copy for the details pane until the real write-up lands.',
+    image: '/profile.jpg',
+    alt: 'Preview of Project one',
+  },
+  {
+    id: 'project-two',
+    name: 'Project two',
+    summary: 'A short line about this project.',
+    description:
+      'Notes, process, and outcomes for this piece of work. More detail will live here as the case study takes shape.',
+    image: '/profile.jpg',
+    alt: 'Preview of Project two',
+  },
+  {
+    id: 'project-three',
+    name: 'Project three',
+    summary: 'A short line about this project.',
+    description:
+      'What this project set out to do, how it was built, and what came of it. Placeholder text for now.',
+    image: '/profile.jpg',
+    alt: 'Preview of Project three',
+  },
+]
+
+const projectById = new Map(projects.map((project) => [project.id, project]))
+
+const underlineSvg = `
+  <svg class="project-underline" viewBox="0 0 100 16" preserveAspectRatio="none" aria-hidden="true">
+    <path class="project-underline-path" d="M 0 8 L 100 8" fill="none" stroke="currentColor"
+      stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+  </svg>
+`
+
+const projectCardsHtml = projects
+  .map(
+    (project) => `
+          <li class="project-card">
+            <a class="project-link" href="#/work/${project.id}" data-project="${project.id}">
+              <h3 class="project-name">
+                <span class="project-name-row">
+                  <span class="project-name-text">${project.name}</span>
+                  ${underlineSvg}
+                </span>
+              </h3>
+              <p class="project-desc">${project.summary}</p>
+            </a>
+          </li>`,
+  )
+  .join('')
 
 const navArrow = `
   <span class="nav-blob-shape">
@@ -114,6 +171,10 @@ app.innerHTML = `
       <span>swipe right — home</span>
       <span>swipe up — experience</span>
     </p>
+    <p class="swipe-hints__set swipe-hints__set--work-detail">
+      <span>swipe right — work</span>
+      <span>swipe up — experience</span>
+    </p>
     <p class="swipe-hints__set swipe-hints__set--about">
       <span>swipe down — home</span>
       <span>swipe left — experience</span>
@@ -131,22 +192,39 @@ app.innerHTML = `
       </main>
     </section>
     <section class="screen screen--work" aria-labelledby="work-heading">
-      <div class="screen-inner">
-        <h2 id="work-heading" class="screen-title">Work</h2>
-        <ul class="project-grid">
-          <li class="project-card">
-            <h3 class="project-name">Project one</h3>
-            <p class="project-desc">A short line about this project.</p>
-          </li>
-          <li class="project-card">
-            <h3 class="project-name">Project two</h3>
-            <p class="project-desc">A short line about this project.</p>
-          </li>
-          <li class="project-card">
-            <h3 class="project-name">Project three</h3>
-            <p class="project-desc">A short line about this project.</p>
-          </li>
-        </ul>
+      <div class="work-panes">
+        <div class="work-pane work-list">
+          <div class="screen-inner">
+            <h2 id="work-heading" class="screen-title">Work</h2>
+            <ul class="project-grid">
+              ${projectCardsHtml}
+            </ul>
+          </div>
+        </div>
+        <div class="work-pane work-detail" aria-hidden="true" inert>
+          <div class="screen-inner">
+            <button type="button" class="work-back" aria-label="Back to work">Work</button>
+            <h2 id="work-detail-heading" class="screen-title work-detail-title"></h2>
+            <p class="work-detail-desc"></p>
+            <div class="work-detail-blob">
+              <span class="work-detail-blob-shape">
+                <img
+                  class="work-detail-blob-img"
+                  src="/profile.jpg"
+                  alt=""
+                  width="640"
+                  height="640"
+                  decoding="async"
+                />
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="project-preview" aria-hidden="true">
+        <span class="project-preview-shape">
+          <img class="project-preview-img" src="/profile.jpg" alt="" width="460" height="460" decoding="async" />
+        </span>
       </div>
     </section>
     <section class="screen screen--about" aria-labelledby="about-heading">
@@ -257,13 +335,34 @@ blobsToggle.addEventListener('click', () => {
 })
 
 const screens = new Set(['home', 'work', 'about', 'experience'])
+const hoverPreviewMq = window.matchMedia('(hover: hover) and (pointer: fine)')
 
-const screenFromHash = () => {
+const workScreen = document.querySelector('.screen--work')
+const workListEl = document.querySelector('.work-list')
+const workDetailEl = document.querySelector('.work-detail')
+const workBack = document.querySelector('.work-back')
+const workDetailTitle = document.querySelector('.work-detail-title')
+const workDetailDesc = document.querySelector('.work-detail-desc')
+const workDetailImg = document.querySelector('.work-detail-blob-img')
+const projectPreview = document.querySelector('.project-preview')
+const projectPreviewImg = document.querySelector('.project-preview-img')
+const projectLinks = [...document.querySelectorAll('.project-link')]
+
+const parseHash = () => {
   const path = window.location.hash.replace(/^#\/?/, '').replace(/\/$/, '')
-  return screens.has(path) ? path : 'home'
+  if (!path) return { screen: 'home', project: '' }
+  const [screenPart, projectPart] = path.split('/')
+  const screen = screens.has(screenPart) ? screenPart : 'home'
+  const project =
+    screen === 'work' && projectPart && projectById.has(projectPart) ? projectPart : ''
+  return { screen, project }
 }
 
-const hashForScreen = (screen) => (screen === 'home' ? '#/' : `#/${screen}`)
+const hashForRoute = (screen, project = '') => {
+  if (screen === 'home') return '#/'
+  if (screen === 'work' && project) return `#/work/${project}`
+  return `#/${screen}`
+}
 
 const edgeNav = {
   home: { right: 'work', bottom: 'about' },
@@ -281,42 +380,157 @@ const ariaForDest = (dest) => {
 }
 
 const navBlobs = [...document.querySelectorAll('.nav-blob')]
+const routeEffects = { syncScroll: () => {} }
 
-const syncNavLabels = (screen) => {
+const syncNavLabels = (screen, project = '') => {
   navBlobs.forEach((btn) => {
+    if (screen === 'work' && project && btn.dataset.edge === 'left') {
+      btn.setAttribute('aria-label', 'Back to work')
+      return
+    }
     const dest = edgeNav[screen]?.[btn.dataset.edge]
     if (!dest) return
     btn.setAttribute('aria-label', ariaForDest(dest))
   })
 }
 
-const setScreen = (screen, { push = false } = {}) => {
-  if (!screens.has(screen)) screen = 'home'
+const hideProjectPreview = () => {
+  projectPreview?.classList.remove('is-visible')
+  projectPreview?.setAttribute('aria-hidden', 'true')
+}
+
+const showProjectPreview = (project) => {
+  if (!projectPreview || !projectPreviewImg) return
+  if (projectPreviewImg.getAttribute('src') !== project.image) {
+    projectPreviewImg.src = project.image
+  }
+  projectPreviewImg.alt = project.alt
+  projectPreview.classList.add('is-visible')
+  projectPreview.setAttribute('aria-hidden', 'false')
+}
+
+const canHoverPreview = () =>
+  hoverPreviewMq.matches && app.dataset.screen === 'work' && !app.dataset.project
+
+const applyProjectDetail = (id, { focus = false } = {}) => {
+  const prevId = workDetailEl?.dataset.projectId || ''
+  const project = projectById.get(id)
+
+  projectLinks.forEach((link) => {
+    if (link.dataset.project === id) link.setAttribute('aria-current', 'page')
+    else link.removeAttribute('aria-current')
+  })
+
+  if (!project) {
+    workDetailEl?.setAttribute('aria-hidden', 'true')
+    workDetailEl?.setAttribute('inert', '')
+    workDetailEl?.removeAttribute('data-project-id')
+    workListEl?.removeAttribute('inert')
+    workScreen?.setAttribute('aria-labelledby', 'work-heading')
+    hideProjectPreview()
+    if (focus && prevId) {
+      document.querySelector(`.project-link[data-project="${prevId}"]`)?.focus()
+    }
+    return
+  }
+
+  workDetailTitle.textContent = project.name
+  workDetailDesc.textContent = project.description
+  if (workDetailImg.getAttribute('src') !== project.image) {
+    workDetailImg.src = project.image
+  }
+  workDetailImg.alt = project.alt
+  workDetailEl.setAttribute('aria-hidden', 'false')
+  workDetailEl.removeAttribute('inert')
+  workDetailEl.dataset.projectId = project.id
+  workListEl?.setAttribute('inert', '')
+  workScreen?.setAttribute('aria-labelledby', 'work-detail-heading')
+  hideProjectPreview()
+  if (focus) workBack?.focus()
+}
+
+const setRoute = (screen, project = '', { push = false, focus = false } = {}) => {
+  if (!screens.has(screen)) {
+    screen = 'home'
+    project = ''
+  }
+  if (screen !== 'work') project = ''
+  if (project && !projectById.has(project)) project = ''
+
+  const prevProject = app.dataset.project || ''
   app.dataset.screen = screen
-  syncNavLabels(screen)
-  const nextHash = hashForScreen(screen)
+  if (project) app.dataset.project = project
+  else delete app.dataset.project
+  app.style.setProperty('--work-swipe', '0px')
+
+  syncNavLabels(screen, project)
+  applyProjectDetail(project, { focus: focus && prevProject !== project })
+  if (project && workDetailEl) workDetailEl.scrollTop = 0
+  routeEffects.syncScroll()
+
+  const nextHash = hashForRoute(screen, project)
+  const state = { screen, project }
   if (window.location.hash !== nextHash) {
-    if (push) history.pushState({ screen }, '', nextHash)
-    else history.replaceState({ screen }, '', nextHash)
+    if (push) history.pushState(state, '', nextHash)
+    else history.replaceState(state, '', nextHash)
   }
 }
+
+const setScreen = (screen, opts = {}) => setRoute(screen, '', opts)
 
 navBlobs.forEach((btn) => {
   btn.addEventListener('click', () => {
     const screen = app.dataset.screen || 'home'
+    if (screen === 'work' && app.dataset.project && btn.dataset.edge === 'left') {
+      setRoute('work', '', { push: true, focus: true })
+      return
+    }
     const dest = edgeNav[screen]?.[btn.dataset.edge]
     if (dest) setScreen(dest, { push: true })
   })
 })
 
 window.addEventListener('popstate', () => {
-  setScreen(screenFromHash())
+  const { screen, project } = parseHash()
+  setRoute(screen, project, { push: false, focus: true })
 })
 
-setScreen(screenFromHash())
+const { screen: initialScreen, project: initialProject } = parseHash()
+setRoute(initialScreen, initialProject)
 
 homeToggle.addEventListener('click', () => {
   setScreen('home', { push: true })
+})
+
+workBack?.addEventListener('click', () => {
+  setRoute('work', '', { push: true, focus: true })
+})
+
+projectLinks.forEach((link) => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault()
+    setRoute('work', link.dataset.project, { push: true, focus: true })
+  })
+
+  link.addEventListener('pointerenter', () => {
+    if (!canHoverPreview()) return
+    const project = projectById.get(link.dataset.project)
+    if (project) showProjectPreview(project)
+  })
+
+  link.addEventListener('pointerleave', () => {
+    if (!link.matches(':focus-visible')) hideProjectPreview()
+  })
+
+  link.addEventListener('focus', () => {
+    if (!canHoverPreview()) return
+    const project = projectById.get(link.dataset.project)
+    if (project) showProjectPreview(project)
+  })
+
+  link.addEventListener('blur', () => {
+    if (!link.matches(':hover')) hideProjectPreview()
+  })
 })
 
 const swipeMq = window.matchMedia('(max-width: 48rem)')
@@ -342,7 +556,7 @@ const swipeMap = {
 }
 
 const screenEls = {
-  work: document.querySelector('.screen--work'),
+  work: workScreen,
   about: document.querySelector('.screen--about'),
   experience: document.querySelector('.screen--experience'),
 }
@@ -358,19 +572,22 @@ const scrolledToBottom = (el) => {
   return el.scrollTop + el.clientHeight >= el.scrollHeight - 1
 }
 
-const currentScreenEl = () => screenEls[app.dataset.screen]
-
-const syncScrollEdges = () => {
-  const work = screenEls.work
-  const about = screenEls.about
-  const experience = screenEls.experience
-  work?.classList.toggle('is-at-bottom', scrolledToBottom(work))
-  about?.classList.toggle('is-at-top', scrolledToTop(about))
-  experience?.classList.toggle('is-at-top', scrolledToTop(experience))
+const currentScrollEl = () => {
+  const screen = app.dataset.screen
+  if (screen === 'work') return app.dataset.project ? workDetailEl : workListEl
+  return screenEls[screen]
 }
 
+const syncScrollEdges = () => {
+  const workScroller = app.dataset.screen === 'work' ? currentScrollEl() : workListEl
+  screenEls.work?.classList.toggle('is-at-bottom', scrolledToBottom(workScroller))
+  screenEls.about?.classList.toggle('is-at-top', scrolledToTop(screenEls.about))
+  screenEls.experience?.classList.toggle('is-at-top', scrolledToTop(screenEls.experience))
+}
+
+routeEffects.syncScroll = syncScrollEdges
 syncScrollEdges()
-Object.values(screenEls).forEach((el) => {
+;[workListEl, workDetailEl, screenEls.about, screenEls.experience].forEach((el) => {
   el?.addEventListener('scroll', syncScrollEdges, { passive: true })
 })
 
@@ -379,9 +596,14 @@ const setSwipeOffset = (x, y) => {
   app.style.setProperty('--swipe-y', `${y}px`)
 }
 
+const setWorkSwipe = (x) => {
+  app.style.setProperty('--work-swipe', `${x}px`)
+}
+
 const resetSwipeOffset = () => {
   app.classList.remove('is-swiping')
   setSwipeOffset(0, 0)
+  setWorkSwipe(0)
 }
 
 const gestureMatches = (route, delta, atTop, atBottom) => {
@@ -395,7 +617,7 @@ const gestureMatches = (route, delta, atTop, atBottom) => {
 const beginSwipe = (id, x, y, target) => {
   if (!swipeMq.matches || swipeStart) return
   if (isInteractiveTarget(target)) return
-  const el = currentScreenEl()
+  const el = currentScrollEl()
   swipeStart = {
     id,
     x,
@@ -406,12 +628,16 @@ const beginSwipe = (id, x, y, target) => {
     atTop: scrolledToTop(el),
     atBottom: scrolledToBottom(el),
     claimed: false,
+    closeProject: false,
   }
 }
 
 const offsetForGesture = (dx, dy) => {
   const screen = app.dataset.screen || 'home'
   const { axis, atTop, atBottom } = swipeStart
+  if (screen === 'work' && app.dataset.project && axis === 'x' && dx > 0) {
+    return { x: dx, y: 0, claim: true, closeProject: true }
+  }
   const route = swipeMap[screen]?.[axis]
   const delta = axis === 'y' ? dy : dx
   if (!gestureMatches(route, delta, atTop, atBottom)) return { x: 0, y: 0, claim: false }
@@ -431,7 +657,7 @@ const moveSwipe = (id, x, y, preventDefault) => {
   }
 
   const screen = app.dataset.screen || 'home'
-  const el = screenEls[screen]
+  const el = currentScrollEl()
   const yRoute = swipeMap[screen]?.y
   if (swipeStart.axis === 'y' && el && yRoute) {
     if (yRoute.needTop && swipeStart.atTop && dy < 0) {
@@ -444,18 +670,23 @@ const moveSwipe = (id, x, y, preventDefault) => {
     }
   }
 
-  const { x: ox, y: oy, claim } = offsetForGesture(dx, dy)
+  const { x: ox, y: oy, claim, closeProject } = offsetForGesture(dx, dy)
   if (!claim) return
 
   swipeStart.claimed = true
+  swipeStart.closeProject = Boolean(closeProject)
   preventDefault?.()
   app.classList.add('is-swiping')
+  if (closeProject) {
+    setWorkSwipe(Math.min(ox, window.innerWidth))
+    return
+  }
   setSwipeOffset(ox, oy)
 }
 
 const endSwipe = (id) => {
   if (!swipeStart || swipeStart.id !== id) return
-  const { x, y, lastX, lastY, axis, atTop, atBottom, claimed } = swipeStart
+  const { x, y, lastX, lastY, axis, atTop, atBottom, claimed, closeProject } = swipeStart
   swipeStart = null
 
   const dx = lastX - x
@@ -469,8 +700,15 @@ const endSwipe = (id) => {
 
   app.classList.remove('is-swiping')
 
+  if (claimed && closeProject && dx > 0 && abs >= SWIPE_MIN) {
+    setWorkSwipe(0)
+    setRoute('work', '', { push: true, focus: true })
+    return
+  }
+
   if (claimed && validDir && abs >= SWIPE_MIN && next) {
     setSwipeOffset(0, 0)
+    setWorkSwipe(0)
     setScreen(next, { push: true })
     return
   }
@@ -546,6 +784,75 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 const rand = (min, max) => min + Math.random() * (max - min)
 const damp = (current, target, lambda, dt) =>
   current + (target - current) * (1 - Math.exp(-lambda * dt))
+
+const underlines = projectLinks.map((link, index) => {
+  const svg = link.querySelector('.project-underline')
+  const path = link.querySelector('.project-underline-path')
+  return {
+    link,
+    svg,
+    path,
+    phase: index * 1.7,
+    active: 0,
+    points: Array.from({ length: UNDERLINE_POINTS }, () => ({ y: 0 })),
+  }
+})
+
+const pathFromPoints = (pts) => {
+  if (pts.length < 2) return ''
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[Math.min(pts.length - 1, i + 2)]
+    const cp1x = p1.x + (p2.x - p0.x) / 6
+    const cp1y = p1.y + (p2.y - p0.y) / 6
+    const cp2x = p2.x - (p3.x - p1.x) / 6
+    const cp2y = p2.y - (p3.y - p1.y) / 6
+    d += ` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`
+  }
+  return d
+}
+
+const tickUnderlines = (t, dt, mouseX, mouseY) => {
+  const onList = app.dataset.screen === 'work' && !app.dataset.project
+  underlines.forEach((u) => {
+    if (!u.path || !u.svg) return
+    const hovered =
+      onList && hoverPreviewMq.matches && (u.link.matches(':hover') || u.link.matches(':focus-visible'))
+    u.active = damp(u.active, hovered ? 1 : 0, 14, dt)
+
+    const rect = u.svg.getBoundingClientRect()
+    const w = Math.max(1, rect.width)
+    const midY = 8
+    const samples = []
+
+    for (let i = 0; i < UNDERLINE_POINTS; i++) {
+      const xNorm = i / (UNDERLINE_POINTS - 1)
+      const x = xNorm * 100
+      const rest =
+        Math.sin(t * 1.05 + xNorm * 6.3 + u.phase) * 1.35 +
+        Math.sin(t * 0.62 + xNorm * 11.1 + u.phase * 1.4) * 0.85 +
+        Math.sin(t * 1.55 + xNorm * 3.4) * 0.45
+
+      const px = rect.left + xNorm * w
+      const py = rect.top + h * 0.5
+      const dx = mouseX - px
+      const dy = mouseY - py
+      const dist = Math.hypot(dx, dy * 0.4)
+      const sigma = Math.max(28, w * 0.2)
+      const poke = Math.exp(-(dist * dist) / (2 * sigma * sigma)) * 5.8
+      const dir = dy >= 0 ? -1 : 1
+      const target = rest + poke * dir
+      u.points[i].y = damp(u.points[i].y, hovered ? target : 0, 16, dt)
+      samples.push({ x, y: midY + u.points[i].y * u.active })
+    }
+
+    if (u.active > 0.01) u.path.setAttribute('d', pathFromPoints(samples))
+    u.svg.style.opacity = u.active.toFixed(3)
+  })
+}
 
 const ABSORB = 0.16
 const OVERSCAN = 0.2
@@ -1048,6 +1355,7 @@ if (reduceMotion) {
     })
 
     if (profileBlob) tickProfileBlob(profileBlob, t, dt, mouseX, mouseY, blobReach, blobPush)
+    tickUnderlines(t, dt, mouseX, mouseY)
 
     rafId = requestAnimationFrame(tick)
   }
