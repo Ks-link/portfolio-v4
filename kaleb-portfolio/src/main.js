@@ -55,9 +55,9 @@ const projects = [
     name: 'The Dirt Buster',
     url: 'https://thedirtbuster.com/',
     tags: ['WordPress', 'SEO', 'PHP', 'HTML', 'CSS', 'Email', 'Google Workspace'],
-    summary: 'A WordPress site for a Campbell River cleaner — custom theme, local SEO, and email.',
+    summary: 'A WordPress site for a local cleaning business.',
     description:
-      'A custom WordPress build for a long-running Campbell River cleaner. I wrote the theme in PHP, HTML, and CSS, set up local SEO so nearby searches actually find the business, and connected quote requests to Google Workspace email so inquiries land where they work.',
+      'A WordPress build for a long-running cleaning company based in Campbell River. I created a custom WordPress theme and set up local SEO so nearby searches actually find the business, as well as set up email services along with Google Workspace.',
     image: '/projects/dirtbuster.jpg',
     preview: '/projects/dirtbuster-logo.png',
     alt: 'Homepage of The Dirt Buster, a Campbell River carpet cleaning site.',
@@ -70,9 +70,9 @@ const projects = [
     livePreview: false,
     linkText: 'Play game',
     tags: ['JavaScript', 'HTML', 'CSS'],
-    summary: 'A two-player browser game — claim tiles, shoot bullets, and outplay your opponent.',
+    summary: 'A two-player browser game built with vanilla JavaScript.',
     description:
-      'A local two-player browser game built in vanilla JavaScript, HTML, and CSS. Players move only on tiles they own, shoot to claim new ground, and cancel each other\'s bullets mid-air. I built the grid engine, player movement, collision detection, and audio from scratch — with customizable grid sizes, colour themes, and keyboard controls for both players on one machine.',
+      'A local two-player browser game built with vanilla JavaScript, HTML, and CSS. Players move only on tiles they own, shoot to claim new ground, and cancel each other\'s bullets mid-air. I built the grid engine, player movement, collision detection, and game mechanics from scratch. There are customizable grid sizes, colour themes, and keyboard controls for both players on one machine. It\'s pretty fun, give it a try.',
     image: '/projects/tile-wars-gameplay.gif',
     preview: '/projects/tile-wars-preview.gif',
     alt: 'Gameplay of Tile Wars, a two-player territory-shooting browser game.',
