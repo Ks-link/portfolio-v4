@@ -725,6 +725,7 @@ body {
 
 .work-detail-frame-img {
   position: absolute;
+  z-index: 0;
   top: var(--frame-inset);
   left: var(--frame-inset);
   display: block;
@@ -736,8 +737,129 @@ body {
   border-radius: var(--frame-radius);
 }
 
+.work-detail-live {
+  --preview-scale: 0.5;
+  position: absolute;
+  z-index: 1;
+  top: var(--frame-inset);
+  left: var(--frame-inset);
+  width: calc(100% - 2 * (var(--frame-thickness) + var(--frame-wave)));
+  height: calc(100% - 2 * (var(--frame-thickness) + var(--frame-wave)));
+  overflow: hidden;
+  border-radius: var(--frame-radius);
+}
+
+.work-detail-live[hidden],
+.work-detail-live-arm[hidden] {
+  display: none;
+}
+
+.work-detail-live-frame {
+  display: block;
+  width: 1280px;
+  height: calc(100% / var(--preview-scale));
+  border: 0;
+  transform: scale(var(--preview-scale));
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.work-detail-frame.is-armed .work-detail-live-frame {
+  pointer-events: auto;
+}
+
+.work-detail-live-arm {
+  position: absolute;
+  z-index: 2;
+  top: var(--frame-inset);
+  left: var(--frame-inset);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(100% - 2 * (var(--frame-thickness) + var(--frame-wave)));
+  height: calc(100% - 2 * (var(--frame-thickness) + var(--frame-wave)));
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--frame-radius);
+  background: color-mix(in srgb, var(--bg) 52%, transparent);
+  backdrop-filter: blur(3px);
+  cursor: pointer;
+  transition:
+    background 0.25s ease,
+    backdrop-filter 0.25s ease;
+}
+
+.work-detail-live-arm-blob {
+  --magnet-x: 0px;
+  --magnet-y: 0px;
+  display: inline-flex;
+  transform: translate(var(--magnet-x), var(--magnet-y));
+}
+
+.work-detail-live-arm-shape {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 5.75rem;
+  height: 5.75rem;
+  padding: 0.55rem;
+  background: var(--nav-blob);
+  opacity: 0.92;
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  animation: blob-morph 7s ease-in-out infinite;
+  animation-delay: -1.8s;
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.3s ease;
+}
+
+.work-detail-live-arm-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--text);
+  opacity: 0.75;
+  transition: opacity 0.3s ease;
+}
+
+.work-detail-live-arm:hover,
+.work-detail-live-arm:focus-visible {
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  backdrop-filter: blur(5px);
+}
+
+.work-detail-live-arm:hover .work-detail-live-arm-shape,
+.work-detail-live-arm:focus-visible .work-detail-live-arm-shape {
+  transform: scale(1.08);
+  opacity: 1;
+}
+
+.work-detail-live-arm:hover .work-detail-live-arm-label,
+.work-detail-live-arm:focus-visible .work-detail-live-arm-label {
+  opacity: 0.9;
+}
+
+.work-detail-live-arm:focus-visible {
+  outline: none;
+}
+
+.work-detail-live-arm:focus-visible .work-detail-live-arm-shape {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .work-detail-frame-border {
   position: absolute;
+  z-index: 3;
   inset: 0;
   width: 100%;
   height: 100%;
@@ -1013,6 +1135,12 @@ body {
   .project-preview-img {
     animation: none;
     border-radius: 52% 44% 56% 48% / 46% 54% 42% 56%;
+  }
+
+  .work-detail-live-arm-shape {
+    animation: none;
+    border-radius: 50%;
+    transition: none;
   }
 
   .profile-blob-shape {

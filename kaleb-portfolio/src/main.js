@@ -223,6 +223,24 @@ app.innerHTML = `
             <p class="work-detail-desc"></p>
             <a class="work-detail-link" hidden target="_blank" rel="noopener noreferrer">Visit site</a>
             <div class="work-detail-frame">
+              <div class="work-detail-live" hidden>
+                <iframe
+                  class="work-detail-live-frame"
+                  title=""
+                  loading="lazy"
+                  referrerpolicy="no-referrer"
+                ></iframe>
+              </div>
+              <button type="button" class="work-detail-live-arm" hidden>
+                <span class="work-detail-live-arm-blob">
+                  <span class="work-detail-live-arm-shape">
+                    <span class="work-detail-live-arm-label">
+                      <span>check</span>
+                      <span>it out</span>
+                    </span>
+                  </span>
+                </span>
+              </button>
               <img
                 class="work-detail-frame-img"
                 src="/profile.jpg"
@@ -361,6 +379,62 @@ const workBack = document.querySelector('.work-back')
 const projectPreview = document.querySelector('.project-preview')
 const projectPreviewImg = document.querySelector('.project-preview-img')
 const projectLinks = [...document.querySelectorAll('.project-link')]
+const PREVIEW_WIDTH = 1280
+const projectLive = {
+  wrap: document.querySelector('.work-detail-frame'),
+  live: document.querySelector('.work-detail-live'),
+  iframe: document.querySelector('.work-detail-live-frame'),
+  arm: document.querySelector('.work-detail-live-arm'),
+  blob: document.querySelector('.work-detail-live-arm-blob'),
+  magnet: { x: 0, y: 0 },
+}
+
+const syncPreviewScale = () => {
+  const live = projectLive.live
+  if (!live || live.hidden) return
+  const width = live.clientWidth
+  if (width < 1) return
+  live.style.setProperty('--preview-scale', String(width / PREVIEW_WIDTH))
+}
+
+const disarmLivePreview = () => {
+  projectLive.wrap?.classList.remove('is-armed')
+  if (projectLive.arm && projectLive.live && !projectLive.live.hidden) {
+    projectLive.arm.hidden = false
+  }
+}
+
+const teardownLivePreview = () => {
+  disarmLivePreview()
+  projectLive.wrap?.classList.remove('is-live', 'is-armed')
+  if (projectLive.live) projectLive.live.hidden = true
+  if (projectLive.arm) projectLive.arm.hidden = true
+  projectLive.magnet.x = 0
+  projectLive.magnet.y = 0
+  projectLive.blob?.style.setProperty('--magnet-x', '0px')
+  projectLive.blob?.style.setProperty('--magnet-y', '0px')
+  if (projectLive.iframe) {
+    projectLive.iframe.removeAttribute('title')
+    projectLive.iframe.src = 'about:blank'
+  }
+}
+
+const setupLivePreview = (project) => {
+  if (!project?.url || !projectLive.live || !projectLive.iframe || !projectLive.arm) {
+    teardownLivePreview()
+    return
+  }
+
+  projectLive.wrap?.classList.add('is-live')
+  projectLive.wrap?.classList.remove('is-armed')
+  projectLive.live.hidden = false
+  projectLive.arm.hidden = false
+  projectLive.iframe.title = `Live preview of ${project.name}`
+  if (projectLive.iframe.getAttribute('src') !== project.url) {
+    projectLive.iframe.src = project.url
+  }
+  syncPreviewScale()
+}
 
 const parseHash = () => {
   const path = window.location.hash.replace(/^#\/?/, '').replace(/\/$/, '')
@@ -453,6 +527,7 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
       tagsEl.replaceChildren()
       tagsEl.hidden = true
     }
+    teardownLivePreview()
     if (workListEl) workListEl.inert = false
     workScreen?.setAttribute('aria-labelledby', 'work-heading')
   hideProjectPreview()
@@ -490,7 +565,11 @@ if (imgEl) {
   if (imgEl.getAttribute('src') !== project.image) imgEl.src = project.image
   imgEl.alt = project.alt
 }
-requestAnimationFrame(() => tickProjectFrame(0))
+setupLivePreview(project)
+requestAnimationFrame(() => {
+  syncPreviewScale()
+  tickProjectFrame(0)
+})
 workDetailEl?.setAttribute('aria-hidden', 'false')
 if (workDetailEl) {
   workDetailEl.inert = false
@@ -573,6 +652,22 @@ homeToggle.addEventListener('click', () => {
 workBack?.addEventListener('click', () => {
   setRoute('work', '', { push: true, focus: true })
 })
+
+projectLive.arm?.addEventListener('click', () => {
+  projectLive.wrap?.classList.add('is-armed')
+  if (projectLive.arm) projectLive.arm.hidden = true
+  projectLive.iframe?.focus()
+})
+
+document.addEventListener('pointerdown', (e) => {
+  if (!projectLive.wrap?.classList.contains('is-armed')) return
+  if (projectLive.wrap.contains(e.target)) return
+  disarmLivePreview()
+})
+
+if (projectLive.live) {
+  new ResizeObserver(syncPreviewScale).observe(projectLive.live)
+}
 
 projectLinks.forEach((link) => {
   link.addEventListener('click', (e) => {
@@ -963,6 +1058,39 @@ const tickProjectFrame = (t) => {
 }
 
 window.addEventListener('resize', () => tickProjectFrame(0))
+
+const tickLiveArmMagnet = (dt, mouseX, mouseY, magnetOn) => {
+  const { arm, blob, magnet } = projectLive
+  let targetX = 0
+  let targetY = 0
+
+  if (
+    magnetOn &&
+    arm &&
+    blob &&
+    !arm.hidden &&
+    projectLive.wrap?.classList.contains('is-live') &&
+    !projectLive.wrap?.classList.contains('is-armed')
+  ) {
+    const rect = blob.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2 - magnet.x
+    const cy = rect.top + rect.height / 2 - magnet.y
+    const dx = mouseX - cx
+    const dy = mouseY - cy
+    const dist = Math.hypot(dx, dy) || 1
+    const reach = 220
+    const max = 12
+    const proximity = Math.max(0, 1 - dist / reach)
+    const force = max * proximity * proximity
+    targetX = (dx / dist) * force
+    targetY = (dy / dist) * force
+  }
+
+  magnet.x = damp(magnet.x, targetX, 8, dt)
+  magnet.y = damp(magnet.y, targetY, 8, dt)
+  blob?.style.setProperty('--magnet-x', `${magnet.x.toFixed(2)}px`)
+  blob?.style.setProperty('--magnet-y', `${magnet.y.toFixed(2)}px`)
+}
 
 const addSplash = (u, x, w, t, amp = 1) => {
   u.splashes.push({
@@ -1370,6 +1498,8 @@ if (reduceMotion) {
       item.el.style.setProperty('--magnet-x', `${item.x.toFixed(2)}px`)
       item.el.style.setProperty('--magnet-y', `${item.y.toFixed(2)}px`)
     })
+
+    tickLiveArmMagnet(dt, mouseX, mouseY, magnetOn)
 
     const spawnOn = spawnEnabled()
     let topAbsorb = 0
