@@ -74,18 +74,9 @@ const projects = [
     description:
       'A local two-player browser game built in vanilla JavaScript, HTML, and CSS. Players move only on tiles they own, shoot to claim new ground, and cancel each other\'s bullets mid-air. I built the grid engine, player movement, collision detection, and audio from scratch — with customizable grid sizes, colour themes, and keyboard controls for both players on one machine.',
     image: '/projects/tile-wars-gameplay.gif',
-    preview: '/projects/tile-wars-gameplay.gif',
+    preview: '/projects/tile-wars-preview.gif',
     alt: 'Gameplay of Tile Wars, a two-player territory-shooting browser game.',
-    previewAlt: 'Animated gameplay preview of Tile Wars',
-  },
-  {
-    id: 'project-three',
-    name: 'Project three',
-    summary: 'A short line about this project.',
-    description:
-      'What this project set out to do, how it was built, and what came of it. Placeholder text for now.',
-    image: '/profile.jpg',
-    alt: 'Preview of Project three',
+    previewAlt: 'Animated Tile Wars gameplay on a yellow and purple grid',
   },
 ]
 
