@@ -70,6 +70,11 @@
       li + li {
         margin-top: 1.4rem;
       }
+      li.is-archived h2 {
+        font-size: 1.35rem;
+        font-weight: 500;
+        margin: 0 0 0.25rem;
+      }
       h2 {
         font-size: 1.35rem;
         font-weight: 500;
@@ -97,10 +102,18 @@
           <h2><a href="/library/tile-wars/">Tile Wars</a></h2>
           <p>Two-player browser game.</p>
         </li>
+        <li>
+          <h2><a href="/library/curtain-drop/">Curtain Drop</a></h2>
+          <p>Movie browser built with React and Vite.</p>
+        </li>
+        <li class="is-archived">
+          <h2>Snacklab</h2>
+          <p>WordPress site with a custom theme. Requires PHP hosting — not runnable on this static host.</p>
+        </li>
       </ul>
       <p class="note">
-        WordPress and PHP sites (e.g. Snacklab) cannot run on this static host. They stay in
-        the archive for reference and are not deployed here.
+        Snacklab and other WordPress/PHP sites stay in the external archive. Only static exports
+        are deployed here. A static HTML export of Snacklab can be added later if you generate one.
       </p>
     </main>
   </body>
