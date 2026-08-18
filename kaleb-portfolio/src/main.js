@@ -64,13 +64,19 @@ const projects = [
     previewAlt: 'The Dirt Buster logo',
   },
   {
-    id: 'project-two',
-    name: 'Project two',
-    summary: 'A short line about this project.',
+    id: 'tile-wars',
+    name: 'Tile Wars',
+    url: '/library/tile-wars/',
+    livePreview: false,
+    linkText: 'Play game',
+    tags: ['JavaScript', 'HTML', 'CSS'],
+    summary: 'A two-player browser game — claim tiles, shoot bullets, and outplay your opponent.',
     description:
-      'Notes, process, and outcomes for this piece of work. More detail will live here as the case study takes shape.',
-    image: '/profile.jpg',
-    alt: 'Preview of Project two',
+      'A local two-player browser game built in vanilla JavaScript, HTML, and CSS. Players move only on tiles they own, shoot to claim new ground, and cancel each other\'s bullets mid-air. I built the grid engine, player movement, collision detection, and audio from scratch — with customizable grid sizes, colour themes, and keyboard controls for both players on one machine.',
+    image: '/projects/tile-wars-gameplay.gif',
+    preview: '/projects/tile-wars-gameplay.gif',
+    alt: 'Gameplay of Tile Wars, a two-player territory-shooting browser game.',
+    previewAlt: 'Animated gameplay preview of Tile Wars',
   },
   {
     id: 'project-three',
@@ -420,7 +426,13 @@ const teardownLivePreview = () => {
 }
 
 const setupLivePreview = (project) => {
-  if (!project?.url || !projectLive.live || !projectLive.iframe || !projectLive.arm) {
+  if (
+    !project?.url ||
+    project.livePreview === false ||
+    !projectLive.live ||
+    !projectLive.iframe ||
+    !projectLive.arm
+  ) {
     teardownLivePreview()
     return
   }
@@ -555,6 +567,7 @@ if (descEl) descEl.textContent = project.description
 if (linkEl) {
   if (project.url) {
     linkEl.href = project.url
+    linkEl.textContent = project.linkText || 'Visit site'
     linkEl.hidden = false
   } else {
     linkEl.hidden = true
