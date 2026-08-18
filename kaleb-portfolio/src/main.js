@@ -145,6 +145,11 @@ app.innerHTML = `
       </filter>
     </defs>
   </svg>
+  <div class="blob-cursor" aria-hidden="true">
+    <span class="blob-cursor-motion">
+      <span class="blob-cursor-shape"></span>
+    </span>
+  </div>
   <div class="blobs" aria-hidden="true">
     <span class="blob blob--endcap" data-endcap="top"></span>
     <span class="blob blob--endcap" data-endcap="bottom"></span>
@@ -264,7 +269,7 @@ app.innerHTML = `
           <h2 id="about-heading" class="screen-title">About</h2>
           <p class="about-bio">
             Hey there, I'm Kaleb  👋  
-            <br>I'm a web developer based out of Abbotsford, BC.
+            <br>I'm a web developer based in Abbotsford, BC.
           </p>
           <h3 class="contact-heading">Contact</h3>
           <ul class="contact-list">
@@ -491,7 +496,7 @@ const ariaForDest = (dest) => {
 }
 
 const navBlobs = [...document.querySelectorAll('.nav-blob')]
-const routeEffects = { syncScroll: () => {} }
+const routeEffects = { syncScroll: () => { } }
 
 const syncNavLabels = (screen, project = '') => {
   navBlobs.forEach((btn) => {
@@ -553,56 +558,74 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
     teardownLivePreview()
     if (workListEl) workListEl.inert = false
     workScreen?.setAttribute('aria-labelledby', 'work-heading')
-  hideProjectPreview()
-  if (focus && prevId) {
-    document.querySelector(`.project-link[data-project="${prevId}"]`)?.focus({
-      preventScroll: true,
-    })
+    hideProjectPreview()
+    if (focus && prevId) {
+      document.querySelector(`.project-link[data-project="${prevId}"]`)?.focus({
+        preventScroll: true,
+      })
+    }
+    return
   }
-  return
+
+  if (titleEl) titleEl.textContent = project.name
+  if (tagsEl) {
+    tagsEl.replaceChildren()
+    const tags = project.tags || []
+    tags.forEach((tag) => {
+      const item = document.createElement('li')
+      item.className = 'work-detail-tag'
+      item.textContent = tag
+      tagsEl.append(item)
+    })
+    tagsEl.hidden = tags.length === 0
+  }
+  if (descEl) descEl.textContent = project.description
+  if (linkEl) {
+    if (project.url) {
+      linkEl.href = project.url
+      linkEl.textContent = project.linkText || 'Visit site'
+      linkEl.hidden = false
+    } else {
+      linkEl.hidden = true
+      linkEl.removeAttribute('href')
+    }
+  }
+  if (imgEl) {
+    if (imgEl.getAttribute('src') !== project.image) imgEl.src = project.image
+    imgEl.alt = project.alt
+  }
+  setupLivePreview(project)
+  requestAnimationFrame(() => {
+    syncPreviewScale()
+    tickProjectFrame(0)
+  })
+  workDetailEl?.setAttribute('aria-hidden', 'false')
+  if (workDetailEl) {
+    workDetailEl.inert = false
+    workDetailEl.dataset.projectId = project.id
+    workDetailEl.scrollTop = 0
+  }
+  if (workListEl) workListEl.inert = true
+  workScreen?.setAttribute('aria-labelledby', 'work-detail-heading')
+  hideProjectPreview()
 }
 
-if (titleEl) titleEl.textContent = project.name
-if (tagsEl) {
-  tagsEl.replaceChildren()
-  const tags = project.tags || []
-  tags.forEach((tag) => {
-    const item = document.createElement('li')
-    item.className = 'work-detail-tag'
-    item.textContent = tag
-    tagsEl.append(item)
-  })
-  tagsEl.hidden = tags.length === 0
-}
-if (descEl) descEl.textContent = project.description
-if (linkEl) {
-  if (project.url) {
-    linkEl.href = project.url
-    linkEl.textContent = project.linkText || 'Visit site'
-    linkEl.hidden = false
-  } else {
-    linkEl.hidden = true
-    linkEl.removeAttribute('href')
+let lastGtagPath
+
+const trackSpaPageView = () => {
+  const pagePath =
+    window.location.pathname + window.location.search + window.location.hash
+  if (lastGtagPath === undefined) {
+    lastGtagPath = pagePath
+    return
   }
-}
-if (imgEl) {
-  if (imgEl.getAttribute('src') !== project.image) imgEl.src = project.image
-  imgEl.alt = project.alt
-}
-setupLivePreview(project)
-requestAnimationFrame(() => {
-  syncPreviewScale()
-  tickProjectFrame(0)
-})
-workDetailEl?.setAttribute('aria-hidden', 'false')
-if (workDetailEl) {
-  workDetailEl.inert = false
-  workDetailEl.dataset.projectId = project.id
-  workDetailEl.scrollTop = 0
-}
-if (workListEl) workListEl.inert = true
-workScreen?.setAttribute('aria-labelledby', 'work-detail-heading')
-hideProjectPreview()
+  if (pagePath === lastGtagPath || typeof window.gtag !== 'function') return
+  lastGtagPath = pagePath
+  window.gtag('event', 'page_view', {
+    page_path: pagePath,
+    page_location: window.location.href,
+    page_title: document.title,
+  })
 }
 
 const setRoute = (screen, project = '', { push = false, focus = false } = {}) => {
@@ -645,6 +668,8 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
     if (push) history.pushState(state, '', nextHash)
     else history.replaceState(state, '', nextHash)
   }
+
+  trackSpaPageView()
 }
 
 const setScreen = (screen, opts = {}) => setRoute(screen, '', opts)
@@ -774,9 +799,9 @@ const syncScrollEdges = () => {
 
 routeEffects.syncScroll = syncScrollEdges
 syncScrollEdges()
-;[workListEl, workDetailEl, screenEls.about, screenEls.experience].forEach((el) => {
-  el?.addEventListener('scroll', syncScrollEdges, { passive: true })
-})
+  ;[workListEl, workDetailEl, screenEls.about, screenEls.experience].forEach((el) => {
+    el?.addEventListener('scroll', syncScrollEdges, { passive: true })
+  })
 
 const setSwipeOffset = (x, y) => {
   app.style.setProperty('--swipe-x', `${x}px`)
@@ -1905,4 +1930,107 @@ if (reduceMotion) {
 
   rafId = requestAnimationFrame(tick)
   window.addEventListener('beforeunload', () => cancelAnimationFrame(rafId))
+}
+
+const blobCursorRoot = document.querySelector('.blob-cursor')
+const blobCursorMotion = document.querySelector('.blob-cursor-motion')
+const finePointerMq = window.matchMedia('(hover: hover) and (pointer: fine)')
+const cursorInteractive = 'a, button, [role="button"], summary, label, input, textarea, select'
+
+if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
+  const cursor = {
+    visible: false,
+    enabled: false,
+    moving: false,
+    angle: 0,
+    lastT: 0,
+    settleTimer: 0,
+  }
+
+  const restMotion = () => `rotate(${cursor.angle.toFixed(1)}deg)`
+
+  const settleMotion = () => {
+    cursor.settleTimer = 0
+    cursor.moving = false
+    blobCursorRoot.classList.remove('is-moving')
+    blobCursorMotion.style.transform = restMotion()
+  }
+
+  const syncCursorMode = () => {
+    cursor.enabled = finePointerMq.matches
+    root.classList.toggle('has-blob-cursor', cursor.enabled)
+    if (!cursor.enabled) {
+      cursor.visible = false
+      blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving')
+      blobCursorMotion.style.transform = ''
+    }
+  }
+
+  const hideCursor = () => {
+    cursor.visible = false
+    cursor.moving = false
+    if (cursor.settleTimer) {
+      clearTimeout(cursor.settleTimer)
+      cursor.settleTimer = 0
+    }
+    blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving')
+    blobCursorMotion.style.transform = ''
+  }
+
+  syncCursorMode()
+  finePointerMq.addEventListener('change', syncCursorMode)
+
+  window.addEventListener(
+    'pointermove',
+    (e) => {
+      if (!cursor.enabled || e.pointerType === 'touch') return
+      if (e.target?.closest?.('iframe')) {
+        hideCursor()
+        return
+      }
+
+      const hovering = Boolean(e.target?.closest?.(cursorInteractive))
+      blobCursorRoot.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`
+      blobCursorRoot.classList.toggle('is-hover', hovering)
+
+      if (!cursor.visible) {
+        cursor.visible = true
+        cursor.lastT = e.timeStamp
+        blobCursorRoot.classList.add('is-on')
+        return
+      }
+
+      const dt = Math.max(8, e.timeStamp - cursor.lastT)
+      cursor.lastT = e.timeStamp
+      const dist = Math.hypot(e.movementX, e.movementY)
+      if (dist > 0.6) {
+        cursor.angle = Math.atan2(e.movementY, e.movementX) * (180 / Math.PI)
+        const cap = hovering ? 0.22 : 0.42
+        const stretch = Math.min(cap, (dist / dt) * 0.36)
+        if (!cursor.moving) {
+          cursor.moving = true
+          blobCursorRoot.classList.add('is-moving')
+        }
+        blobCursorMotion.style.transform = `rotate(${cursor.angle.toFixed(1)}deg) scale(${(1 + stretch).toFixed(3)}, ${(1 - stretch * 0.52).toFixed(3)})`
+      }
+
+      if (cursor.settleTimer) clearTimeout(cursor.settleTimer)
+      cursor.settleTimer = setTimeout(settleMotion, 40)
+    },
+    { passive: true },
+  )
+
+  window.addEventListener('pointerdown', (e) => {
+    if (cursor.enabled && e.pointerType !== 'touch') blobCursorRoot.classList.add('is-down')
+  })
+
+  window.addEventListener('pointerup', () => {
+    blobCursorRoot.classList.remove('is-down')
+  })
+
+  window.addEventListener('pointercancel', () => {
+    blobCursorRoot.classList.remove('is-down')
+  })
+
+  document.documentElement.addEventListener('mouseleave', hideCursor)
 }
