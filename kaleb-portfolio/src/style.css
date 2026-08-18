@@ -5,7 +5,9 @@
   --accent: #ee8533;
   --blob: #f0ece2;
   --nav-blob: #e4ddd0;
+  --cursor-blob: #ee8533;
   --blobs-opacity: 0.5;
+  --cursor-blend: multiply;
   --display: "Rammetto One", "Arial Rounded MT Bold", sans-serif;
   --sans: "Outfit", "Avenir Next", sans-serif;
 }
@@ -14,9 +16,11 @@
   --bg: #141211;
   --text: #fffff4;
   --accent: #ee8533;
-  --blob: #1a1715;
+  --blob: #242120;
   --nav-blob: #2a2522;
+  --cursor-blob: #ee8533;
   --blobs-opacity: 0.55;
+  --cursor-blend: screen;
 }
 
 *,
@@ -210,6 +214,34 @@ body {
   border-radius: 50%;
   pointer-events: none;
   opacity: 1;
+}
+
+.blob-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  opacity: 0;
+  background: var(--cursor-blob);
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  mix-blend-mode: var(--cursor-blend);
+  transform-origin: center center;
+  will-change: transform, width, height, border-radius, opacity;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.has-blob-cursor,
+  html.has-blob-cursor * {
+    cursor: none !important;
+  }
+
+  html.has-blob-cursor .contact-list a.is-cursor-native,
+  html.has-blob-cursor .contact-list a.is-cursor-native:hover {
+    cursor: pointer !important;
+  }
 }
 
 .corner-cluster {
@@ -1142,6 +1174,10 @@ body {
   .project-preview-img {
     animation: none;
     border-radius: 52% 44% 56% 48% / 46% 54% 42% 56%;
+  }
+
+  .blob-cursor {
+    display: none;
   }
 
   .work-detail-live-arm-shape {
