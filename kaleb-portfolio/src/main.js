@@ -51,31 +51,32 @@ const UNDERLINE_POINTS = 40
 
 const projects = [
   {
-    id: 'project-one',
-    name: 'Project one',
-    summary: 'A short line about this project.',
+    id: 'dirtbuster',
+    name: 'The Dirt Buster',
+    url: 'https://thedirtbuster.com/',
+    tags: ['WordPress', 'SEO', 'PHP', 'HTML', 'CSS', 'Email', 'Google Workspace'],
+    summary: 'A WordPress site for a local cleaning business.',
     description:
-      'A closer look at this project. Placeholder copy for the details pane until the real write-up lands.',
-    image: '/profile.jpg',
-    alt: 'Preview of Project one',
+      'A sleek WordPress build for an established cleaning company in Campbell River. Features a custom theme and local SEO optimization to boost visibility on the web.',
+    image: '/projects/dirtbuster.jpg',
+    preview: '/projects/dirtbuster-logo.png',
+    alt: 'Homepage of The Dirt Buster, a Campbell River carpet cleaning site.',
+    previewAlt: 'The Dirt Buster logo',
   },
   {
-    id: 'project-two',
-    name: 'Project two',
-    summary: 'A short line about this project.',
+    id: 'tile-wars',
+    name: 'Tile Wars',
+    url: '/library/tile-wars/',
+    livePreview: false,
+    linkText: 'Play game',
+    tags: ['JavaScript', 'HTML', 'CSS'],
+    summary: 'A two-player browser game built with vanilla JavaScript.',
     description:
-      'Notes, process, and outcomes for this piece of work. More detail will live here as the case study takes shape.',
-    image: '/profile.jpg',
-    alt: 'Preview of Project two',
-  },
-  {
-    id: 'project-three',
-    name: 'Project three',
-    summary: 'A short line about this project.',
-    description:
-      'What this project set out to do, how it was built, and what came of it. Placeholder text for now.',
-    image: '/profile.jpg',
-    alt: 'Preview of Project three',
+      'A local two-player browser game built with vanilla JavaScript, HTML, and CSS. Players move only on tiles they own, shoot to claim new ground, and cancel each other\'s bullets mid-air. I built the grid engine, player movement, collision detection, and game mechanics from scratch. There are customizable grid sizes, colour themes, and keyboard controls for both players on one machine. It\'s pretty fun, give it a try.',
+    image: '/projects/tile-wars-gameplay.gif',
+    preview: '/projects/tile-wars-preview.gif',
+    alt: 'Gameplay of Tile Wars, a two-player territory-shooting browser game.',
+    previewAlt: 'Animated Tile Wars gameplay on a yellow and purple grid',
   },
 ]
 
@@ -215,18 +216,39 @@ app.innerHTML = `
           <div class="screen-inner">
             <button type="button" class="work-back" aria-label="Back to work">Work</button>
             <h2 id="work-detail-heading" class="screen-title work-detail-title"></h2>
+            <ul class="work-detail-tags" hidden></ul>
             <p class="work-detail-desc"></p>
-            <div class="work-detail-blob">
-              <span class="work-detail-blob-shape">
-                <img
-                  class="work-detail-blob-img"
-                  src="/profile.jpg"
-                  alt=""
-                  width="640"
-                  height="640"
-                  decoding="async"
-                />
-              </span>
+            <a class="work-detail-link" hidden target="_blank" rel="noopener noreferrer">Visit site</a>
+            <div class="work-detail-frame">
+              <div class="work-detail-live" hidden>
+                <iframe
+                  class="work-detail-live-frame"
+                  title=""
+                  loading="lazy"
+                  referrerpolicy="no-referrer"
+                ></iframe>
+              </div>
+              <button type="button" class="work-detail-live-arm" hidden>
+                <span class="work-detail-live-arm-blob">
+                  <span class="work-detail-live-arm-shape">
+                    <span class="work-detail-live-arm-label">
+                      <span>check</span>
+                      <span>it out</span>
+                    </span>
+                  </span>
+                </span>
+              </button>
+              <img
+                class="work-detail-frame-img"
+                src="/profile.jpg"
+                alt=""
+                width="1024"
+                height="697"
+                decoding="async"
+              />
+              <svg class="work-detail-frame-border" aria-hidden="true">
+                <path class="work-detail-frame-path" fill="currentColor" fill-rule="evenodd"/>
+              </svg>
             </div>
           </div>
         </div>
@@ -261,6 +283,26 @@ app.innerHTML = `
                 decoding="async"
               />
             </span>
+            <span class="profile-blob-shape profile-blob-shape--small">
+              <img
+                class="profile-blob-img"
+                src="/about-fish.jpg"
+                alt="Kaleb on a boat holding a salmon"
+                width="460"
+                height="460"
+                decoding="async"
+              />
+            </span>
+            <span class="profile-blob-shape profile-blob-shape--small">
+              <img
+                class="profile-blob-img"
+                src="/about-drums.jpg"
+                alt="Kaleb playing drums"
+                width="460"
+                height="460"
+                decoding="async"
+              />
+            </span>
           </div>
         </div>
     </section>
@@ -270,23 +312,23 @@ app.innerHTML = `
         <ul class="experience-list">
           <li class="experience-card">
             <h3 class="experience-role">Lead Web Developer</h3>
-            <p class="experience-meta">Stoney Hill Marketing · 20XX — Present</p>
+            <p class="experience-meta">Stoney Hill Marketing · 2026 — Present</p>
             <p class="experience-desc">
-              Building high-performance marketing sites with React, Vite, and WordPress.
+              Building high-yield sites with practical technologies and helping businesses grow online.
             </p>
           </li>
           <li class="experience-card">
             <h3 class="experience-role">Web Developer</h3>
-            <p class="experience-meta">JM Web Design · 20XX — 20XX</p>
+            <p class="experience-meta">JM Web Design · 2025 — 2026</p>
             <p class="experience-desc">
               Custom websites, SEO, and branding for Vancouver Island clients.
             </p>
           </li>
           <li class="experience-card">
-            <h3 class="experience-role">Aerospace Manufacturer / Electronic Technician</h3>
-            <p class="experience-meta">Skye Avionics Ltd. · 20XX — 20XX</p>
+            <h3 class="experience-role">Freelance Web Developer</h3>
+            <p class="experience-meta">Link Web Design · 2024 — 2025</p>
             <p class="experience-desc">
-              Seven years of precision manufacturing — Fusion 360, CNC, 3D printing, and avionics hardware.
+              Focused on user friendly design, SEO, and measurable results.
             </p>
           </li>
         </ul>
@@ -354,6 +396,68 @@ const workBack = document.querySelector('.work-back')
 const projectPreview = document.querySelector('.project-preview')
 const projectPreviewImg = document.querySelector('.project-preview-img')
 const projectLinks = [...document.querySelectorAll('.project-link')]
+const PREVIEW_WIDTH = 1280
+const projectLive = {
+  wrap: document.querySelector('.work-detail-frame'),
+  live: document.querySelector('.work-detail-live'),
+  iframe: document.querySelector('.work-detail-live-frame'),
+  arm: document.querySelector('.work-detail-live-arm'),
+  blob: document.querySelector('.work-detail-live-arm-blob'),
+  magnet: { x: 0, y: 0 },
+}
+
+const syncPreviewScale = () => {
+  const live = projectLive.live
+  if (!live || live.hidden) return
+  const width = live.clientWidth
+  if (width < 1) return
+  live.style.setProperty('--preview-scale', String(width / PREVIEW_WIDTH))
+}
+
+const disarmLivePreview = () => {
+  projectLive.wrap?.classList.remove('is-armed')
+  if (projectLive.arm && projectLive.live && !projectLive.live.hidden) {
+    projectLive.arm.hidden = false
+  }
+}
+
+const teardownLivePreview = () => {
+  disarmLivePreview()
+  projectLive.wrap?.classList.remove('is-live', 'is-armed')
+  if (projectLive.live) projectLive.live.hidden = true
+  if (projectLive.arm) projectLive.arm.hidden = true
+  projectLive.magnet.x = 0
+  projectLive.magnet.y = 0
+  projectLive.blob?.style.setProperty('--magnet-x', '0px')
+  projectLive.blob?.style.setProperty('--magnet-y', '0px')
+  if (projectLive.iframe) {
+    projectLive.iframe.removeAttribute('title')
+    projectLive.iframe.src = 'about:blank'
+  }
+}
+
+const setupLivePreview = (project) => {
+  if (
+    !project?.url ||
+    project.livePreview === false ||
+    !projectLive.live ||
+    !projectLive.iframe ||
+    !projectLive.arm
+  ) {
+    teardownLivePreview()
+    return
+  }
+
+  projectLive.wrap?.classList.add('is-live')
+  projectLive.wrap?.classList.remove('is-armed')
+  projectLive.live.hidden = false
+  projectLive.arm.hidden = false
+  projectLive.iframe.title = `Live preview of ${project.name}`
+  if (projectLive.iframe.getAttribute('src') !== project.url) {
+    projectLive.iframe.src = project.url
+  }
+  syncPreviewScale()
+}
 
 const parseHash = () => {
   const path = window.location.hash.replace(/^#\/?/, '').replace(/\/$/, '')
@@ -408,10 +512,11 @@ const hideProjectPreview = () => {
 
 const showProjectPreview = (project) => {
   if (!projectPreview || !projectPreviewImg) return
-  if (projectPreviewImg.getAttribute('src') !== project.image) {
-    projectPreviewImg.src = project.image
+  const src = project.preview || project.image
+  if (projectPreviewImg.getAttribute('src') !== src) {
+    projectPreviewImg.src = src
   }
-  projectPreviewImg.alt = project.alt
+  projectPreviewImg.alt = project.previewAlt || project.alt
   projectPreview.classList.add('is-visible')
   projectPreview.setAttribute('aria-hidden', 'false')
 }
@@ -423,8 +528,10 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
   const prevId = workDetailEl?.dataset.projectId || ''
   const project = projectById.get(id)
   const titleEl = workDetailEl?.querySelector('.work-detail-title')
+  const tagsEl = workDetailEl?.querySelector('.work-detail-tags')
   const descEl = workDetailEl?.querySelector('.work-detail-desc')
-  const imgEl = workDetailEl?.querySelector('.work-detail-blob-img')
+  const linkEl = workDetailEl?.querySelector('.work-detail-link')
+  const imgEl = workDetailEl?.querySelector('.work-detail-frame-img')
 
   projectLinks.forEach((link) => {
     if (link.dataset.project === id) link.setAttribute('aria-current', 'page')
@@ -435,6 +542,15 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
     workDetailEl?.setAttribute('aria-hidden', 'true')
     if (workDetailEl) workDetailEl.inert = true
     workDetailEl?.removeAttribute('data-project-id')
+    if (linkEl) {
+      linkEl.hidden = true
+      linkEl.removeAttribute('href')
+    }
+    if (tagsEl) {
+      tagsEl.replaceChildren()
+      tagsEl.hidden = true
+    }
+    teardownLivePreview()
     if (workListEl) workListEl.inert = false
     workScreen?.setAttribute('aria-labelledby', 'work-heading')
   hideProjectPreview()
@@ -447,11 +563,37 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
 }
 
 if (titleEl) titleEl.textContent = project.name
+if (tagsEl) {
+  tagsEl.replaceChildren()
+  const tags = project.tags || []
+  tags.forEach((tag) => {
+    const item = document.createElement('li')
+    item.className = 'work-detail-tag'
+    item.textContent = tag
+    tagsEl.append(item)
+  })
+  tagsEl.hidden = tags.length === 0
+}
 if (descEl) descEl.textContent = project.description
+if (linkEl) {
+  if (project.url) {
+    linkEl.href = project.url
+    linkEl.textContent = project.linkText || 'Visit site'
+    linkEl.hidden = false
+  } else {
+    linkEl.hidden = true
+    linkEl.removeAttribute('href')
+  }
+}
 if (imgEl) {
   if (imgEl.getAttribute('src') !== project.image) imgEl.src = project.image
   imgEl.alt = project.alt
 }
+setupLivePreview(project)
+requestAnimationFrame(() => {
+  syncPreviewScale()
+  tickProjectFrame(0)
+})
 workDetailEl?.setAttribute('aria-hidden', 'false')
 if (workDetailEl) {
   workDetailEl.inert = false
@@ -534,6 +676,22 @@ homeToggle.addEventListener('click', () => {
 workBack?.addEventListener('click', () => {
   setRoute('work', '', { push: true, focus: true })
 })
+
+projectLive.arm?.addEventListener('click', () => {
+  projectLive.wrap?.classList.add('is-armed')
+  if (projectLive.arm) projectLive.arm.hidden = true
+  projectLive.iframe?.focus()
+})
+
+document.addEventListener('pointerdown', (e) => {
+  if (!projectLive.wrap?.classList.contains('is-armed')) return
+  if (projectLive.wrap.contains(e.target)) return
+  disarmLivePreview()
+})
+
+if (projectLive.live) {
+  new ResizeObserver(syncPreviewScale).observe(projectLive.live)
+}
 
 projectLinks.forEach((link) => {
   link.addEventListener('click', (e) => {
@@ -846,6 +1004,118 @@ const pathFromPoints = (pts) => {
   return d
 }
 
+const pathFromClosedPoints = (pts) => {
+  const n = pts.length
+  if (n < 4) return ''
+  const at = (i) => pts[(i + n) % n]
+  let d = `M ${at(0).x.toFixed(2)} ${at(0).y.toFixed(2)}`
+  for (let i = 0; i < n; i++) {
+    const p0 = at(i - 1)
+    const p1 = at(i)
+    const p2 = at(i + 1)
+    const p3 = at(i + 2)
+    const cp1x = p1.x + (p2.x - p0.x) / 6
+    const cp1y = p1.y + (p2.y - p0.y) / 6
+    const cp2x = p2.x - (p3.x - p1.x) / 6
+    const cp2y = p2.y - (p3.y - p1.y) / 6
+    d += ` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`
+  }
+  return `${d} Z`
+}
+
+const FRAME_EDGE_POINTS = 18
+const FRAME_WAVES = 2
+const projectFrame = {
+  wrap: document.querySelector('.work-detail-frame'),
+  svg: document.querySelector('.work-detail-frame-border'),
+  path: document.querySelector('.work-detail-frame-path'),
+}
+
+const remPx = (value) => {
+  const root = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+  return parseFloat(value) * root
+}
+
+const tickProjectFrame = (t) => {
+  const { wrap, svg, path } = projectFrame
+  if (!wrap || !svg || !path) return
+  if (app.dataset.screen !== 'work' || !app.dataset.project) return
+
+  const rect = svg.getBoundingClientRect()
+  const w = Math.max(1, rect.width)
+  const h = Math.max(1, rect.height)
+  const styles = getComputedStyle(wrap)
+  const thickness = remPx(styles.getPropertyValue('--frame-thickness'))
+  const wave = remPx(styles.getPropertyValue('--frame-wave'))
+  const radius = remPx(styles.getPropertyValue('--frame-radius'))
+  const amp = reduceMotion ? wave * 0.55 : wave * (0.82 + 0.18 * Math.sin(t * 0.85))
+  const inner = thickness + wave
+  const n = FRAME_EDGE_POINTS
+  const pts = []
+
+  const edge = (count, xy) => {
+    for (let i = 0; i < count; i++) {
+      const u = i / count
+      const wobble = Math.sin(u * Math.PI * FRAME_WAVES) * amp
+      pts.push(xy(u, wobble))
+    }
+  }
+
+  const outer = wave
+  const spanX = w - outer * 2
+  const spanY = h - outer * 2
+
+  edge(n, (u, wobble) => ({ x: outer + spanX * u, y: outer + wobble }))
+  edge(n, (u, wobble) => ({ x: w - outer + wobble, y: outer + spanY * u }))
+  edge(n, (u, wobble) => ({ x: w - outer - spanX * u, y: h - outer + wobble }))
+  edge(n, (u, wobble) => ({ x: outer + wobble, y: h - outer - spanY * u }))
+
+  const x1 = inner
+  const y1 = inner
+  const x2 = w - inner
+  const y2 = h - inner
+  const r = Math.min(radius, (x2 - x1) / 2, (y2 - y1) / 2)
+  const innerHole = `M ${(x1 + r).toFixed(2)} ${y1.toFixed(2)} H ${(x2 - r).toFixed(2)} A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${x2.toFixed(2)} ${(y1 + r).toFixed(2)} V ${(y2 - r).toFixed(2)} A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${(x2 - r).toFixed(2)} ${y2.toFixed(2)} H ${(x1 + r).toFixed(2)} A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${x1.toFixed(2)} ${(y2 - r).toFixed(2)} V ${(y1 + r).toFixed(2)} A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${(x1 + r).toFixed(2)} ${y1.toFixed(2)} Z`
+
+  svg.setAttribute('viewBox', `0 0 ${w.toFixed(2)} ${h.toFixed(2)}`)
+  path.setAttribute('d', `${pathFromClosedPoints(pts)} ${innerHole}`)
+}
+
+window.addEventListener('resize', () => tickProjectFrame(0))
+
+const tickLiveArmMagnet = (dt, mouseX, mouseY, magnetOn) => {
+  const { arm, blob, magnet } = projectLive
+  let targetX = 0
+  let targetY = 0
+
+  if (
+    magnetOn &&
+    arm &&
+    blob &&
+    !arm.hidden &&
+    projectLive.wrap?.classList.contains('is-live') &&
+    !projectLive.wrap?.classList.contains('is-armed')
+  ) {
+    const rect = blob.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2 - magnet.x
+    const cy = rect.top + rect.height / 2 - magnet.y
+    const dx = mouseX - cx
+    const dy = mouseY - cy
+    const dist = Math.hypot(dx, dy) || 1
+    const reach = 220
+    const max = 12
+    const proximity = Math.max(0, 1 - dist / reach)
+    const force = max * proximity * proximity
+    targetX = (dx / dist) * force
+    targetY = (dy / dist) * force
+  }
+
+  magnet.x = damp(magnet.x, targetX, 8, dt)
+  magnet.y = damp(magnet.y, targetY, 8, dt)
+  blob?.style.setProperty('--magnet-x', `${magnet.x.toFixed(2)}px`)
+  blob?.style.setProperty('--magnet-y', `${magnet.y.toFixed(2)}px`)
+}
+
 const addSplash = (u, x, w, t, amp = 1) => {
   u.splashes.push({
     x: Math.min(w, Math.max(0, x)),
@@ -957,34 +1227,100 @@ const createBlob = (el, index) => {
 const blobs = blobEls.map((el, i) => createBlob(el, i))
 const spawnEnabled = () => app.dataset.blobs !== 'off'
 
+const PROFILE_BLOB_SIZES = [0.88, 0.42, 0.38]
+const PROFILE_BLOB_SIZES_MOBILE = [0.88, 0.54, 0.5]
+const PROFILE_BLOB_STARTS = [
+  { progress: 0.5, lane: 0.5 },
+  { progress: 0.18, lane: 0.22 },
+  { progress: 0.82, lane: 0.78 },
+]
+const PROFILE_STATIC_OFFSETS = [
+  { fx: 0.5, fy: 0.5 },
+  { fx: 0.12, fy: 0.06 },
+  { fx: 0.88, fy: 0.94 },
+]
+const PROFILE_ORBITS = [
+  null,
+  { angle: 0, speed: 0.07, rx: 0.5, ry: 0.58, dir: 1 },
+  { angle: Math.PI, speed: 0.055, rx: 0.48, ry: 0.54, dir: 1 },
+]
+const PROFILE_SEPARATE = 1.12
+const PROFILE_SEPARATE_RATE = 5
+
 const profileWrap = document.querySelector('.profile-blob')
-const profileShape = document.querySelector('.profile-blob-shape')
-const profileImg = document.querySelector('.profile-blob-img')
+const profileShapes = [...(profileWrap?.querySelectorAll('.profile-blob-shape') ?? [])]
 
-const createProfileBlob = () => ({
-  wrap: profileWrap,
-  el: profileShape,
-  img: profileImg,
-  progress: rand(0.18, 0.82),
-  dir: Math.random() > 0.5 ? 1 : -1,
-  lane: rand(0.22, 0.78),
-  targetLane: rand(0.22, 0.78),
-  phase: rand(0, Math.PI * 2),
-  speed: rand(0.01, 0.028),
-  accel: rand(-0.012, 0.012),
-  targetAccel: rand(-0.018, 0.02),
-  accelChangeAt: rand(0.4, 2.5),
-  sway: rand(0.03, 0.08),
-  wobble: rand(0.15, 0.4),
-  x: 0,
-  y: 0,
-  pushX: 0,
-  pushY: 0,
-})
+const makeProfileShape = () => {
+  const lump = rand(6, 11)
+  const center = rand(47, 53)
+  return {
+    radii: Array.from({ length: 8 }, () => center + rand(-lump, lump)),
+    morphAmp: Array.from({ length: 8 }, () => rand(4, 8)),
+    morphSpeed: Array.from({ length: 8 }, () => rand(0.14, 0.34)),
+    morphPhase: Array.from({ length: 8 }, () => rand(0, Math.PI * 2)),
+  }
+}
 
-const profileBlob = profileWrap && profileShape ? createProfileBlob() : null
+const profileBlobRadius = (blob, t = 0) => {
+  const r = blob.radii.map((base, i) => {
+    const wave = Math.sin(t * blob.morphSpeed[i] + blob.morphPhase[i])
+    return Math.min(64, Math.max(42, base + wave * blob.morphAmp[i]))
+  })
+  return `${r[0].toFixed(1)}% ${r[1].toFixed(1)}% ${r[2].toFixed(1)}% ${r[3].toFixed(1)}% / ${r[4].toFixed(1)}% ${r[5].toFixed(1)}% ${r[6].toFixed(1)}% ${r[7].toFixed(1)}%`
+}
 
-const profileSizePx = (cw, ch) => Math.min(cw, ch) * 0.88
+const createProfileBlob = (el, i) => {
+  const start = PROFILE_BLOB_STARTS[i] ?? {
+    progress: rand(0.18, 0.82),
+    lane: rand(0.22, 0.78),
+  }
+  const orbit = PROFILE_ORBITS[i]
+  const shape = makeProfileShape()
+  return {
+    wrap: profileWrap,
+    el,
+    img: el.querySelector('.profile-blob-img'),
+    sizeIndex: i,
+    size: PROFILE_BLOB_SIZES[i] ?? 0.4,
+    host: i === 0,
+    progress: start.progress,
+    dir: i % 2 === 0 ? 1 : -1,
+    lane: start.lane,
+    targetLane: start.lane,
+    phase: rand(0, Math.PI * 2),
+    speed: rand(0.01, 0.028),
+    accel: rand(-0.012, 0.012),
+    targetAccel: rand(-0.018, 0.02),
+    accelChangeAt: rand(0.4, 2.5),
+    sway: rand(0.03, 0.08),
+    wobble: rand(0.15, 0.4),
+    angle: orbit ? orbit.angle : 0,
+    orbitSpeed: orbit ? orbit.speed + rand(-0.006, 0.006) : 0,
+    orbitDir: orbit ? orbit.dir : 0,
+    orbitRx: orbit ? orbit.rx : 0,
+    orbitRy: orbit ? orbit.ry : 0,
+    orbitScale: 1,
+    targetOrbitScale: 1,
+    radii: shape.radii,
+    morphAmp: shape.morphAmp,
+    morphSpeed: shape.morphSpeed,
+    morphPhase: shape.morphPhase,
+    x: 0,
+    y: 0,
+    left: 0,
+    top: 0,
+    s: 0,
+    pushX: 0,
+    pushY: 0,
+  }
+}
+
+const profileBlobs = profileWrap ? profileShapes.map(createProfileBlob) : []
+
+const profileSizePx = (blob, cw, ch) => {
+  const sizes = swipeMq.matches ? PROFILE_BLOB_SIZES_MOBILE : PROFILE_BLOB_SIZES
+  return Math.min(cw, ch) * (sizes[blob.sizeIndex] ?? blob.size)
+}
 
 const bounceProfile = (blob, t, atBottom) => {
   blob.progress = atBottom ? 1 : 0
@@ -1004,20 +1340,35 @@ const paintProfileBlob = (blob, x, y, s, radius) => {
   el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`
 }
 
+const clampProfileInBox = (blob, cw, ch) => {
+  const travelX = Math.max(0, cw - blob.s)
+  const travelY = Math.max(0, ch - blob.s)
+  const left = Math.min(travelX, Math.max(0, blob.x - blob.s / 2))
+  const top = Math.min(travelY, Math.max(0, blob.y - blob.s / 2))
+  blob.left = left
+  blob.top = top
+  blob.x = left + blob.s / 2
+  blob.y = top + blob.s / 2
+}
+
 const placeStaticProfile = () => {
-  if (!profileBlob) return
-  const { wrap } = profileBlob
-  const cw = wrap.clientWidth
-  const ch = wrap.clientHeight
+  if (!profileBlobs.length) return
+  const cw = profileWrap.clientWidth
+  const ch = profileWrap.clientHeight
   if (cw < 2 || ch < 2) return
-  const s = profileSizePx(cw, ch)
-  paintProfileBlob(
-    profileBlob,
-    (cw - s) / 2,
-    (ch - s) / 2,
-    s,
-    '52% 44% 56% 48% / 46% 54% 42% 56%',
-  )
+  profileBlobs.forEach((blob, i) => {
+    const s = profileSizePx(blob, cw, ch)
+    const travelX = Math.max(0, cw - s)
+    const travelY = Math.max(0, ch - s)
+    const off = PROFILE_STATIC_OFFSETS[i] ?? { fx: 0.5, fy: 0.5 }
+    paintProfileBlob(
+      blob,
+      travelX * off.fx,
+      travelY * off.fy,
+      s,
+      profileBlobRadius(blob),
+    )
+  })
 }
 
 const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
@@ -1026,7 +1377,8 @@ const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
   const ch = wrap.clientHeight
   if (cw < 2 || ch < 2) return
 
-  const s = profileSizePx(cw, ch)
+  const s = profileSizePx(blob, cw, ch)
+  blob.s = s
   const speedScale = window.innerHeight / ch * 0.55
 
   if (t >= blob.accelChangeAt) {
@@ -1069,14 +1421,135 @@ const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
   blob.pushX = damp(blob.pushX, (-mdx / dist) * force, 3.5, dt)
   blob.pushY = damp(blob.pushY, (-mdy / dist) * force, 3.5, dt)
 
-  const x = Math.min(travelX, Math.max(0, localX + blob.pushX))
-  const y = Math.min(travelY, Math.max(0, localY + blob.pushY))
-  const rx1 = 48 + Math.sin(t * 0.18 + 3) * 10
-  const rx2 = 52 + Math.cos(t * 0.16 + 3) * 9
-  const rx3 = 46 + Math.sin(t * 0.14 + 3.3) * 11
-  const rx4 = 54 + Math.cos(t * 0.17 + 3) * 8
+  blob.x = localX + blob.pushX + s / 2
+  blob.y = localY + blob.pushY + s / 2
+  clampProfileInBox(blob, cw, ch)
+}
 
-  paintProfileBlob(blob, x, y, s, `${rx1}% ${rx2}% ${rx3}% ${rx4}%`)
+const tickProfileOrbit = (blob, host, t, dt, mouseX, mouseY, blobReach, blobPush) => {
+  const { wrap } = blob
+  const cw = wrap.clientWidth
+  const ch = wrap.clientHeight
+  if (cw < 2 || ch < 2 || !host.s) return
+
+  blob.s = profileSizePx(blob, cw, ch)
+
+  if (t >= blob.accelChangeAt) {
+    blob.targetAccel = rand(-0.012, 0.014)
+    blob.targetOrbitScale = rand(0.9, 1.12)
+    blob.accelChangeAt = t + rand(2.2, 5.5)
+  }
+
+  blob.accel = damp(blob.accel, blob.targetAccel, 1.1, dt)
+  blob.orbitSpeed = Math.min(0.11, Math.max(0.035, blob.orbitSpeed + blob.accel * dt))
+  blob.orbitScale = damp(blob.orbitScale, blob.targetOrbitScale, 0.7, dt)
+  blob.angle += blob.orbitDir * blob.orbitSpeed * dt
+
+  const breathe = 1 + Math.sin(t * (0.22 + blob.wobble * 0.2) + blob.phase) * 0.12
+  const span = host.s + blob.s
+  const rx = span * blob.orbitRx * blob.orbitScale * breathe
+  const ry = span * blob.orbitRy * blob.orbitScale * breathe
+  const wobble = blob.angle + Math.sin(t * 0.31 + blob.phase) * 0.22
+  let ox = Math.cos(wobble) * rx
+  let oy = Math.sin(wobble) * ry
+  const orbitDist = Math.hypot(ox, oy) || 1
+  const minOrbit = (host.s + blob.s) * 0.5 * PROFILE_SEPARATE
+  if (orbitDist < minOrbit) {
+    ox *= minOrbit / orbitDist
+    oy *= minOrbit / orbitDist
+  }
+  const localX = host.x + ox
+  const localY = host.y + oy
+
+  blob.x = localX
+  blob.y = localY
+
+  const rect = wrap.getBoundingClientRect()
+  const screenX = rect.left + blob.x + blob.pushX
+  const screenY = rect.top + blob.y + blob.pushY
+  const mdx = mouseX - screenX
+  const mdy = mouseY - screenY
+  const dist = Math.hypot(mdx, mdy) || 1
+  const proximity = Math.max(0, 1 - dist / blobReach)
+  const force = blobPush * proximity * proximity
+  blob.pushX = damp(blob.pushX, (-mdx / dist) * force, 3.5, dt)
+  blob.pushY = damp(blob.pushY, (-mdy / dist) * force, 3.5, dt)
+
+  blob.x = localX + blob.pushX
+  blob.y = localY + blob.pushY
+  clampProfileInBox(blob, cw, ch)
+}
+
+const separateProfileBlobs = (dt) => {
+  if (profileBlobs.length < 2) return
+  const cw = profileWrap.clientWidth
+  const ch = profileWrap.clientHeight
+  const mass = (blob) => (blob.host ? 8 : 1)
+  const gain = 1 - Math.exp(-Math.max(dt, 0.001) * PROFILE_SEPARATE_RATE)
+
+  const minDistOf = (a, b) => (a.s + b.s) * 0.5 * PROFILE_SEPARATE
+
+  for (let i = 0; i < profileBlobs.length; i++) {
+    for (let j = i + 1; j < profileBlobs.length; j++) {
+      const a = profileBlobs[i]
+      const b = profileBlobs[j]
+      const minDist = minDistOf(a, b)
+      const dx = b.x - a.x
+      const dy = b.y - a.y
+      const dist = Math.hypot(dx, dy) || 0.001
+      if (dist >= minDist) continue
+      const overlap = minDist - dist
+      const invA = 1 / mass(a)
+      const invB = 1 / mass(b)
+      const share = invA + invB
+      const nx = dx / dist
+      const ny = dy / dist
+      const amount = overlap * gain
+      a.x -= nx * amount * (invA / share)
+      a.y -= ny * amount * (invA / share)
+      b.x += nx * amount * (invB / share)
+      b.y += ny * amount * (invB / share)
+    }
+  }
+
+  profileBlobs.forEach((blob) => clampProfileInBox(blob, cw, ch))
+
+  for (let i = 0; i < profileBlobs.length; i++) {
+    for (let j = i + 1; j < profileBlobs.length; j++) {
+      const a = profileBlobs[i]
+      const b = profileBlobs[j]
+      const minDist = minDistOf(a, b)
+      const dx = b.x - a.x
+      const dy = b.y - a.y
+      const dist = Math.hypot(dx, dy) || 0.001
+      if (dist >= minDist) continue
+      const leftover = (minDist - dist) * gain
+      if (a.host !== b.host) {
+        const moon = a.host ? b : a
+        const host = a.host ? a : b
+        moon.y += (moon.y >= host.y ? 1 : -1) * leftover
+      } else {
+        const away = a.y <= b.y ? 1 : -1
+        a.y -= away * leftover * 0.5
+        b.y += away * leftover * 0.5
+      }
+    }
+  }
+
+  profileBlobs.forEach((blob) => clampProfileInBox(blob, cw, ch))
+}
+
+const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
+  if (!profileBlobs.length) return
+  const [host, ...moons] = profileBlobs
+  tickProfileBlob(host, t, dt, mouseX, mouseY, blobReach, blobPush)
+  moons.forEach((blob) => {
+    tickProfileOrbit(blob, host, t, dt, mouseX, mouseY, blobReach, blobPush)
+  })
+  separateProfileBlobs(dt)
+  profileBlobs.forEach((blob) => {
+    paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob, t))
+  })
 }
 
 const bounceBlob = (blob, t, atBottom) => {
@@ -1196,7 +1669,7 @@ if (reduceMotion) {
 
   blobs.forEach(syncBlobSize)
   layoutEndcaps()
-  if (profileBlob) tickProfileBlob(profileBlob, 0, 0, mouseX, mouseY, blobReach, blobPush)
+  tickAllProfileBlobs(0, 0, mouseX, mouseY, blobReach, blobPush)
 
   window.addEventListener('pointermove', (e) => {
     mouseX = e.clientX
@@ -1252,6 +1725,8 @@ if (reduceMotion) {
       item.el.style.setProperty('--magnet-x', `${item.x.toFixed(2)}px`)
       item.el.style.setProperty('--magnet-y', `${item.y.toFixed(2)}px`)
     })
+
+    tickLiveArmMagnet(dt, mouseX, mouseY, magnetOn)
 
     const spawnOn = spawnEnabled()
     let topAbsorb = 0
@@ -1421,8 +1896,9 @@ if (reduceMotion) {
       blob.el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scaleX.toFixed(3)}, ${Math.max(0.08, scaleY).toFixed(3)})`
     })
 
-    if (profileBlob) tickProfileBlob(profileBlob, t, dt, mouseX, mouseY, blobReach, blobPush)
+    tickAllProfileBlobs(t, dt, mouseX, mouseY, blobReach, blobPush)
     tickUnderlines(t, dt, mouseX, mouseY)
+    tickProjectFrame(t)
 
     rafId = requestAnimationFrame(tick)
   }
