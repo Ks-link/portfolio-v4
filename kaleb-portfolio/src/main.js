@@ -57,7 +57,7 @@ const projects = [
     tags: ['WordPress', 'SEO', 'PHP', 'HTML', 'CSS', 'Email', 'Google Workspace'],
     summary: 'A WordPress site for a local cleaning business.',
     description:
-      'A WordPress build for a long-running cleaning company based in Campbell River. I created a custom WordPress theme and set up local SEO so nearby searches actually find the business, as well as set up email services along with Google Workspace.',
+      'A sleek WordPress build for an established cleaning company in Campbell River. Features a custom theme and local SEO optimization to boost visibility on the web.',
     image: '/projects/dirtbuster.jpg',
     preview: '/projects/dirtbuster-logo.png',
     alt: 'Homepage of The Dirt Buster, a Campbell River carpet cleaning site.',
