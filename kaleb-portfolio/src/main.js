@@ -312,23 +312,23 @@ app.innerHTML = `
         <ul class="experience-list">
           <li class="experience-card">
             <h3 class="experience-role">Lead Web Developer</h3>
-            <p class="experience-meta">Stoney Hill Marketing · 20XX — Present</p>
+            <p class="experience-meta">Stoney Hill Marketing · 2026 — Present</p>
             <p class="experience-desc">
-              Building high-performance marketing sites with React, Vite, and WordPress.
+              Building high-yield sites with practical technologies and helping businesses grow online.
             </p>
           </li>
           <li class="experience-card">
             <h3 class="experience-role">Web Developer</h3>
-            <p class="experience-meta">JM Web Design · 20XX — 20XX</p>
+            <p class="experience-meta">JM Web Design · 2025 — 2026</p>
             <p class="experience-desc">
               Custom websites, SEO, and branding for Vancouver Island clients.
             </p>
           </li>
           <li class="experience-card">
-            <h3 class="experience-role">Aerospace Manufacturer / Electronic Technician</h3>
-            <p class="experience-meta">Skye Avionics Ltd. · 20XX — 20XX</p>
+            <h3 class="experience-role">Freelance Web Developer</h3>
+            <p class="experience-meta">Link Web Design · 2024 — 2025</p>
             <p class="experience-desc">
-              Seven years of precision manufacturing — Fusion 360, CNC, 3D printing, and avionics hardware.
+              Focused on user friendly design, SEO, and measurable results.
             </p>
           </li>
         </ul>
