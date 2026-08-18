@@ -146,7 +146,9 @@ app.innerHTML = `
     </defs>
   </svg>
   <div class="blob-cursor" aria-hidden="true">
-    <span class="blob-cursor-shape"></span>
+    <span class="blob-cursor-motion">
+      <span class="blob-cursor-shape"></span>
+    </span>
   </div>
   <div class="blobs" aria-hidden="true">
     <span class="blob blob--endcap" data-endcap="top"></span>
@@ -1931,13 +1933,27 @@ if (reduceMotion) {
 }
 
 const blobCursorRoot = document.querySelector('.blob-cursor')
+const blobCursorMotion = document.querySelector('.blob-cursor-motion')
 const finePointerMq = window.matchMedia('(hover: hover) and (pointer: fine)')
 const cursorInteractive = 'a, button, [role="button"], summary, label, input, textarea, select'
 
-if (blobCursorRoot && !reduceMotion) {
+if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
   const cursor = {
     visible: false,
     enabled: false,
+    moving: false,
+    angle: 0,
+    lastT: 0,
+    settleTimer: 0,
+  }
+
+  const restMotion = () => `rotate(${cursor.angle.toFixed(1)}deg)`
+
+  const settleMotion = () => {
+    cursor.settleTimer = 0
+    cursor.moving = false
+    blobCursorRoot.classList.remove('is-moving')
+    blobCursorMotion.style.transform = restMotion()
   }
 
   const syncCursorMode = () => {
@@ -1945,13 +1961,20 @@ if (blobCursorRoot && !reduceMotion) {
     root.classList.toggle('has-blob-cursor', cursor.enabled)
     if (!cursor.enabled) {
       cursor.visible = false
-      blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down')
+      blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving')
+      blobCursorMotion.style.transform = ''
     }
   }
 
   const hideCursor = () => {
     cursor.visible = false
-    blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down')
+    cursor.moving = false
+    if (cursor.settleTimer) {
+      clearTimeout(cursor.settleTimer)
+      cursor.settleTimer = 0
+    }
+    blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving')
+    blobCursorMotion.style.transform = ''
   }
 
   syncCursorMode()
@@ -1966,12 +1989,33 @@ if (blobCursorRoot && !reduceMotion) {
         return
       }
 
+      const hovering = Boolean(e.target?.closest?.(cursorInteractive))
       blobCursorRoot.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`
-      blobCursorRoot.classList.toggle('is-hover', Boolean(e.target?.closest?.(cursorInteractive)))
+      blobCursorRoot.classList.toggle('is-hover', hovering)
+
       if (!cursor.visible) {
         cursor.visible = true
+        cursor.lastT = e.timeStamp
         blobCursorRoot.classList.add('is-on')
+        return
       }
+
+      const dt = Math.max(8, e.timeStamp - cursor.lastT)
+      cursor.lastT = e.timeStamp
+      const dist = Math.hypot(e.movementX, e.movementY)
+      if (dist > 0.6) {
+        cursor.angle = Math.atan2(e.movementY, e.movementX) * (180 / Math.PI)
+        const cap = hovering ? 0.22 : 0.42
+        const stretch = Math.min(cap, (dist / dt) * 0.36)
+        if (!cursor.moving) {
+          cursor.moving = true
+          blobCursorRoot.classList.add('is-moving')
+        }
+        blobCursorMotion.style.transform = `rotate(${cursor.angle.toFixed(1)}deg) scale(${(1 + stretch).toFixed(3)}, ${(1 - stretch * 0.52).toFixed(3)})`
+      }
+
+      if (cursor.settleTimer) clearTimeout(cursor.settleTimer)
+      cursor.settleTimer = setTimeout(settleMotion, 40)
     },
     { passive: true },
   )
