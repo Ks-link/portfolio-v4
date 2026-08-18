@@ -994,6 +994,13 @@ body {
   will-change: transform, border-radius;
 }
 
+.profile-blob-shape--small {
+  z-index: 1;
+  width: 7rem;
+  height: 7rem;
+  padding: 0.28rem;
+}
+
 .profile-blob-img {
   display: block;
   width: 100%;
@@ -1168,6 +1175,11 @@ body {
 }
 
 @media (max-width: 48rem) {
+  .profile-blob-shape--small {
+    width: 9rem;
+    height: 9rem;
+  }
+
   .nav-blob {
     display: none;
   }

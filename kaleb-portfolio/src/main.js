@@ -283,6 +283,26 @@ app.innerHTML = `
                 decoding="async"
               />
             </span>
+            <span class="profile-blob-shape profile-blob-shape--small">
+              <img
+                class="profile-blob-img"
+                src="/about-fish.jpg"
+                alt="Kaleb on a boat holding a salmon"
+                width="460"
+                height="460"
+                decoding="async"
+              />
+            </span>
+            <span class="profile-blob-shape profile-blob-shape--small">
+              <img
+                class="profile-blob-img"
+                src="/about-drums.jpg"
+                alt="Kaleb playing drums"
+                width="460"
+                height="460"
+                decoding="async"
+              />
+            </span>
           </div>
         </div>
     </section>
@@ -1207,34 +1227,100 @@ const createBlob = (el, index) => {
 const blobs = blobEls.map((el, i) => createBlob(el, i))
 const spawnEnabled = () => app.dataset.blobs !== 'off'
 
+const PROFILE_BLOB_SIZES = [0.88, 0.42, 0.38]
+const PROFILE_BLOB_SIZES_MOBILE = [0.88, 0.54, 0.5]
+const PROFILE_BLOB_STARTS = [
+  { progress: 0.5, lane: 0.5 },
+  { progress: 0.18, lane: 0.22 },
+  { progress: 0.82, lane: 0.78 },
+]
+const PROFILE_STATIC_OFFSETS = [
+  { fx: 0.5, fy: 0.5 },
+  { fx: 0.12, fy: 0.06 },
+  { fx: 0.88, fy: 0.94 },
+]
+const PROFILE_ORBITS = [
+  null,
+  { angle: 0, speed: 0.07, rx: 0.5, ry: 0.58, dir: 1 },
+  { angle: Math.PI, speed: 0.055, rx: 0.48, ry: 0.54, dir: 1 },
+]
+const PROFILE_SEPARATE = 1.12
+const PROFILE_SEPARATE_RATE = 5
+
 const profileWrap = document.querySelector('.profile-blob')
-const profileShape = document.querySelector('.profile-blob-shape')
-const profileImg = document.querySelector('.profile-blob-img')
+const profileShapes = [...(profileWrap?.querySelectorAll('.profile-blob-shape') ?? [])]
 
-const createProfileBlob = () => ({
-  wrap: profileWrap,
-  el: profileShape,
-  img: profileImg,
-  progress: rand(0.18, 0.82),
-  dir: Math.random() > 0.5 ? 1 : -1,
-  lane: rand(0.22, 0.78),
-  targetLane: rand(0.22, 0.78),
-  phase: rand(0, Math.PI * 2),
-  speed: rand(0.01, 0.028),
-  accel: rand(-0.012, 0.012),
-  targetAccel: rand(-0.018, 0.02),
-  accelChangeAt: rand(0.4, 2.5),
-  sway: rand(0.03, 0.08),
-  wobble: rand(0.15, 0.4),
-  x: 0,
-  y: 0,
-  pushX: 0,
-  pushY: 0,
-})
+const makeProfileShape = () => {
+  const lump = rand(6, 11)
+  const center = rand(47, 53)
+  return {
+    radii: Array.from({ length: 8 }, () => center + rand(-lump, lump)),
+    morphAmp: Array.from({ length: 8 }, () => rand(4, 8)),
+    morphSpeed: Array.from({ length: 8 }, () => rand(0.14, 0.34)),
+    morphPhase: Array.from({ length: 8 }, () => rand(0, Math.PI * 2)),
+  }
+}
 
-const profileBlob = profileWrap && profileShape ? createProfileBlob() : null
+const profileBlobRadius = (blob, t = 0) => {
+  const r = blob.radii.map((base, i) => {
+    const wave = Math.sin(t * blob.morphSpeed[i] + blob.morphPhase[i])
+    return Math.min(64, Math.max(42, base + wave * blob.morphAmp[i]))
+  })
+  return `${r[0].toFixed(1)}% ${r[1].toFixed(1)}% ${r[2].toFixed(1)}% ${r[3].toFixed(1)}% / ${r[4].toFixed(1)}% ${r[5].toFixed(1)}% ${r[6].toFixed(1)}% ${r[7].toFixed(1)}%`
+}
 
-const profileSizePx = (cw, ch) => Math.min(cw, ch) * 0.88
+const createProfileBlob = (el, i) => {
+  const start = PROFILE_BLOB_STARTS[i] ?? {
+    progress: rand(0.18, 0.82),
+    lane: rand(0.22, 0.78),
+  }
+  const orbit = PROFILE_ORBITS[i]
+  const shape = makeProfileShape()
+  return {
+    wrap: profileWrap,
+    el,
+    img: el.querySelector('.profile-blob-img'),
+    sizeIndex: i,
+    size: PROFILE_BLOB_SIZES[i] ?? 0.4,
+    host: i === 0,
+    progress: start.progress,
+    dir: i % 2 === 0 ? 1 : -1,
+    lane: start.lane,
+    targetLane: start.lane,
+    phase: rand(0, Math.PI * 2),
+    speed: rand(0.01, 0.028),
+    accel: rand(-0.012, 0.012),
+    targetAccel: rand(-0.018, 0.02),
+    accelChangeAt: rand(0.4, 2.5),
+    sway: rand(0.03, 0.08),
+    wobble: rand(0.15, 0.4),
+    angle: orbit ? orbit.angle : 0,
+    orbitSpeed: orbit ? orbit.speed + rand(-0.006, 0.006) : 0,
+    orbitDir: orbit ? orbit.dir : 0,
+    orbitRx: orbit ? orbit.rx : 0,
+    orbitRy: orbit ? orbit.ry : 0,
+    orbitScale: 1,
+    targetOrbitScale: 1,
+    radii: shape.radii,
+    morphAmp: shape.morphAmp,
+    morphSpeed: shape.morphSpeed,
+    morphPhase: shape.morphPhase,
+    x: 0,
+    y: 0,
+    left: 0,
+    top: 0,
+    s: 0,
+    pushX: 0,
+    pushY: 0,
+  }
+}
+
+const profileBlobs = profileWrap ? profileShapes.map(createProfileBlob) : []
+
+const profileSizePx = (blob, cw, ch) => {
+  const sizes = swipeMq.matches ? PROFILE_BLOB_SIZES_MOBILE : PROFILE_BLOB_SIZES
+  return Math.min(cw, ch) * (sizes[blob.sizeIndex] ?? blob.size)
+}
 
 const bounceProfile = (blob, t, atBottom) => {
   blob.progress = atBottom ? 1 : 0
@@ -1254,20 +1340,35 @@ const paintProfileBlob = (blob, x, y, s, radius) => {
   el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`
 }
 
+const clampProfileInBox = (blob, cw, ch) => {
+  const travelX = Math.max(0, cw - blob.s)
+  const travelY = Math.max(0, ch - blob.s)
+  const left = Math.min(travelX, Math.max(0, blob.x - blob.s / 2))
+  const top = Math.min(travelY, Math.max(0, blob.y - blob.s / 2))
+  blob.left = left
+  blob.top = top
+  blob.x = left + blob.s / 2
+  blob.y = top + blob.s / 2
+}
+
 const placeStaticProfile = () => {
-  if (!profileBlob) return
-  const { wrap } = profileBlob
-  const cw = wrap.clientWidth
-  const ch = wrap.clientHeight
+  if (!profileBlobs.length) return
+  const cw = profileWrap.clientWidth
+  const ch = profileWrap.clientHeight
   if (cw < 2 || ch < 2) return
-  const s = profileSizePx(cw, ch)
-  paintProfileBlob(
-    profileBlob,
-    (cw - s) / 2,
-    (ch - s) / 2,
-    s,
-    '52% 44% 56% 48% / 46% 54% 42% 56%',
-  )
+  profileBlobs.forEach((blob, i) => {
+    const s = profileSizePx(blob, cw, ch)
+    const travelX = Math.max(0, cw - s)
+    const travelY = Math.max(0, ch - s)
+    const off = PROFILE_STATIC_OFFSETS[i] ?? { fx: 0.5, fy: 0.5 }
+    paintProfileBlob(
+      blob,
+      travelX * off.fx,
+      travelY * off.fy,
+      s,
+      profileBlobRadius(blob),
+    )
+  })
 }
 
 const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
@@ -1276,7 +1377,8 @@ const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
   const ch = wrap.clientHeight
   if (cw < 2 || ch < 2) return
 
-  const s = profileSizePx(cw, ch)
+  const s = profileSizePx(blob, cw, ch)
+  blob.s = s
   const speedScale = window.innerHeight / ch * 0.55
 
   if (t >= blob.accelChangeAt) {
@@ -1319,14 +1421,135 @@ const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
   blob.pushX = damp(blob.pushX, (-mdx / dist) * force, 3.5, dt)
   blob.pushY = damp(blob.pushY, (-mdy / dist) * force, 3.5, dt)
 
-  const x = Math.min(travelX, Math.max(0, localX + blob.pushX))
-  const y = Math.min(travelY, Math.max(0, localY + blob.pushY))
-  const rx1 = 48 + Math.sin(t * 0.18 + 3) * 10
-  const rx2 = 52 + Math.cos(t * 0.16 + 3) * 9
-  const rx3 = 46 + Math.sin(t * 0.14 + 3.3) * 11
-  const rx4 = 54 + Math.cos(t * 0.17 + 3) * 8
+  blob.x = localX + blob.pushX + s / 2
+  blob.y = localY + blob.pushY + s / 2
+  clampProfileInBox(blob, cw, ch)
+}
 
-  paintProfileBlob(blob, x, y, s, `${rx1}% ${rx2}% ${rx3}% ${rx4}%`)
+const tickProfileOrbit = (blob, host, t, dt, mouseX, mouseY, blobReach, blobPush) => {
+  const { wrap } = blob
+  const cw = wrap.clientWidth
+  const ch = wrap.clientHeight
+  if (cw < 2 || ch < 2 || !host.s) return
+
+  blob.s = profileSizePx(blob, cw, ch)
+
+  if (t >= blob.accelChangeAt) {
+    blob.targetAccel = rand(-0.012, 0.014)
+    blob.targetOrbitScale = rand(0.9, 1.12)
+    blob.accelChangeAt = t + rand(2.2, 5.5)
+  }
+
+  blob.accel = damp(blob.accel, blob.targetAccel, 1.1, dt)
+  blob.orbitSpeed = Math.min(0.11, Math.max(0.035, blob.orbitSpeed + blob.accel * dt))
+  blob.orbitScale = damp(blob.orbitScale, blob.targetOrbitScale, 0.7, dt)
+  blob.angle += blob.orbitDir * blob.orbitSpeed * dt
+
+  const breathe = 1 + Math.sin(t * (0.22 + blob.wobble * 0.2) + blob.phase) * 0.12
+  const span = host.s + blob.s
+  const rx = span * blob.orbitRx * blob.orbitScale * breathe
+  const ry = span * blob.orbitRy * blob.orbitScale * breathe
+  const wobble = blob.angle + Math.sin(t * 0.31 + blob.phase) * 0.22
+  let ox = Math.cos(wobble) * rx
+  let oy = Math.sin(wobble) * ry
+  const orbitDist = Math.hypot(ox, oy) || 1
+  const minOrbit = (host.s + blob.s) * 0.5 * PROFILE_SEPARATE
+  if (orbitDist < minOrbit) {
+    ox *= minOrbit / orbitDist
+    oy *= minOrbit / orbitDist
+  }
+  const localX = host.x + ox
+  const localY = host.y + oy
+
+  blob.x = localX
+  blob.y = localY
+
+  const rect = wrap.getBoundingClientRect()
+  const screenX = rect.left + blob.x + blob.pushX
+  const screenY = rect.top + blob.y + blob.pushY
+  const mdx = mouseX - screenX
+  const mdy = mouseY - screenY
+  const dist = Math.hypot(mdx, mdy) || 1
+  const proximity = Math.max(0, 1 - dist / blobReach)
+  const force = blobPush * proximity * proximity
+  blob.pushX = damp(blob.pushX, (-mdx / dist) * force, 3.5, dt)
+  blob.pushY = damp(blob.pushY, (-mdy / dist) * force, 3.5, dt)
+
+  blob.x = localX + blob.pushX
+  blob.y = localY + blob.pushY
+  clampProfileInBox(blob, cw, ch)
+}
+
+const separateProfileBlobs = (dt) => {
+  if (profileBlobs.length < 2) return
+  const cw = profileWrap.clientWidth
+  const ch = profileWrap.clientHeight
+  const mass = (blob) => (blob.host ? 8 : 1)
+  const gain = 1 - Math.exp(-Math.max(dt, 0.001) * PROFILE_SEPARATE_RATE)
+
+  const minDistOf = (a, b) => (a.s + b.s) * 0.5 * PROFILE_SEPARATE
+
+  for (let i = 0; i < profileBlobs.length; i++) {
+    for (let j = i + 1; j < profileBlobs.length; j++) {
+      const a = profileBlobs[i]
+      const b = profileBlobs[j]
+      const minDist = minDistOf(a, b)
+      const dx = b.x - a.x
+      const dy = b.y - a.y
+      const dist = Math.hypot(dx, dy) || 0.001
+      if (dist >= minDist) continue
+      const overlap = minDist - dist
+      const invA = 1 / mass(a)
+      const invB = 1 / mass(b)
+      const share = invA + invB
+      const nx = dx / dist
+      const ny = dy / dist
+      const amount = overlap * gain
+      a.x -= nx * amount * (invA / share)
+      a.y -= ny * amount * (invA / share)
+      b.x += nx * amount * (invB / share)
+      b.y += ny * amount * (invB / share)
+    }
+  }
+
+  profileBlobs.forEach((blob) => clampProfileInBox(blob, cw, ch))
+
+  for (let i = 0; i < profileBlobs.length; i++) {
+    for (let j = i + 1; j < profileBlobs.length; j++) {
+      const a = profileBlobs[i]
+      const b = profileBlobs[j]
+      const minDist = minDistOf(a, b)
+      const dx = b.x - a.x
+      const dy = b.y - a.y
+      const dist = Math.hypot(dx, dy) || 0.001
+      if (dist >= minDist) continue
+      const leftover = (minDist - dist) * gain
+      if (a.host !== b.host) {
+        const moon = a.host ? b : a
+        const host = a.host ? a : b
+        moon.y += (moon.y >= host.y ? 1 : -1) * leftover
+      } else {
+        const away = a.y <= b.y ? 1 : -1
+        a.y -= away * leftover * 0.5
+        b.y += away * leftover * 0.5
+      }
+    }
+  }
+
+  profileBlobs.forEach((blob) => clampProfileInBox(blob, cw, ch))
+}
+
+const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
+  if (!profileBlobs.length) return
+  const [host, ...moons] = profileBlobs
+  tickProfileBlob(host, t, dt, mouseX, mouseY, blobReach, blobPush)
+  moons.forEach((blob) => {
+    tickProfileOrbit(blob, host, t, dt, mouseX, mouseY, blobReach, blobPush)
+  })
+  separateProfileBlobs(dt)
+  profileBlobs.forEach((blob) => {
+    paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob, t))
+  })
 }
 
 const bounceBlob = (blob, t, atBottom) => {
@@ -1446,7 +1669,7 @@ if (reduceMotion) {
 
   blobs.forEach(syncBlobSize)
   layoutEndcaps()
-  if (profileBlob) tickProfileBlob(profileBlob, 0, 0, mouseX, mouseY, blobReach, blobPush)
+  tickAllProfileBlobs(0, 0, mouseX, mouseY, blobReach, blobPush)
 
   window.addEventListener('pointermove', (e) => {
     mouseX = e.clientX
@@ -1673,7 +1896,7 @@ if (reduceMotion) {
       blob.el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scaleX.toFixed(3)}, ${Math.max(0.08, scaleY).toFixed(3)})`
     })
 
-    if (profileBlob) tickProfileBlob(profileBlob, t, dt, mouseX, mouseY, blobReach, blobPush)
+    tickAllProfileBlobs(t, dt, mouseX, mouseY, blobReach, blobPush)
     tickUnderlines(t, dt, mouseX, mouseY)
     tickProjectFrame(t)
 
