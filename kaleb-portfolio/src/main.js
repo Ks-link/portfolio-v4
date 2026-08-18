@@ -145,7 +145,9 @@ app.innerHTML = `
       </filter>
     </defs>
   </svg>
-  <div class="blob-cursor" aria-hidden="true"></div>
+  <div class="blob-cursor" aria-hidden="true">
+    <span class="blob-cursor-shape"></span>
+  </div>
   <div class="blobs" aria-hidden="true">
     <span class="blob blob--endcap" data-endcap="top"></span>
     <span class="blob blob--endcap" data-endcap="bottom"></span>
@@ -1911,90 +1913,11 @@ if (reduceMotion) {
 const blobCursorRoot = document.querySelector('.blob-cursor')
 const finePointerMq = window.matchMedia('(hover: hover) and (pointer: fine)')
 const cursorInteractive = 'a, button, [role="button"], summary, label, input, textarea, select'
-const cursorIdleSize = 22
-const cursorWorkList = () => app.dataset.screen === 'work' && !app.dataset.project
-
-const cursorVisualFor = (el) =>
-  el.querySelector('.nav-blob-shape, .work-detail-live-arm-shape') || el
-
-const radiusIsZero = (value) =>
-  !value || value.split(/[\s,/]+/).filter(Boolean).every((part) => parseFloat(part) === 0)
-
-const idleBlobRadius = (t) => {
-  const a = 58 + Math.sin(t * 0.9) * 10
-  const b = 42 + Math.cos(t * 0.8) * 8
-  const c = 50 + Math.sin(t * 0.7 + 1.2) * 10
-  const d = 46 + Math.cos(t * 0.75 + 0.6) * 8
-  const e = 44 + Math.sin(t * 0.65 + 0.4) * 10
-  const f = 52 + Math.cos(t * 0.85 + 1.1) * 8
-  const g = 42 + Math.sin(t * 0.72 + 1.8) * 10
-  const h = 58 + Math.cos(t * 0.68 + 0.3) * 8
-  return `${a}% ${b}% ${c}% ${d}% / ${e}% ${f}% ${g}% ${h}%`
-}
-
-const underlineForLink = (link) => underlines.find((u) => u.link === link)
-
-const underlineTarget = (u) => {
-  if (!u?.svg) return null
-  const rect = u.svg.getBoundingClientRect()
-  if (rect.width < 1) return null
-  return {
-    x: rect.left + rect.width / 2,
-    y: rect.top + rect.height / 2,
-    w: rect.width,
-    h: 3,
-    radius: '999px',
-    fade: 1 - u.active,
-  }
-}
 
 if (blobCursorRoot && !reduceMotion) {
   const cursor = {
-    x: 0,
-    y: 0,
-    prevX: 0,
-    prevY: 0,
-    w: cursorIdleSize,
-    h: cursorIdleSize,
-    scale: 1,
-    stretch: 0,
-    angle: 0,
-    opacity: 1,
-    targetX: 0,
-    targetY: 0,
-    targetW: cursorIdleSize,
-    targetH: cursorIdleSize,
-    targetOpacity: 1,
-    pointerX: 0,
-    pointerY: 0,
-    targetEl: null,
-    mode: 'idle',
-    contactEl: null,
-    pressed: false,
     visible: false,
     enabled: false,
-    rafId: 0,
-    last: performance.now(),
-  }
-
-  const setContactNative = (el) => {
-    if (cursor.contactEl === el) return
-    cursor.contactEl?.classList.remove('is-cursor-native')
-    cursor.contactEl = el
-    el?.classList.add('is-cursor-native')
-  }
-
-  const resolveCursorTarget = (el) => {
-    const contact = el?.closest?.('.contact-list a')
-    if (contact) return { el: contact, mode: 'hide' }
-
-    const project = el?.closest?.('.project-link')
-    if (project && cursorWorkList()) return { el: project, mode: 'underline' }
-
-    const interactive = el?.closest?.(cursorInteractive)
-    if (interactive) return { el: interactive, mode: 'morph' }
-
-    return { el: null, mode: 'idle' }
   }
 
   const syncCursorMode = () => {
@@ -2002,183 +1925,48 @@ if (blobCursorRoot && !reduceMotion) {
     root.classList.toggle('has-blob-cursor', cursor.enabled)
     if (!cursor.enabled) {
       cursor.visible = false
-      cursor.targetEl = null
-      cursor.mode = 'idle'
-      setContactNative(null)
-      blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-underline')
+      blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down')
     }
   }
 
-  const hoverBox = (el, t) => {
-    const visual = cursorVisualFor(el)
-    const rect = visual.getBoundingClientRect()
-    const style = getComputedStyle(visual)
-    const blobLike = visual.matches('.nav-blob-shape, .work-detail-live-arm-shape')
-    const padX = blobLike ? 2 : 10
-    const padY = blobLike ? 2 : 7
-    const radius = style.borderRadius
-    return {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-      w: Math.max(rect.width + padX * 2, cursorIdleSize),
-      h: Math.max(rect.height + padY * 2, cursorIdleSize),
-      radius: radiusIsZero(radius) ? idleBlobRadius(t) : radius,
-      fade: 1,
-    }
-  }
-
-  const paintCursor = (radius) => {
-    const stretchX = 1 + cursor.stretch
-    const stretchY = 1 - cursor.stretch * 0.55
-    const show = cursor.enabled && cursor.visible
-    blobCursorRoot.style.width = `${cursor.w.toFixed(2)}px`
-    blobCursorRoot.style.height = `${cursor.h.toFixed(2)}px`
-    blobCursorRoot.style.borderRadius = radius
-    blobCursorRoot.style.opacity = show ? String(cursor.opacity) : '0'
-    blobCursorRoot.style.transform = `translate3d(${(cursor.x - cursor.w / 2).toFixed(2)}px, ${(cursor.y - cursor.h / 2).toFixed(2)}px, 0) rotate(${cursor.angle.toFixed(2)}deg) scale(${(cursor.scale * stretchX).toFixed(3)}, ${(cursor.scale * stretchY).toFixed(3)})`
-    blobCursorRoot.classList.toggle('is-on', show)
-    blobCursorRoot.classList.toggle('is-hover', cursor.mode === 'morph')
-    blobCursorRoot.classList.toggle('is-underline', cursor.mode === 'underline')
-  }
-
-  const tickCursor = (now) => {
-    const dt = Math.min(0.05, (now - cursor.last) / 1000)
-    cursor.last = now
-    const t = now / 1000
-
-    if (cursor.enabled && cursor.visible) {
-      const target = cursor.targetEl?.isConnected ? cursor.targetEl : null
-      if (target && getComputedStyle(target).visibility === 'hidden') {
-        cursor.targetEl = null
-        cursor.mode = 'idle'
-      }
-
-      if (cursor.mode === 'hide') setContactNative(target)
-      else setContactNative(null)
-
-      let box = null
-      if (cursor.mode === 'morph' && target) box = hoverBox(target, t)
-      else if (cursor.mode === 'underline' && target) box = underlineTarget(underlineForLink(target))
-
-      if (cursor.mode === 'idle') {
-        cursor.x = cursor.pointerX
-        cursor.y = cursor.pointerY
-        cursor.w = cursorIdleSize
-        cursor.h = cursorIdleSize
-        cursor.targetOpacity = 1
-      } else if (box) {
-        cursor.targetX = box.x
-        cursor.targetY = box.y
-        cursor.targetW = box.w
-        cursor.targetH = box.h
-        cursor.targetOpacity = box.fade ?? 1
-        const follow = 17
-        const sizeFollow = 14
-        cursor.x = damp(cursor.x, cursor.targetX, follow, dt)
-        cursor.y = damp(cursor.y, cursor.targetY, follow, dt)
-        cursor.w = damp(cursor.w, cursor.targetW, sizeFollow, dt)
-        cursor.h = damp(cursor.h, cursor.targetH, sizeFollow, dt)
-      } else if (cursor.mode === 'hide') {
-        cursor.x = cursor.pointerX
-        cursor.y = cursor.pointerY
-        cursor.targetOpacity = 0
-        cursor.w = damp(cursor.w, cursorIdleSize, 14, dt)
-        cursor.h = damp(cursor.h, cursorIdleSize, 14, dt)
-      }
-
-      const vx = cursor.x - cursor.prevX
-      const vy = cursor.y - cursor.prevY
-      const speed = Math.hypot(vx, vy) / Math.max(dt, 0.001)
-      const stretchTarget = cursor.mode === 'idle' ? Math.min(0.52, speed / 2400) : 0
-      cursor.stretch = damp(cursor.stretch, stretchTarget, 10, dt)
-      if (cursor.mode === 'morph' || cursor.mode === 'underline' || cursor.mode === 'hide') {
-        cursor.angle = damp(cursor.angle, 0, 12, dt)
-      } else if (speed > 12) {
-        cursor.angle = Math.atan2(vy, vx) * (180 / Math.PI)
-      }
-      cursor.prevX = cursor.x
-      cursor.prevY = cursor.y
-
-      cursor.opacity = damp(cursor.opacity, cursor.targetOpacity, 12, dt)
-      const morphing = cursor.mode === 'morph'
-      cursor.scale = damp(cursor.scale, cursor.pressed ? (morphing ? 0.94 : 0.78) : 1, 14, dt)
-
-      const radius =
-        cursor.mode === 'underline' && box
-          ? box.radius
-          : cursor.mode === 'morph' && box
-            ? box.radius
-            : idleBlobRadius(t)
-      paintCursor(radius)
-    } else {
-      setContactNative(null)
-      if (blobCursorRoot.classList.contains('is-on')) {
-        blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-underline')
-      }
-    }
-
-    cursor.rafId = requestAnimationFrame(tickCursor)
+  const hideCursor = () => {
+    cursor.visible = false
+    blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down')
   }
 
   syncCursorMode()
   finePointerMq.addEventListener('change', syncCursorMode)
 
-  window.addEventListener('pointermove', (e) => {
-    if (!cursor.enabled || e.pointerType === 'touch') return
-    if (e.target?.closest?.('iframe')) {
-      cursor.visible = false
-      cursor.targetEl = null
-      cursor.mode = 'idle'
-      setContactNative(null)
-      return
-    }
-    if (!cursor.visible) {
-      cursor.x = cursor.prevX = e.clientX
-      cursor.y = cursor.prevY = e.clientY
-      cursor.w = cursor.h = cursorIdleSize
-      cursor.opacity = 1
-    }
-    cursor.pointerX = e.clientX
-    cursor.pointerY = e.clientY
-    cursor.visible = true
+  window.addEventListener(
+    'pointermove',
+    (e) => {
+      if (!cursor.enabled || e.pointerType === 'touch') return
+      if (e.target?.closest?.('iframe')) {
+        hideCursor()
+        return
+      }
 
-    const { el, mode } = resolveCursorTarget(e.target)
-    cursor.targetEl = el
-    cursor.mode = mode
-
-    if (mode === 'idle') {
-      cursor.x = e.clientX
-      cursor.y = e.clientY
-      cursor.prevX = e.clientX
-      cursor.prevY = e.clientY
-      cursor.w = cursor.h = cursorIdleSize
-      cursor.opacity = 1
-      cursor.targetOpacity = 1
-      paintCursor(idleBlobRadius(performance.now() / 1000))
-    } else if (blobCursorRoot.style.transform === '') {
-      paintCursor(idleBlobRadius(performance.now() / 1000))
-    }
-  })
+      blobCursorRoot.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`
+      blobCursorRoot.classList.toggle('is-hover', Boolean(e.target?.closest?.(cursorInteractive)))
+      if (!cursor.visible) {
+        cursor.visible = true
+        blobCursorRoot.classList.add('is-on')
+      }
+    },
+    { passive: true },
+  )
 
   window.addEventListener('pointerdown', (e) => {
-    if (cursor.enabled && e.pointerType !== 'touch') cursor.pressed = true
+    if (cursor.enabled && e.pointerType !== 'touch') blobCursorRoot.classList.add('is-down')
   })
 
   window.addEventListener('pointerup', () => {
-    cursor.pressed = false
+    blobCursorRoot.classList.remove('is-down')
   })
 
   window.addEventListener('pointercancel', () => {
-    cursor.pressed = false
+    blobCursorRoot.classList.remove('is-down')
   })
 
-  document.documentElement.addEventListener('mouseleave', () => {
-    cursor.visible = false
-    cursor.targetEl = null
-    cursor.mode = 'idle'
-    setContactNative(null)
-  })
-
-  cursor.rafId = requestAnimationFrame(tickCursor)
-  window.addEventListener('beforeunload', () => cancelAnimationFrame(cursor.rafId))
+  document.documentElement.addEventListener('mouseleave', hideCursor)
 }
