@@ -8,14 +8,6 @@
     ],
     "rewrites": [
       {
-        "source": "/library/curtain-drop",
-        "destination": "/library/curtain-drop/index.html"
-      },
-      {
-        "source": "/library/curtain-drop/**",
-        "destination": "/library/curtain-drop/index.html"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }

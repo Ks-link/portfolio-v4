@@ -6,8 +6,6 @@ import { defineConfig } from 'vite'
 const root = dirname(fileURLToPath(import.meta.url))
 const publicDir = resolve(root, 'public')
 
-const CURTAIN_DROP = '/library/curtain-drop'
-
 const publicFile = (urlPath) => resolve(publicDir, urlPath.replace(/^\//, ''))
 
 const rewriteLibrary = (req, _res, next) => {
@@ -27,12 +25,6 @@ const rewriteLibrary = (req, _res, next) => {
   const indexPath = `${path.replace(/\/$/, '')}/index.html`
   if (existsSync(publicFile(indexPath))) {
     req.url = indexPath + qs
-    next()
-    return
-  }
-
-  if (path === CURTAIN_DROP || path.startsWith(`${CURTAIN_DROP}/`)) {
-    req.url = `${CURTAIN_DROP}/index.html${qs}`
   }
 
   next()
