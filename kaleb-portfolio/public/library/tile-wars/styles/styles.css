@@ -1,0 +1,563 @@
+/*--------------------------------------------------------------
+>>> TABLE OF CONTENTS:
+----------------------------------------------------------------
+# Generic (CALLED IN ANOTHER FILE)
+	- Normalize
+	- Box sizing
+	- Media width
+# Base
+	- Typography
+	- Elements
+	- Links
+# Layouts
+# Components
+	- Header
+	- Main
+	- Footer
+--------------------------------------------------------------*/
+
+/*--------------------------------------------------------------
+# Base
+--------------------------------------------------------------*/
+:root {
+	--player-1-colour: #ffffff;
+	--player-2-colour: #000000;
+}
+
+/* Typography
+--------------------------------------------- */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 { 
+	margin: 0
+}
+
+h1 {
+	font-size: 8rem;
+	font-family: "Bungee Shade", sans-serif;
+	font-weight: 400;
+}
+
+h2 {
+	font-size: 4rem;
+	font-family: "Bungee Shade", sans-serif;
+	font-weight: 400;
+}
+
+h3 {
+	font-size: 2.5rem;
+	font-family: "Bungee", sans-serif;
+	font-weight: 400;
+}
+
+h4 {
+	font-size: 2rem;
+	font-family: "Days One", sans-serif;
+	font-weight: 400;
+	padding: 1rem;
+}
+
+p {
+	font-size: 1.5rem;
+	font-family: "Days One", sans-serif;
+	font-weight: 400;
+}
+
+button {
+	padding: 0;
+	margin: 0;
+	font-size: 2rem;
+	font-family: "Bungee", sans-serif;
+	font-weight: 400;
+}
+
+label {
+	font-size: 1.7rem;
+	font-family: "Days One", sans-serif;
+	font-weight: 400;
+}
+
+input {
+	font-size: 1.7rem;
+	font-family: "Days One", sans-serif;
+	font-weight: 400;
+}
+
+
+/* Elements
+--------------------------------------------- */
+
+body {
+	background-color: #cacaca;
+}
+
+main {
+	position: relative;
+	height: 100vh;
+}
+
+
+/* Links
+--------------------------------------------- */
+
+
+/*--------------------------------------------------------------
+# Layout
+--------------------------------------------------------------*/
+
+
+
+/*--------------------------------------------------------------
+# Components
+--------------------------------------------------------------*/
+
+/* Header
+--------------------------------------------- */
+
+
+/* Main
+--------------------------------------------- */
+
+
+/* Page styling */
+
+@keyframes pageTransitionIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes whoWonMessage {
+	from {
+		top: -5rem;
+	}
+	to {
+
+		top: 20rem;
+	}
+}
+
+@keyframes playAgainMsg {
+	from {
+		top: -5rem;
+	}
+	to {
+		top: 24rem;
+	}
+}
+
+#start-screen {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+	width: max-content;
+	height: max-content;
+	animation: 2s pageTransitionIn;
+}
+
+#how-screen {
+	display: none;
+	animation: 2s pageTransitionIn;
+}
+
+#select-screen {
+	display: none;
+	animation: 2s pageTransitionIn;
+}
+
+#game-screen {
+	display: none;
+	justify-content: center;
+	align-items: center;
+	min-width: 100%;
+	min-height: 100%;
+	animation: 2s pageTransitionIn;
+}
+
+#player1-clip {
+	display: grid;
+	width: fit-content;
+	height: fit-content;
+	margin: 2rem;
+	z-index: 99;
+}
+
+#player2-clip {
+	display: grid;
+	width: fit-content;
+	height: fit-content;
+	margin: 2rem;
+	z-index: 99;
+}
+
+#gameboard {
+	display: grid;
+	background-color: #fafafa;
+	width: fit-content;
+	height: fit-content;
+	z-index: 99;
+}
+
+.video-background {
+	position: fixed;
+	top: 0;
+	left: 0;
+	min-width: 100%;
+	min-height: 100%;
+	object-fit: cover;
+	z-index: 1;
+} 
+
+.mobile-warning-msg {
+	display: none;
+}
+
+.title {
+	position: relative;
+	text-align: center;
+	padding: 1rem 3rem;
+	margin: 2rem;
+	z-index: 99;
+}
+
+
+.sm-title {
+	position: relative;
+	text-align: center;
+	margin: 0;
+	z-index: 99;
+}
+
+.sm-title-game {
+	position: fixed;
+	top: 0;
+	text-align: center;
+	margin: 0;
+	z-index: 99;
+}
+
+.sub-title {
+	position: relative;
+	text-align: center;
+	padding: 1rem;
+	margin: 0;
+	z-index: 99;
+}
+
+
+.btn {
+	position: relative;
+	display: block;
+	padding: 1rem 2rem;
+	border-radius: 1rem;
+	z-index: 99;
+	transition: font-size 0.5s, padding 0.5s;
+}
+
+.btn:hover {
+	font-size: 2.4rem;
+	padding: 1.5rem 2.5rem;
+}
+
+.start-btn {
+	margin: 1rem auto 2rem auto;
+}
+
+.how-btn {
+	margin: 4rem auto 2rem auto;
+}
+
+.content-start-btn {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	width: fit-content;
+	margin: 1rem auto 2rem auto;
+}
+
+.play-btn {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	width: fit-content;
+	margin: 1rem auto 2rem auto;
+}
+
+.mute-btn {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	margin: 0.5rem;
+	padding: 1rem 2rem 0.6rem 2rem;
+	border-radius: 1rem;
+	z-index: 99;
+}
+
+.back-to-title-btn {
+	position: fixed;
+	bottom: 0;
+	left: 7rem;
+	margin: 0.5rem;
+	padding: 1rem 2rem 0.6rem 2rem;
+	border-radius: 1rem;
+	z-index: 99;
+}
+
+.misc-content {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	overflow-y: scroll;
+	max-width: 60%;
+	background-color: #cacacaec;
+	padding: 2rem;
+	margin: 2rem auto 8rem auto;
+	border-radius: 2rem;
+	border: 2px solid #000000;
+	z-index: 9;
+
+	/* to hide scroll bar */
+	-ms-overflow-style: none;  /* IE and Edge */
+	scrollbar-width: none;  /* Firefox */
+}
+
+.misc-content::-webkit-scrollbar {
+	display: none;
+} 
+
+.misc-content div {
+	padding-bottom: 3rem;
+}
+
+.option-row {
+	display: flex;
+	justify-content: space-evenly;
+	align-items: center;
+}
+
+.option-item {
+	text-align: center;
+	width: 14rem;
+}
+
+.icon {
+	margin: 0.5rem auto;
+	display: block;
+	text-align: center;
+	width: 5rem;
+	height: 5rem;
+}
+
+.checkbox {
+	display: block;
+	margin: 0.7rem auto;
+	width: 2rem;
+	height: 2rem;
+}
+
+.textbox {
+	max-width: 26rem;
+	height: 4rem;
+	padding: 1rem;
+}
+
+form p {
+	padding: 0.5rem;
+	margin: 0;
+}
+
+.who-won-message {
+	text-align: center;
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: -5rem;
+	background-color: #cacaca;
+	border: 2px solid #000000;
+	z-index: 999;
+	animation: 1s whoWonMessage 1s forwards;
+}
+
+.play-again-btn {
+	font-size: 2.5rem;
+	text-align: center;
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: -5rem;
+	background-color: #cacaca;
+	border: 2px solid #000000;
+	z-index: 999;
+	animation: 1s playAgainMsg 2s forwards;
+}
+
+.play-again-btn:hover {
+	background-color: #fafafa;
+}
+
+.player1-bullet-in-clip {
+	border: 1px solid var(--player-2-colour);
+	background-color: var(--player-1-colour);
+	height: 25px;
+	width: 15px;
+}
+
+.player1-no-bullet-in-clip {
+	border: 1px solid var(--player-2-colour);
+	background-color: #cacaca;
+	height: 25px;
+	width: 15px;
+}
+
+
+.player2-bullet-in-clip {
+	border: 1px solid var(--player-1-colour);
+	background-color: var(--player-2-colour);
+	height: 25px;
+	width: 15px;
+}
+
+.player2-no-bullet-in-clip {
+	border: 1px solid var(--player-1-colour);
+	background-color: #cacaca;
+	height: 25px;
+	width: 15px;
+}
+
+
+/* game elems styling */
+
+@keyframes blkBullet {
+	from {
+		background-color: var(--player-2-colour);
+	}
+
+	to {
+		background-color: var(--player-1-colour);
+	}
+}
+
+@keyframes whtBullet {
+	from {
+		background-color: var(--player-1-colour);
+	}
+
+	to {
+		background-color: var(--player-2-colour);
+	}
+}
+
+@keyframes bulletCollision {
+	from {
+		background-color: red;
+	}
+	to {
+		background-color: black;
+	}
+}
+
+.cell {
+	position: relative;
+	border: 1px solid var(--player-2-colour);
+	background-color: var(--player-1-colour);
+}
+
+.flipped {
+	border: 1px solid var(--player-1-colour);
+	background-color: var(--player-2-colour);
+}
+
+.whtPlayer {
+	fill: var(--player-1-colour);
+}
+
+.blkPlayer {
+	fill: var(--player-2-colour);
+}
+
+.blkBulletX {
+	position: absolute;
+	background-color: var(--player-2-colour);
+	top: 33%;
+	height: 33%;
+	width: 100%;
+	animation-name: blkBullet;
+	animation-duration: 1s;
+}
+
+.whtBulletX {
+	position: absolute;
+	background-color: var(--player-1-colour);
+	top: 33%;
+	height: 33%;
+	width: 100%;
+	animation-name: whtBullet;
+	animation-duration: 1s;
+}
+
+.blkBulletY {
+	position: absolute;
+	background-color: var(--player-2-colour);
+	left: 33%;
+	height: 100%;
+	width: 33%;
+	animation-name: blkBullet;
+	animation-duration: 1s;
+}
+
+.whtBulletY {
+	position: absolute;
+	background-color: var(--player-1-colour);
+	left: 33%;
+	height: 100%;
+	width: 33%;
+	animation-name: whtBullet;
+	animation-duration: 1s;
+}
+
+.bang {
+	background-color: red;
+	top: 0;
+	left: 0;
+	height: 100%;
+	width: 100%;
+	animation-name: bulletCollision;
+	animation-duration: 1s;
+}
+
+/* Footer
+--------------------------------------------- */
+
+
+@media (max-width: 32rem) {
+	.title {
+		margin-top: 20rem;
+	}
+	.mobile-warning-msg {
+		display: block;
+		position: absolute;
+		z-index: 999;
+		height: fit-content;
+		width: 100vw;
+		top: 0;
+		left: 0;
+		background-color: #cacacaec;
+		padding: 1rem 2rem;
+		border-radius: 2rem;
+		border: 2px solid #000000;
+	}
+}
