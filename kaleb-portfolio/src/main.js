@@ -608,6 +608,24 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
   hideProjectPreview()
 }
 
+let lastGtagPath
+
+const trackSpaPageView = () => {
+  const pagePath =
+    window.location.pathname + window.location.search + window.location.hash
+  if (lastGtagPath === undefined) {
+    lastGtagPath = pagePath
+    return
+  }
+  if (pagePath === lastGtagPath || typeof window.gtag !== 'function') return
+  lastGtagPath = pagePath
+  window.gtag('event', 'page_view', {
+    page_path: pagePath,
+    page_location: window.location.href,
+    page_title: document.title,
+  })
+}
+
 const setRoute = (screen, project = '', { push = false, focus = false } = {}) => {
   if (!screens.has(screen)) {
     screen = 'home'
@@ -648,6 +666,8 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
     if (push) history.pushState(state, '', nextHash)
     else history.replaceState(state, '', nextHash)
   }
+
+  trackSpaPageView()
 }
 
 const setScreen = (screen, opts = {}) => setRoute(screen, '', opts)
