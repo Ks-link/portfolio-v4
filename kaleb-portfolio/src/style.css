@@ -145,6 +145,8 @@ body {
 .work-detail {
   transform: translate3d(calc(100% + var(--work-swipe)), 0, 0);
   z-index: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 #app[data-project] .work-list {
@@ -648,22 +650,102 @@ body {
   margin: 0;
 }
 
+.work-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+}
+
+.work-detail-tags[hidden] {
+  display: none;
+}
+
+.work-detail-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.72rem;
+  border-radius: 999px;
+  font-weight: 400;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--nav-blob);
+}
+
 .work-detail-desc {
   margin: 1.25rem 0 0;
   font-weight: 300;
   font-size: 1.05rem;
   line-height: 1.65;
-  max-width: 32rem;
   color: var(--text);
   opacity: 0.85;
 }
 
-.work-detail-blob {
-  margin: 2.25rem 0 0;
-  width: min(16.5rem, 100%);
+.work-detail-link {
+  display: inline-block;
+  margin: 0.85rem 0 0;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 400;
+  font-size: 1.05rem;
+  transition:
+    opacity 0.2s ease,
+    color 0.2s ease;
 }
 
-.work-detail-blob-shape,
+.work-detail-link[hidden] {
+  display: none;
+}
+
+.work-detail-link:hover,
+.work-detail-link:focus-visible {
+  opacity: 0.8;
+}
+
+.work-detail-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.work-detail-frame {
+  --frame-thickness: 0.42rem;
+  --frame-wave: 0.16rem;
+  --frame-radius: 0.5rem;
+  --frame-inset: calc(var(--frame-thickness) + var(--frame-wave));
+  position: relative;
+  margin: 2.25rem 0 0;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  overflow: visible;
+}
+
+.work-detail-frame-img {
+  position: absolute;
+  top: var(--frame-inset);
+  left: var(--frame-inset);
+  display: block;
+  width: calc(100% - 2 * (var(--frame-thickness) + var(--frame-wave)));
+  height: calc(100% - 2 * (var(--frame-thickness) + var(--frame-wave)));
+  max-width: none;
+  object-fit: cover;
+  object-position: center;
+  border-radius: var(--frame-radius);
+}
+
+.work-detail-frame-border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  color: var(--nav-blob);
+}
+
 .project-preview-shape {
   display: block;
   overflow: hidden;
@@ -675,7 +757,6 @@ body {
   animation: blob-morph 7s ease-in-out infinite;
 }
 
-.work-detail-blob-img,
 .project-preview-img {
   display: block;
   width: 100%;
@@ -928,8 +1009,6 @@ body {
   .nav-blob-shape,
   .profile-blob-shape,
   .profile-blob-img,
-  .work-detail-blob-shape,
-  .work-detail-blob-img,
   .project-preview-shape,
   .project-preview-img {
     animation: none;

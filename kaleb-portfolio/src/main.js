@@ -51,13 +51,17 @@ const UNDERLINE_POINTS = 40
 
 const projects = [
   {
-    id: 'project-one',
-    name: 'Project one',
-    summary: 'A short line about this project.',
+    id: 'dirtbuster',
+    name: 'The Dirt Buster',
+    url: 'https://thedirtbuster.com/',
+    tags: ['WordPress', 'SEO', 'PHP', 'HTML', 'CSS', 'Email', 'Google Workspace'],
+    summary: 'A WordPress site for a Campbell River cleaner — custom theme, local SEO, and email.',
     description:
-      'A closer look at this project. Placeholder copy for the details pane until the real write-up lands.',
-    image: '/profile.jpg',
-    alt: 'Preview of Project one',
+      'A custom WordPress build for a long-running Campbell River cleaner. I wrote the theme in PHP, HTML, and CSS, set up local SEO so nearby searches actually find the business, and connected quote requests to Google Workspace email so inquiries land where they work.',
+    image: '/projects/dirtbuster.jpg',
+    preview: '/projects/dirtbuster-logo.png',
+    alt: 'Homepage of The Dirt Buster, a Campbell River carpet cleaning site.',
+    previewAlt: 'The Dirt Buster logo',
   },
   {
     id: 'project-two',
@@ -215,18 +219,21 @@ app.innerHTML = `
           <div class="screen-inner">
             <button type="button" class="work-back" aria-label="Back to work">Work</button>
             <h2 id="work-detail-heading" class="screen-title work-detail-title"></h2>
+            <ul class="work-detail-tags" hidden></ul>
             <p class="work-detail-desc"></p>
-            <div class="work-detail-blob">
-              <span class="work-detail-blob-shape">
-                <img
-                  class="work-detail-blob-img"
-                  src="/profile.jpg"
-                  alt=""
-                  width="640"
-                  height="640"
-                  decoding="async"
-                />
-              </span>
+            <a class="work-detail-link" hidden target="_blank" rel="noopener noreferrer">Visit site</a>
+            <div class="work-detail-frame">
+              <img
+                class="work-detail-frame-img"
+                src="/profile.jpg"
+                alt=""
+                width="1024"
+                height="697"
+                decoding="async"
+              />
+              <svg class="work-detail-frame-border" aria-hidden="true">
+                <path class="work-detail-frame-path" fill="currentColor" fill-rule="evenodd"/>
+              </svg>
             </div>
           </div>
         </div>
@@ -408,10 +415,11 @@ const hideProjectPreview = () => {
 
 const showProjectPreview = (project) => {
   if (!projectPreview || !projectPreviewImg) return
-  if (projectPreviewImg.getAttribute('src') !== project.image) {
-    projectPreviewImg.src = project.image
+  const src = project.preview || project.image
+  if (projectPreviewImg.getAttribute('src') !== src) {
+    projectPreviewImg.src = src
   }
-  projectPreviewImg.alt = project.alt
+  projectPreviewImg.alt = project.previewAlt || project.alt
   projectPreview.classList.add('is-visible')
   projectPreview.setAttribute('aria-hidden', 'false')
 }
@@ -423,8 +431,10 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
   const prevId = workDetailEl?.dataset.projectId || ''
   const project = projectById.get(id)
   const titleEl = workDetailEl?.querySelector('.work-detail-title')
+  const tagsEl = workDetailEl?.querySelector('.work-detail-tags')
   const descEl = workDetailEl?.querySelector('.work-detail-desc')
-  const imgEl = workDetailEl?.querySelector('.work-detail-blob-img')
+  const linkEl = workDetailEl?.querySelector('.work-detail-link')
+  const imgEl = workDetailEl?.querySelector('.work-detail-frame-img')
 
   projectLinks.forEach((link) => {
     if (link.dataset.project === id) link.setAttribute('aria-current', 'page')
@@ -435,6 +445,14 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
     workDetailEl?.setAttribute('aria-hidden', 'true')
     if (workDetailEl) workDetailEl.inert = true
     workDetailEl?.removeAttribute('data-project-id')
+    if (linkEl) {
+      linkEl.hidden = true
+      linkEl.removeAttribute('href')
+    }
+    if (tagsEl) {
+      tagsEl.replaceChildren()
+      tagsEl.hidden = true
+    }
     if (workListEl) workListEl.inert = false
     workScreen?.setAttribute('aria-labelledby', 'work-heading')
   hideProjectPreview()
@@ -447,11 +465,32 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
 }
 
 if (titleEl) titleEl.textContent = project.name
+if (tagsEl) {
+  tagsEl.replaceChildren()
+  const tags = project.tags || []
+  tags.forEach((tag) => {
+    const item = document.createElement('li')
+    item.className = 'work-detail-tag'
+    item.textContent = tag
+    tagsEl.append(item)
+  })
+  tagsEl.hidden = tags.length === 0
+}
 if (descEl) descEl.textContent = project.description
+if (linkEl) {
+  if (project.url) {
+    linkEl.href = project.url
+    linkEl.hidden = false
+  } else {
+    linkEl.hidden = true
+    linkEl.removeAttribute('href')
+  }
+}
 if (imgEl) {
   if (imgEl.getAttribute('src') !== project.image) imgEl.src = project.image
   imgEl.alt = project.alt
 }
+requestAnimationFrame(() => tickProjectFrame(0))
 workDetailEl?.setAttribute('aria-hidden', 'false')
 if (workDetailEl) {
   workDetailEl.inert = false
@@ -845,6 +884,85 @@ const pathFromPoints = (pts) => {
   }
   return d
 }
+
+const pathFromClosedPoints = (pts) => {
+  const n = pts.length
+  if (n < 4) return ''
+  const at = (i) => pts[(i + n) % n]
+  let d = `M ${at(0).x.toFixed(2)} ${at(0).y.toFixed(2)}`
+  for (let i = 0; i < n; i++) {
+    const p0 = at(i - 1)
+    const p1 = at(i)
+    const p2 = at(i + 1)
+    const p3 = at(i + 2)
+    const cp1x = p1.x + (p2.x - p0.x) / 6
+    const cp1y = p1.y + (p2.y - p0.y) / 6
+    const cp2x = p2.x - (p3.x - p1.x) / 6
+    const cp2y = p2.y - (p3.y - p1.y) / 6
+    d += ` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`
+  }
+  return `${d} Z`
+}
+
+const FRAME_EDGE_POINTS = 18
+const FRAME_WAVES = 2
+const projectFrame = {
+  wrap: document.querySelector('.work-detail-frame'),
+  svg: document.querySelector('.work-detail-frame-border'),
+  path: document.querySelector('.work-detail-frame-path'),
+}
+
+const remPx = (value) => {
+  const root = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+  return parseFloat(value) * root
+}
+
+const tickProjectFrame = (t) => {
+  const { wrap, svg, path } = projectFrame
+  if (!wrap || !svg || !path) return
+  if (app.dataset.screen !== 'work' || !app.dataset.project) return
+
+  const rect = svg.getBoundingClientRect()
+  const w = Math.max(1, rect.width)
+  const h = Math.max(1, rect.height)
+  const styles = getComputedStyle(wrap)
+  const thickness = remPx(styles.getPropertyValue('--frame-thickness'))
+  const wave = remPx(styles.getPropertyValue('--frame-wave'))
+  const radius = remPx(styles.getPropertyValue('--frame-radius'))
+  const amp = reduceMotion ? wave * 0.55 : wave * (0.82 + 0.18 * Math.sin(t * 0.85))
+  const inner = thickness + wave
+  const n = FRAME_EDGE_POINTS
+  const pts = []
+
+  const edge = (count, xy) => {
+    for (let i = 0; i < count; i++) {
+      const u = i / count
+      const wobble = Math.sin(u * Math.PI * FRAME_WAVES) * amp
+      pts.push(xy(u, wobble))
+    }
+  }
+
+  const outer = wave
+  const spanX = w - outer * 2
+  const spanY = h - outer * 2
+
+  edge(n, (u, wobble) => ({ x: outer + spanX * u, y: outer + wobble }))
+  edge(n, (u, wobble) => ({ x: w - outer + wobble, y: outer + spanY * u }))
+  edge(n, (u, wobble) => ({ x: w - outer - spanX * u, y: h - outer + wobble }))
+  edge(n, (u, wobble) => ({ x: outer + wobble, y: h - outer - spanY * u }))
+
+  const x1 = inner
+  const y1 = inner
+  const x2 = w - inner
+  const y2 = h - inner
+  const r = Math.min(radius, (x2 - x1) / 2, (y2 - y1) / 2)
+  const innerHole = `M ${(x1 + r).toFixed(2)} ${y1.toFixed(2)} H ${(x2 - r).toFixed(2)} A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${x2.toFixed(2)} ${(y1 + r).toFixed(2)} V ${(y2 - r).toFixed(2)} A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${(x2 - r).toFixed(2)} ${y2.toFixed(2)} H ${(x1 + r).toFixed(2)} A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${x1.toFixed(2)} ${(y2 - r).toFixed(2)} V ${(y1 + r).toFixed(2)} A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${(x1 + r).toFixed(2)} ${y1.toFixed(2)} Z`
+
+  svg.setAttribute('viewBox', `0 0 ${w.toFixed(2)} ${h.toFixed(2)}`)
+  path.setAttribute('d', `${pathFromClosedPoints(pts)} ${innerHole}`)
+}
+
+window.addEventListener('resize', () => tickProjectFrame(0))
 
 const addSplash = (u, x, w, t, amp = 1) => {
   u.splashes.push({
@@ -1423,6 +1541,7 @@ if (reduceMotion) {
 
     if (profileBlob) tickProfileBlob(profileBlob, t, dt, mouseX, mouseY, blobReach, blobPush)
     tickUnderlines(t, dt, mouseX, mouseY)
+    tickProjectFrame(t)
 
     rafId = requestAnimationFrame(tick)
   }
