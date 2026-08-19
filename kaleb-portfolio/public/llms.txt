@@ -1,0 +1,28 @@
+# Kaleb Link
+
+> Web developer based in Abbotsford, BC.
+
+Kaleb Link is a web developer in Abbotsford, British Columbia. He builds custom websites, SEO, and branding for local businesses.
+
+## Site
+
+- Homepage: https://kaleblink.com/
+- Library: https://kaleblink.com/library/
+- Tile Wars: https://kaleblink.com/library/tile-wars/
+
+## Work
+
+- The Dirt Buster — a WordPress site for a local cleaning business: https://thedirtbuster.com/
+- Tile Wars — a two-player browser game built with vanilla JavaScript: https://kaleblink.com/library/tile-wars/
+
+## Experience
+
+- Lead Web Developer, Stoney Hill Marketing (2026 — Present)
+- Web Developer, JM Web Design (2025 — 2026)
+- Freelance Web Developer, Link Web Design (2024 — 2025)
+
+## Contact
+
+- Email: contact@kaleblink.com
+- GitHub: https://github.com/Ks-link
+- LinkedIn: https://www.linkedin.com/in/kaleblink/
