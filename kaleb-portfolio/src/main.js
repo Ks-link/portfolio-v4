@@ -211,6 +211,7 @@ app.innerHTML = `
       <div class="work-panes">
         <div class="work-pane work-list">
           <div class="screen-inner">
+            <p class="work-kicker">SOME</p>
             <h2 id="work-heading" class="screen-title">Work</h2>
             <ul class="project-grid">
               ${projectCardsHtml}
@@ -250,6 +251,7 @@ app.innerHTML = `
                 width="1024"
                 height="697"
                 decoding="async"
+                draggable="false"
               />
               <svg class="work-detail-frame-border" aria-hidden="true">
                 <path class="work-detail-frame-path" fill="currentColor" fill-rule="evenodd"/>
@@ -260,7 +262,7 @@ app.innerHTML = `
       </div>
       <div class="project-preview" aria-hidden="true">
         <span class="project-preview-shape">
-          <img class="project-preview-img" src="/profile.jpg" alt="" width="460" height="460" decoding="async" />
+          <img class="project-preview-img" src="/profile.jpg" alt="" width="460" height="460" decoding="async" draggable="false" />
         </span>
       </div>
     </section>
@@ -286,6 +288,7 @@ app.innerHTML = `
                 width="460"
                 height="460"
                 decoding="async"
+                draggable="false"
               />
             </span>
             <span class="profile-blob-shape profile-blob-shape--small">
@@ -296,6 +299,7 @@ app.innerHTML = `
                 width="460"
                 height="460"
                 decoding="async"
+                draggable="false"
               />
             </span>
             <span class="profile-blob-shape profile-blob-shape--small">
@@ -306,6 +310,7 @@ app.innerHTML = `
                 width="460"
                 height="460"
                 decoding="async"
+                draggable="false"
               />
             </span>
           </div>
@@ -716,6 +721,11 @@ document.addEventListener('pointerdown', (e) => {
 
 if (projectLive.live) {
   new ResizeObserver(syncPreviewScale).observe(projectLive.live)
+  const lockPreviewWindow = () => {
+    if (projectLive.live.scrollTop) projectLive.live.scrollTop = 0
+    if (projectLive.live.scrollLeft) projectLive.live.scrollLeft = 0
+  }
+  projectLive.live.addEventListener('scroll', lockPreviewWindow, { passive: true })
 }
 
 projectLinks.forEach((link) => {
@@ -1266,22 +1276,24 @@ const PROFILE_STATIC_OFFSETS = [
 ]
 const PROFILE_ORBITS = [
   null,
-  { angle: 0, speed: 0.07, rx: 0.5, ry: 0.58, dir: 1 },
-  { angle: Math.PI, speed: 0.055, rx: 0.48, ry: 0.54, dir: 1 },
+  { angle: 0, speed: 0.07, rx: 0.58, ry: 0.66, dir: 1 },
+  { angle: Math.PI, speed: 0.055, rx: 0.56, ry: 0.62, dir: 1 },
 ]
-const PROFILE_SEPARATE = 1.12
-const PROFILE_SEPARATE_RATE = 5
+const PROFILE_SEPARATE = 1.28
+const PROFILE_SEPARATE_RATE = 7
+const PROFILE_MOON_MIN_ANGLE = 1.05
+const PROFILE_MOON_ANGLE_RATE = 4.5
 
 const profileWrap = document.querySelector('.profile-blob')
 const profileShapes = [...(profileWrap?.querySelectorAll('.profile-blob-shape') ?? [])]
 
 const makeProfileShape = () => {
-  const lump = rand(6, 11)
-  const center = rand(47, 53)
+  const lump = rand(3, 6)
+  const center = rand(50, 54)
   return {
     radii: Array.from({ length: 8 }, () => center + rand(-lump, lump)),
-    morphAmp: Array.from({ length: 8 }, () => rand(4, 8)),
-    morphSpeed: Array.from({ length: 8 }, () => rand(0.14, 0.34)),
+    morphAmp: Array.from({ length: 8 }, () => rand(2.5, 5)),
+    morphSpeed: Array.from({ length: 8 }, () => rand(0.7, 1.35)),
     morphPhase: Array.from({ length: 8 }, () => rand(0, Math.PI * 2)),
   }
 }
@@ -1289,7 +1301,7 @@ const makeProfileShape = () => {
 const profileBlobRadius = (blob, t = 0) => {
   const r = blob.radii.map((base, i) => {
     const wave = Math.sin(t * blob.morphSpeed[i] + blob.morphPhase[i])
-    return Math.min(64, Math.max(42, base + wave * blob.morphAmp[i]))
+    return Math.min(60, Math.max(48, base + wave * blob.morphAmp[i]))
   })
   return `${r[0].toFixed(1)}% ${r[1].toFixed(1)}% ${r[2].toFixed(1)}% ${r[3].toFixed(1)}% / ${r[4].toFixed(1)}% ${r[5].toFixed(1)}% ${r[6].toFixed(1)}% ${r[7].toFixed(1)}%`
 }
@@ -1509,9 +1521,8 @@ const separateProfileBlobs = (dt) => {
   if (profileBlobs.length < 2) return
   const cw = profileWrap.clientWidth
   const ch = profileWrap.clientHeight
-  const mass = (blob) => (blob.host ? 8 : 1)
+  const mass = (blob) => (blob.host ? 10 : 1)
   const gain = 1 - Math.exp(-Math.max(dt, 0.001) * PROFILE_SEPARATE_RATE)
-
   const minDistOf = (a, b) => (a.s + b.s) * 0.5 * PROFILE_SEPARATE
 
   for (let i = 0; i < profileBlobs.length; i++) {
@@ -1552,11 +1563,20 @@ const separateProfileBlobs = (dt) => {
       if (a.host !== b.host) {
         const moon = a.host ? b : a
         const host = a.host ? a : b
-        moon.y += (moon.y >= host.y ? 1 : -1) * leftover
+        const hx = moon.x - host.x
+        const hy = moon.y - host.y
+        const hDist = Math.hypot(hx, hy) || 1
+        moon.x += (hx / hDist) * leftover
+        moon.y += (hy / hDist) * leftover
+        moon.targetOrbitScale = Math.min(1.22, moon.targetOrbitScale + leftover * 0.01)
       } else {
-        const away = a.y <= b.y ? 1 : -1
-        a.y -= away * leftover * 0.5
-        b.y += away * leftover * 0.5
+        const mx = b.x - a.x
+        const my = b.y - a.y
+        const mDist = Math.hypot(mx, my) || 1
+        a.x -= (mx / mDist) * leftover * 0.5
+        a.y -= (my / mDist) * leftover * 0.5
+        b.x += (mx / mDist) * leftover * 0.5
+        b.y += (my / mDist) * leftover * 0.5
       }
     }
   }
@@ -1568,6 +1588,25 @@ const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
   if (!profileBlobs.length) return
   const [host, ...moons] = profileBlobs
   tickProfileBlob(host, t, dt, mouseX, mouseY, blobReach, blobPush)
+  // Angular push before orbit placement so moons stay magnetized but spread out.
+  {
+    const angleGain = 1 - Math.exp(-Math.max(dt, 0.001) * PROFILE_MOON_ANGLE_RATE)
+    for (let i = 0; i < moons.length; i++) {
+      for (let j = i + 1; j < moons.length; j++) {
+        const a = moons[i]
+        const b = moons[j]
+        let dAngle = b.angle - a.angle
+        while (dAngle > Math.PI) dAngle -= Math.PI * 2
+        while (dAngle < -Math.PI) dAngle += Math.PI * 2
+        const abs = Math.abs(dAngle) || 0.001
+        if (abs >= PROFILE_MOON_MIN_ANGLE) continue
+        const push = (PROFILE_MOON_MIN_ANGLE - abs) * angleGain
+        const sign = dAngle >= 0 ? 1 : -1
+        a.angle -= sign * push * 0.5
+        b.angle += sign * push * 0.5
+      }
+    }
+  }
   moons.forEach((blob) => {
     tickProfileOrbit(blob, host, t, dt, mouseX, mouseY, blobReach, blobPush)
   })
