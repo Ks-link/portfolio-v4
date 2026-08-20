@@ -280,7 +280,7 @@ app.innerHTML = `
             <li><a target="_blank" rel="noopener noreferrer" href="https://www.linkedin.com/in/kaleblink/">LinkedIn</a></li>
           </ul>
           <div class="profile-blob">
-            <span class="profile-blob-shape">
+            <span class="profile-blob-shape" role="button" tabindex="0" aria-label="Split portrait">
               <img
                 class="profile-blob-img"
                 src="/profile.jpg"
@@ -291,7 +291,7 @@ app.innerHTML = `
                 draggable="false"
               />
             </span>
-            <span class="profile-blob-shape profile-blob-shape--small">
+            <span class="profile-blob-shape profile-blob-shape--small profile-blob-shape--moon" role="button" tabindex="0" aria-label="Split fishing photo">
               <img
                 class="profile-blob-img"
                 src="/about-fish.jpg"
@@ -302,7 +302,7 @@ app.innerHTML = `
                 draggable="false"
               />
             </span>
-            <span class="profile-blob-shape profile-blob-shape--small">
+            <span class="profile-blob-shape profile-blob-shape--small profile-blob-shape--moon" role="button" tabindex="0" aria-label="Split drums photo">
               <img
                 class="profile-blob-img"
                 src="/about-drums.jpg"
@@ -784,8 +784,10 @@ const screenEls = {
 }
 
 let swipeStart = null
+let swipeClaimedClick = false
 
-const isInteractiveTarget = (el) => Boolean(el.closest?.('button'))
+const isInteractiveTarget = (el) =>
+  Boolean(el.closest?.('button, .profile-blob-shape'))
 
 const scrolledToTop = (el) => !el || el.scrollTop <= 1
 
@@ -910,6 +912,12 @@ const endSwipe = (id) => {
   if (!swipeStart || swipeStart.id !== id) return
   const { x, y, lastX, lastY, axis, atTop, atBottom, claimed, closeProject } = swipeStart
   swipeStart = null
+  if (claimed) {
+    swipeClaimedClick = true
+    setTimeout(() => {
+      swipeClaimedClick = false
+    }, 0)
+  }
 
   const dx = lastX - x
   const dy = lastY - y
@@ -1283,9 +1291,34 @@ const PROFILE_SEPARATE = 1.28
 const PROFILE_SEPARATE_RATE = 7
 const PROFILE_MOON_MIN_ANGLE = 1.05
 const PROFILE_MOON_ANGLE_RATE = 4.5
+const PROFILE_BURST = 0.32
+const PROFILE_MERGE_SPEED = 520
+const PROFILE_ABSORB = 0.24
+const PROFILE_SHARDS = ['22% 28%', '78% 24%', '26% 76%', '74% 78%', '50% 18%', '52% 82%']
+const PROFILE_A11Y = [
+  {
+    whole: 'Split portrait',
+    fragment: 'Merge portrait fragment',
+    merging: 'Merging portrait fragment',
+    core: 'Portrait assembling',
+  },
+  {
+    whole: 'Split fishing photo',
+    fragment: 'Merge fishing photo fragment',
+    merging: 'Merging fishing photo fragment',
+    core: 'Fishing photo assembling',
+  },
+  {
+    whole: 'Split drums photo',
+    fragment: 'Merge drums photo fragment',
+    merging: 'Merging drums photo fragment',
+    core: 'Drums photo assembling',
+  },
+]
 
 const profileWrap = document.querySelector('.profile-blob')
 const profileShapes = [...(profileWrap?.querySelectorAll('.profile-blob-shape') ?? [])]
+const randInt = (min, max) => Math.floor(rand(min, max + 1))
 
 const makeProfileShape = () => {
   const lump = rand(3, 6)
@@ -1319,7 +1352,17 @@ const createProfileBlob = (el, i) => {
     img: el.querySelector('.profile-blob-img'),
     sizeIndex: i,
     size: PROFILE_BLOB_SIZES[i] ?? 0.4,
+    familyId: i,
+    isOrigin: true,
     host: i === 0,
+    mode: 'whole',
+    sizeScale: 1,
+    vx: 0,
+    vy: 0,
+    ax: 0,
+    ay: 0,
+    targetAccelX: 0,
+    targetAccelY: 0,
     progress: start.progress,
     dir: i % 2 === 0 ? 1 : -1,
     lane: start.lane,
@@ -1352,11 +1395,89 @@ const createProfileBlob = (el, i) => {
   }
 }
 
-const profileBlobs = profileWrap ? profileShapes.map(createProfileBlob) : []
+const makeProfileAnchor = (blob) => ({
+  wrap: profileWrap,
+  sizeIndex: blob.sizeIndex,
+  size: blob.size,
+  sizeScale: 1,
+  host: blob.host,
+  progress: blob.progress,
+  dir: blob.dir,
+  lane: blob.lane,
+  targetLane: blob.targetLane,
+  phase: blob.phase,
+  speed: blob.speed,
+  accel: blob.accel,
+  targetAccel: blob.targetAccel,
+  accelChangeAt: blob.accelChangeAt,
+  sway: blob.sway,
+  wobble: blob.wobble,
+  angle: blob.angle,
+  orbitSpeed: blob.orbitSpeed,
+  orbitDir: blob.orbitDir,
+  orbitRx: blob.orbitRx,
+  orbitRy: blob.orbitRy,
+  orbitScale: blob.orbitScale,
+  targetOrbitScale: blob.targetOrbitScale,
+  x: 0,
+  y: 0,
+  left: 0,
+  top: 0,
+  s: 0,
+  pushX: 0,
+  pushY: 0,
+})
+
+let profileBlobs = profileWrap ? profileShapes.map(createProfileBlob) : []
+
+const applyProfileInteractive = (el) => {
+  el.setAttribute('role', 'button')
+  el.setAttribute('tabindex', '0')
+}
+
+const updateProfileA11y = (blob) => {
+  const copy = PROFILE_A11Y[blob.familyId] ?? PROFILE_A11Y[0]
+  const label =
+    blob.mode === 'whole'
+      ? copy.whole
+      : blob.mode === 'fragment'
+        ? copy.fragment
+        : blob.mode === 'merging'
+          ? copy.merging
+          : copy.core
+  blob.el.setAttribute('aria-label', label)
+  blob.el.setAttribute('aria-disabled', blob.mode === 'core' ? 'true' : 'false')
+}
+
+const profileFamilies = profileBlobs.map((blob) => {
+  applyProfileInteractive(blob.el)
+  updateProfileA11y(blob)
+  return {
+    id: blob.familyId,
+    host: blob.host,
+    origin: blob,
+    anchor: makeProfileAnchor(blob),
+    mode: 'whole',
+    core: blob,
+    pieceCount: 1,
+    mergedCount: 1,
+  }
+})
 
 const profileSizePx = (blob, cw, ch) => {
   const sizes = swipeMq.matches ? PROFILE_BLOB_SIZES_MOBILE : PROFILE_BLOB_SIZES
-  return Math.min(cw, ch) * (sizes[blob.sizeIndex] ?? blob.size)
+  const base = Math.min(cw, ch) * (sizes[blob.sizeIndex] ?? blob.size)
+  return base * (blob.sizeScale ?? 1)
+}
+
+const hideProfileMoons = () => swipeMq.matches
+
+const isHostBody = (blob) =>
+  blob.familyId === 0 && (blob.mode === 'whole' || blob.mode === 'core')
+
+const setProfileZ = (blob) => {
+  blob.el.style.zIndex =
+    blob.mode === 'merging' ? '3' : blob.mode === 'core' ? '2' : blob.familyId === 0 ? '0' : '1'
 }
 
 const bounceProfile = (blob, t, atBottom) => {
@@ -1393,20 +1514,31 @@ const placeStaticProfile = () => {
   const cw = profileWrap.clientWidth
   const ch = profileWrap.clientHeight
   if (cw < 2 || ch < 2) return
-  const hideMoons = swipeMq.matches
-  profileBlobs.forEach((blob, i) => {
-    if (hideMoons && !blob.host) return
-    const s = profileSizePx(blob, cw, ch)
+  const hideMoons = hideProfileMoons()
+
+  profileFamilies.forEach((family) => {
+    if (hideMoons && !family.host) return
+    const s = profileSizePx({ ...family.anchor, sizeScale: 1 }, cw, ch)
     const travelX = Math.max(0, cw - s)
     const travelY = Math.max(0, ch - s)
-    const off = PROFILE_STATIC_OFFSETS[i] ?? { fx: 0.5, fy: 0.5 }
-    paintProfileBlob(
-      blob,
-      travelX * off.fx,
-      travelY * off.fy,
-      s,
-      profileBlobRadius(blob),
-    )
+    const off = PROFILE_STATIC_OFFSETS[family.id] ?? { fx: 0.5, fy: 0.5 }
+    family.anchor.s = s
+    family.anchor.left = travelX * off.fx
+    family.anchor.top = travelY * off.fy
+    family.anchor.x = family.anchor.left + s / 2
+    family.anchor.y = family.anchor.top + s / 2
+  })
+
+  profileBlobs.forEach((blob) => {
+    if (hideMoons && blob.familyId !== 0) return
+    const family = profileFamilies[blob.familyId]
+    blob.s = profileSizePx(blob, cw, ch)
+    if (blob.mode === 'whole' || blob.mode === 'core') {
+      blob.x = family.anchor.x
+      blob.y = family.anchor.y
+    }
+    clampProfileInBox(blob, cw, ch)
+    paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob))
   })
 }
 
@@ -1519,18 +1651,281 @@ const tickProfileOrbit = (blob, host, t, dt, mouseX, mouseY, blobReach, blobPush
   clampProfileInBox(blob, cw, ch)
 }
 
-const separateProfileBlobs = (dt) => {
-  if (profileBlobs.length < 2) return
+const tickProfileFragment = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
+  const { wrap } = blob
+  const cw = wrap.clientWidth
+  const ch = wrap.clientHeight
+  if (cw < 2 || ch < 2) return
+
+  blob.s = profileSizePx(blob, cw, ch)
+
+  if (t >= blob.accelChangeAt) {
+    blob.targetAccelX = rand(-55, 55)
+    blob.targetAccelY = rand(-55, 55)
+    blob.accelChangeAt = t + rand(0.7, 2.6)
+  }
+
+  blob.ax = damp(blob.ax, blob.targetAccelX, 1.2, dt)
+  blob.ay = damp(blob.ay, blob.targetAccelY, 1.2, dt)
+  blob.vx += blob.ax * dt
+  blob.vy += blob.ay * dt
+
+  const rect = wrap.getBoundingClientRect()
+  const screenX = rect.left + blob.x
+  const screenY = rect.top + blob.y
+  const mdx = mouseX - screenX
+  const mdy = mouseY - screenY
+  const dist = Math.hypot(mdx, mdy) || 1
+  const proximity = Math.max(0, 1 - dist / blobReach)
+  const force = blobPush * 12 * proximity * proximity
+  blob.vx += (-mdx / dist) * force * dt
+  blob.vy += (-mdy / dist) * force * dt
+
+  const drag = Math.exp(-Math.max(dt, 0.001) * 0.9)
+  blob.vx *= drag
+  blob.vy *= drag
+  const spd = Math.hypot(blob.vx, blob.vy)
+  const maxSpd = 220
+  if (spd > maxSpd) {
+    blob.vx *= maxSpd / spd
+    blob.vy *= maxSpd / spd
+  }
+
+  blob.x += blob.vx * dt
+  blob.y += blob.vy * dt
+  blob.pushX = 0
+  blob.pushY = 0
+
+  const prevX = blob.x
+  const prevY = blob.y
+  clampProfileInBox(blob, cw, ch)
+  if (blob.x !== prevX) blob.vx *= -0.62
+  if (blob.y !== prevY) blob.vy *= -0.62
+}
+
+const tickProfileMerge = (blob, family, dt) => {
+  const { wrap } = blob
+  const cw = wrap.clientWidth
+  const ch = wrap.clientHeight
+  if (cw < 2 || ch < 2) return
+
+  blob.s = profileSizePx(blob, cw, ch)
+  const target = family.core ?? family.anchor
+  const dx = target.x - blob.x
+  const dy = target.y - blob.y
+  const dist = Math.hypot(dx, dy) || 1
+  const step = Math.min(dist, PROFILE_MERGE_SPEED * dt)
+  blob.x += (dx / dist) * step
+  blob.y += (dy / dist) * step
+  blob.vx = 0
+  blob.vy = 0
+  blob.pushX = 0
+  blob.pushY = 0
+  clampProfileInBox(blob, cw, ch)
+}
+
+const cloneProfileBlob = (source) => {
+  const el = source.el.cloneNode(true)
+  if (source.familyId === 0) {
+    el.classList.remove('profile-blob-shape--small', 'profile-blob-shape--moon')
+  } else {
+    el.classList.add('profile-blob-shape--small', 'profile-blob-shape--moon')
+  }
+  const blob = createProfileBlob(el, source.familyId)
+  blob.familyId = source.familyId
+  blob.isOrigin = false
+  blob.host = false
+  blob.sizeIndex = source.sizeIndex
+  blob.size = source.size
+  blob.mode = 'fragment'
+  blob.sizeScale = source.sizeScale
+  applyProfileInteractive(el)
+  return blob
+}
+
+const removeProfileBlob = (blob) => {
+  if (blob.isOrigin) return
+  const i = profileBlobs.indexOf(blob)
+  if (i >= 0) profileBlobs.splice(i, 1)
+  blob.el.remove()
+}
+
+const updateCoreScale = (family) => {
+  if (!family.core) return
+  family.core.sizeScale = Math.sqrt(family.mergedCount / Math.max(family.pieceCount, 1))
+}
+
+const promoteToCore = (blob, family) => {
+  blob.mode = 'core'
+  blob.vx = 0
+  blob.vy = 0
+  blob.pushX = 0
+  blob.pushY = 0
+  family.core = blob
+  updateCoreScale(family)
   const cw = profileWrap.clientWidth
   const ch = profileWrap.clientHeight
-  const mass = (blob) => (blob.host ? 10 : 1)
+  blob.s = profileSizePx(blob, cw, ch)
+  blob.x = family.anchor.x
+  blob.y = family.anchor.y
+  clampProfileInBox(blob, cw, ch)
+  setProfileZ(blob)
+  updateProfileA11y(blob)
+}
+
+const restoreFamilyWhole = (family) => {
+  for (const blob of [...profileBlobs]) {
+    if (blob.familyId === family.id && blob !== family.origin) removeProfileBlob(blob)
+  }
+  const origin = family.origin
+  origin.mode = 'whole'
+  origin.sizeScale = 1
+  origin.vx = 0
+  origin.vy = 0
+  origin.ax = 0
+  origin.ay = 0
+  origin.pushX = 0
+  origin.pushY = 0
+  if (origin.img) origin.img.style.objectPosition = 'center'
+  setProfileZ(origin)
+  family.mode = 'whole'
+  family.core = origin
+  family.pieceCount = 1
+  family.mergedCount = 1
+  updateProfileA11y(origin)
+  const cw = profileWrap.clientWidth
+  const ch = profileWrap.clientHeight
+  origin.s = profileSizePx(origin, cw, ch)
+  origin.x = family.anchor.x
+  origin.y = family.anchor.y
+  clampProfileInBox(origin, cw, ch)
+  paintProfileBlob(origin, origin.left, origin.top, origin.s, profileBlobRadius(origin))
+}
+
+const absorbFragment = (blob, family) => {
+  if (blob.mode === 'core' || blob.mode === 'whole') return
+
+  if (!family.core) {
+    family.mergedCount = 1
+    promoteToCore(blob, family)
+    return
+  }
+
+  if (blob === family.core) return
+
+  family.mergedCount += 1
+
+  if (blob === family.origin) {
+    const oldCore = family.core
+    promoteToCore(family.origin, family)
+    if (oldCore !== family.origin) removeProfileBlob(oldCore)
+  } else {
+    removeProfileBlob(blob)
+  }
+
+  updateCoreScale(family)
+  if (family.mergedCount >= family.pieceCount) restoreFamilyWhole(family)
+}
+
+const absorbIfClose = (blob) => {
+  const family = profileFamilies[blob.familyId]
+  const target = family.core ?? family.anchor
+  const dist = Math.hypot(target.x - blob.x, target.y - blob.y)
+  const reach = Math.max(16, ((target.s || blob.s) + blob.s) * PROFILE_ABSORB)
+  if (dist > reach) return
+  absorbFragment(blob, family)
+}
+
+const explodeFamily = (family, instant) => {
+  if (family.mode !== 'whole') return
+  if (hideProfileMoons() && !family.host) return
+
+  const origin = family.origin
+  const n = family.host ? randInt(3, 6) : randInt(2, 4)
+  const cw = profileWrap.clientWidth
+  const ch = profileWrap.clientHeight
+  const ox = origin.x || family.anchor.x
+  const oy = origin.y || family.anchor.y
+  const burst = Math.min(cw, ch) * PROFILE_BURST
+  const scale = 1 / Math.sqrt(n)
+
+  family.mode = 'exploded'
+  family.pieceCount = n
+  family.mergedCount = 0
+  family.core = null
+
+  const pieces = [origin]
+  for (let i = 1; i < n; i++) {
+    const clone = cloneProfileBlob(origin)
+    profileWrap.appendChild(clone.el)
+    profileBlobs.push(clone)
+    pieces.push(clone)
+  }
+
+  pieces.forEach((blob, i) => {
+    blob.mode = 'fragment'
+    blob.sizeScale = scale
+    blob.s = profileSizePx(blob, cw, ch)
+    const angle = (i / n) * Math.PI * 2 + rand(-0.28, 0.28)
+    if (instant) {
+      const dist = burst * rand(0.4, 0.95)
+      blob.x = ox + Math.cos(angle) * dist
+      blob.y = oy + Math.sin(angle) * dist
+      blob.vx = 0
+      blob.vy = 0
+    } else {
+      blob.x = ox + Math.cos(angle) * 10
+      blob.y = oy + Math.sin(angle) * 10
+      const speed = burst * (2.6 + rand(0, 1.8))
+      blob.vx = Math.cos(angle) * speed
+      blob.vy = Math.sin(angle) * speed
+    }
+    blob.pushX = 0
+    blob.pushY = 0
+    blob.ax = 0
+    blob.ay = 0
+    blob.targetAccelX = 0
+    blob.targetAccelY = 0
+    blob.accelChangeAt = 0
+    if (blob.img) blob.img.style.objectPosition = PROFILE_SHARDS[i % PROFILE_SHARDS.length]
+    setProfileZ(blob)
+    updateProfileA11y(blob)
+    clampProfileInBox(blob, cw, ch)
+    paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob))
+  })
+}
+
+const startProfileMerge = (blob) => {
+  if (blob.mode !== 'fragment') return
+  blob.mode = 'merging'
+  setProfileZ(blob)
+  updateProfileA11y(blob)
+  if (reduceMotion) {
+    absorbFragment(blob, profileFamilies[blob.familyId])
+    placeStaticProfile()
+  }
+}
+
+const activateProfileBlob = (blob) => {
+  if (hideProfileMoons() && blob.familyId !== 0) return
+  const family = profileFamilies[blob.familyId]
+  if (blob.mode === 'whole') explodeFamily(family, reduceMotion)
+  else if (blob.mode === 'fragment') startProfileMerge(blob)
+  if (reduceMotion) placeStaticProfile()
+}
+
+const separateProfileBlobs = (dt, list = profileBlobs) => {
+  if (list.length < 2) return
+  const cw = profileWrap.clientWidth
+  const ch = profileWrap.clientHeight
+  const mass = (blob) => (isHostBody(blob) ? 10 : 1)
   const gain = 1 - Math.exp(-Math.max(dt, 0.001) * PROFILE_SEPARATE_RATE)
   const minDistOf = (a, b) => (a.s + b.s) * 0.5 * PROFILE_SEPARATE
 
-  for (let i = 0; i < profileBlobs.length; i++) {
-    for (let j = i + 1; j < profileBlobs.length; j++) {
-      const a = profileBlobs[i]
-      const b = profileBlobs[j]
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const a = list[i]
+      const b = list[j]
       const minDist = minDistOf(a, b)
       const dx = b.x - a.x
       const dy = b.y - a.y
@@ -1550,21 +1945,21 @@ const separateProfileBlobs = (dt) => {
     }
   }
 
-  profileBlobs.forEach((blob) => clampProfileInBox(blob, cw, ch))
+  list.forEach((blob) => clampProfileInBox(blob, cw, ch))
 
-  for (let i = 0; i < profileBlobs.length; i++) {
-    for (let j = i + 1; j < profileBlobs.length; j++) {
-      const a = profileBlobs[i]
-      const b = profileBlobs[j]
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const a = list[i]
+      const b = list[j]
       const minDist = minDistOf(a, b)
       const dx = b.x - a.x
       const dy = b.y - a.y
       const dist = Math.hypot(dx, dy) || 0.001
       if (dist >= minDist) continue
       const leftover = (minDist - dist) * gain
-      if (a.host !== b.host) {
-        const moon = a.host ? b : a
-        const host = a.host ? a : b
+      if (isHostBody(a) !== isHostBody(b)) {
+        const moon = isHostBody(a) ? b : a
+        const host = isHostBody(a) ? a : b
         const hx = moon.x - host.x
         const hy = moon.y - host.y
         const hDist = Math.hypot(hx, hy) || 1
@@ -1583,24 +1978,28 @@ const separateProfileBlobs = (dt) => {
     }
   }
 
-  profileBlobs.forEach((blob) => clampProfileInBox(blob, cw, ch))
+  list.forEach((blob) => clampProfileInBox(blob, cw, ch))
 }
 
 const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
-  if (!profileBlobs.length) return
-  const [host, ...moons] = profileBlobs
-  tickProfileBlob(host, t, dt, mouseX, mouseY, blobReach, blobPush)
-  if (swipeMq.matches) {
-    paintProfileBlob(host, host.left, host.top, host.s, profileBlobRadius(host, t))
-    return
-  }
-  // Angular push before orbit placement so moons stay magnetized but spread out.
-  {
+  if (!profileBlobs.length || !profileWrap) return
+  const cw = profileWrap.clientWidth
+  const ch = profileWrap.clientHeight
+  if (cw < 2 || ch < 2) return
+
+  const hideMoons = hideProfileMoons()
+  const hostAnchor = profileFamilies[0]?.anchor
+  if (!hostAnchor) return
+
+  tickProfileBlob(hostAnchor, t, dt, mouseX, mouseY, blobReach, blobPush)
+
+  if (!hideMoons) {
+    const moonAnchors = profileFamilies.filter((family) => !family.host).map((family) => family.anchor)
     const angleGain = 1 - Math.exp(-Math.max(dt, 0.001) * PROFILE_MOON_ANGLE_RATE)
-    for (let i = 0; i < moons.length; i++) {
-      for (let j = i + 1; j < moons.length; j++) {
-        const a = moons[i]
-        const b = moons[j]
+    for (let i = 0; i < moonAnchors.length; i++) {
+      for (let j = i + 1; j < moonAnchors.length; j++) {
+        const a = moonAnchors[i]
+        const b = moonAnchors[j]
         let dAngle = b.angle - a.angle
         while (dAngle > Math.PI) dAngle -= Math.PI * 2
         while (dAngle < -Math.PI) dAngle += Math.PI * 2
@@ -1612,13 +2011,67 @@ const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
         b.angle += sign * push * 0.5
       }
     }
+    moonAnchors.forEach((anchor) => {
+      tickProfileOrbit(anchor, hostAnchor, t, dt, mouseX, mouseY, blobReach, blobPush)
+    })
   }
-  moons.forEach((blob) => {
-    tickProfileOrbit(blob, host, t, dt, mouseX, mouseY, blobReach, blobPush)
+
+  const visible = profileBlobs.filter((blob) => !(hideMoons && blob.familyId !== 0))
+
+  visible.forEach((blob) => {
+    const family = profileFamilies[blob.familyId]
+    if (blob.mode === 'whole' || blob.mode === 'core') {
+      blob.x = family.anchor.x
+      blob.y = family.anchor.y
+      blob.pushX = family.anchor.pushX
+      blob.pushY = family.anchor.pushY
+      blob.s = profileSizePx(blob, cw, ch)
+      clampProfileInBox(blob, cw, ch)
+    } else if (blob.mode === 'merging') {
+      tickProfileMerge(blob, family, dt)
+    } else {
+      tickProfileFragment(blob, t, dt, mouseX, mouseY, blobReach, blobPush)
+    }
   })
-  separateProfileBlobs(dt)
-  profileBlobs.forEach((blob) => {
+
+  visible
+    .filter((blob) => blob.mode === 'merging')
+    .forEach((blob) => absorbIfClose(blob))
+
+  const stillVisible = profileBlobs.filter((blob) => !(hideMoons && blob.familyId !== 0))
+  separateProfileBlobs(
+    dt,
+    stillVisible.filter((blob) => blob.mode !== 'merging'),
+  )
+  stillVisible.forEach((blob) => {
     paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob, t))
+  })
+}
+
+const blobFromShape = (el) => profileBlobs.find((blob) => blob.el === el)
+
+let profileKeyActivated = false
+
+if (profileWrap) {
+  profileWrap.addEventListener('click', (e) => {
+    if (swipeClaimedClick || profileKeyActivated) return
+    const shape = e.target.closest('.profile-blob-shape')
+    if (!shape || !profileWrap.contains(shape)) return
+    const blob = blobFromShape(shape)
+    if (blob) activateProfileBlob(blob)
+  })
+
+  profileWrap.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    const shape = e.target.closest('.profile-blob-shape')
+    if (!shape || !profileWrap.contains(shape)) return
+    e.preventDefault()
+    profileKeyActivated = true
+    const blob = blobFromShape(shape)
+    if (blob) activateProfileBlob(blob)
+    requestAnimationFrame(() => {
+      profileKeyActivated = false
+    })
   })
 }
 
@@ -1980,7 +2433,7 @@ if (reduceMotion) {
 const blobCursorRoot = document.querySelector('.blob-cursor')
 const blobCursorMotion = document.querySelector('.blob-cursor-motion')
 const finePointerMq = window.matchMedia('(hover: hover) and (pointer: fine)')
-const cursorInteractive = 'a, button, [role="button"], summary, label, input, textarea, select'
+const cursorInteractive = 'a, button, [role="button"], summary, label, input, textarea, select, .profile-blob-shape'
 
 if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
   const cursor = {
