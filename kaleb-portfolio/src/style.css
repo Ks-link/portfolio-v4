@@ -1085,6 +1085,19 @@ body {
   background: var(--nav-blob);
   border-radius: 54% 50% 52% 48% / 50% 54% 48% 52%;
   will-change: transform, border-radius;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.profile-blob-shape:focus {
+  outline: none;
+}
+
+.profile-blob-shape:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .profile-blob-shape--small {
@@ -1286,7 +1299,7 @@ body {
     padding: 0.2rem;
   }
 
-  .profile-blob-shape--small {
+  .profile-blob-shape--moon {
     display: none;
   }
 
