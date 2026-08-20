@@ -1282,9 +1282,12 @@ body {
 }
 
 @media (max-width: 48rem) {
+  .profile-blob-shape {
+    padding: 0.2rem;
+  }
+
   .profile-blob-shape--small {
-    width: 9rem;
-    height: 9rem;
+    display: none;
   }
 
   .nav-blob {

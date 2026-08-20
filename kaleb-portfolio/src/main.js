@@ -1263,7 +1263,7 @@ const blobs = blobEls.map((el, i) => createBlob(el, i))
 const spawnEnabled = () => app.dataset.blobs !== 'off'
 
 const PROFILE_BLOB_SIZES = [0.88, 0.42, 0.38]
-const PROFILE_BLOB_SIZES_MOBILE = [0.88, 0.54, 0.5]
+const PROFILE_BLOB_SIZES_MOBILE = [0.92, 0.54, 0.5]
 const PROFILE_BLOB_STARTS = [
   { progress: 0.5, lane: 0.5 },
   { progress: 0.18, lane: 0.22 },
@@ -1393,7 +1393,9 @@ const placeStaticProfile = () => {
   const cw = profileWrap.clientWidth
   const ch = profileWrap.clientHeight
   if (cw < 2 || ch < 2) return
+  const hideMoons = swipeMq.matches
   profileBlobs.forEach((blob, i) => {
+    if (hideMoons && !blob.host) return
     const s = profileSizePx(blob, cw, ch)
     const travelX = Math.max(0, cw - s)
     const travelY = Math.max(0, ch - s)
@@ -1588,6 +1590,10 @@ const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
   if (!profileBlobs.length) return
   const [host, ...moons] = profileBlobs
   tickProfileBlob(host, t, dt, mouseX, mouseY, blobReach, blobPush)
+  if (swipeMq.matches) {
+    paintProfileBlob(host, host.left, host.top, host.s, profileBlobRadius(host, t))
+    return
+  }
   // Angular push before orbit placement so moons stay magnetized but spread out.
   {
     const angleGain = 1 - Math.exp(-Math.max(dt, 0.001) * PROFILE_MOON_ANGLE_RATE)
