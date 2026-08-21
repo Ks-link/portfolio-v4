@@ -23,6 +23,13 @@ const homeIcon = `
   </svg>
 `
 
+const pauseIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="currentColor"
+      d="M7.25 5.5A1.25 1.25 0 0 0 6 6.75v10.5A1.25 1.25 0 0 0 7.25 18.5h2A1.25 1.25 0 0 0 10.5 17.25V6.75A1.25 1.25 0 0 0 9.25 5.5zM14.75 5.5A1.25 1.25 0 0 0 13.5 6.75v10.5a1.25 1.25 0 0 0 1.25 1.25h2a1.25 1.25 0 0 0 1.25-1.25V6.75A1.25 1.25 0 0 0 16.75 5.5z"/>
+  </svg>
+`
+
 const lavaLampOnIcon = `
   <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="currentColor"
@@ -156,9 +163,14 @@ app.innerHTML = `
     <span class="blob blob--endcap" data-endcap="bottom"></span>
     ${Array.from({ length: BLOB_COUNT }, (_, i) => `<span class="blob" data-blob="${i}"></span>`).join('')}
   </div>
-  <button type="button" class="corner-btn home-toggle" aria-label="Home">
-    ${homeIcon}
-  </button>
+  <div class="corner-cluster">
+    <button type="button" class="corner-btn home-toggle" aria-label="Home">
+      ${homeIcon}
+    </button>
+    <button type="button" class="corner-btn pause-toggle" aria-label="Pause">
+      ${pauseIcon}
+    </button>
+  </div>
   <div class="corner-cluster corner-cluster--right">
     <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
       ${lavaLampOnIcon}
@@ -180,9 +192,6 @@ app.innerHTML = `
     ${navArrow}
   </button>
   <div class="swipe-hints" aria-hidden="true">
-    <p class="swipe-hints__set swipe-hints__set--play">
-      <span>home button — leave</span>
-    </p>
     <p class="swipe-hints__set swipe-hints__set--home">
       <span>swipe right — play</span>
       <span>swipe left — work</span>
@@ -382,6 +391,7 @@ toggle.addEventListener('click', () => {
 
 const blobsToggle = document.querySelector('.blobs-toggle')
 const homeToggle = document.querySelector('.home-toggle')
+const pauseToggle = document.querySelector('.pause-toggle')
 
 const getPreferredBlobs = () => {
   const stored = localStorage.getItem('blobSpawn')
@@ -513,6 +523,9 @@ const ariaForDest = (dest) => {
 
 const navBlobs = [...document.querySelectorAll('.nav-blob')]
 const routeEffects = { syncScroll: () => { }, syncCursor: () => { } }
+document.querySelector('.play-root')?.addEventListener('playchange', () => {
+  routeEffects.syncCursor()
+})
 
 const syncNavLabels = (screen, project = '') => {
   navBlobs.forEach((btn) => {
@@ -715,6 +728,10 @@ setRoute(initialScreen, initialProject)
 
 homeToggle.addEventListener('click', () => {
   setScreen('home', { push: true })
+})
+
+pauseToggle?.addEventListener('click', () => {
+  play.pause()
 })
 
 workBack?.addEventListener('click', () => {
@@ -2482,7 +2499,7 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
   }
 
   const syncCursorMode = () => {
-    cursor.enabled = finePointerMq.matches && app.dataset.screen !== 'play'
+    cursor.enabled = finePointerMq.matches && !app.querySelector('.play-root.is-playing')
     root.classList.toggle('has-blob-cursor', cursor.enabled)
     if (!cursor.enabled) {
       cursor.visible = false
