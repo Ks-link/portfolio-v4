@@ -65,9 +65,9 @@ body {
 
 .stage {
   display: grid;
-  grid-template-columns: 100vw 100vw;
+  grid-template-columns: 100vw 100vw 100vw;
   grid-template-rows: 100dvh 100dvh;
-  width: 200vw;
+  width: 300vw;
   height: 200dvh;
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
@@ -79,21 +79,28 @@ body {
   transition: none;
 }
 
-#app[data-screen="home"] .stage {
+#app[data-screen="play"] .stage {
   transform: translate(var(--swipe-x), var(--swipe-y));
 }
 
-#app[data-screen="work"] .stage {
+#app[data-screen="home"] .stage {
   transform: translate(calc(-100vw + var(--swipe-x)), var(--swipe-y));
 }
 
+#app[data-screen="work"] .stage {
+  transform: translate(calc(-200vw + var(--swipe-x)), var(--swipe-y));
+}
+
 #app[data-screen="about"] .stage {
-  transform: translate(var(--swipe-x), calc(-100dvh + var(--swipe-y)));
+  transform: translate(
+    calc(-100vw + var(--swipe-x)),
+    calc(-100dvh + var(--swipe-y))
+  );
 }
 
 #app[data-screen="experience"] .stage {
   transform: translate(
-    calc(-100vw + var(--swipe-x)),
+    calc(-200vw + var(--swipe-x)),
     calc(-100dvh + var(--swipe-y))
   );
 }
@@ -109,16 +116,165 @@ body {
   overflow: hidden;
 }
 
+.screen--play {
+  grid-column: 1;
+  grid-row: 1;
+  padding: 0;
+}
+
+.play-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.play-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.play-welcome {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: color-mix(in srgb, var(--bg) 52%, transparent);
+  backdrop-filter: blur(3px);
+  text-align: center;
+}
+
+.play-root.is-playing .play-welcome {
+  display: none;
+}
+
+.play-hint {
+  position: absolute;
+  z-index: 3;
+  left: 1.25rem;
+  right: 1.25rem;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  margin: 0;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: var(--text);
+  opacity: 0.5;
+  text-align: center;
+  pointer-events: none;
+}
+
+.play-hint--mobile {
+  display: none;
+}
+
+@media (hover: none) {
+  .play-hint--desktop {
+    display: none;
+  }
+
+  .play-hint--mobile {
+    display: inline;
+  }
+}
+
+.play-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.play-start-blob {
+  --magnet-x: 0px;
+  --magnet-y: 0px;
+  display: inline-flex;
+  transform: translate(var(--magnet-x), var(--magnet-y));
+}
+
+.play-start-shape {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 5.75rem;
+  height: 5.75rem;
+  padding: 0.55rem;
+  background: var(--nav-blob);
+  opacity: 0.92;
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  animation: blob-morph 7s ease-in-out infinite;
+  animation-delay: -1.8s;
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.3s ease;
+}
+
+.play-start-label {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--text);
+  opacity: 0.75;
+  transition: opacity 0.3s ease;
+}
+
+.play-start:hover .play-start-shape,
+.play-start:focus-visible .play-start-shape {
+  transform: scale(1.08);
+  opacity: 1;
+}
+
+.play-start:hover .play-start-label,
+.play-start:focus-visible .play-start-label {
+  opacity: 0.9;
+}
+
+.play-start:focus-visible {
+  outline: none;
+}
+
+.play-start:focus-visible .play-start-shape {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+#app[data-screen="play"]:has(.play-root.is-playing) .blob-cursor {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.has-blob-cursor:has(.play-root.is-playing) #app[data-screen="play"],
+  html.has-blob-cursor:has(.play-root.is-playing) #app[data-screen="play"] * {
+    cursor: auto !important;
+  }
+}
+
 .screen--home {
   display: flex;
   align-items: center;
   justify-content: center;
-  grid-column: 1;
+  grid-column: 2;
   grid-row: 1;
 }
 
 .screen--work {
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1;
   padding: 0;
   overflow: hidden;
@@ -163,13 +319,13 @@ body {
 }
 
 .screen--about {
-  grid-column: 1;
+  grid-column: 2;
   grid-row: 2;
   overflow: hidden;
 }
 
 .screen--experience {
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 2;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -198,6 +354,15 @@ body {
   filter: url("#goo");
   opacity: var(--blobs-opacity);
   transition: opacity 0.25s ease;
+}
+
+#app[data-screen="play"] .blobs {
+  opacity: 0;
+  visibility: hidden;
+}
+
+#app[data-screen="play"] .blobs-toggle {
+  display: none;
 }
 
 .blob {
@@ -288,11 +453,12 @@ body {
   right: 1.25rem;
 }
 
-.home-toggle {
-  position: fixed;
-  top: 1.25rem;
-  left: 1.25rem;
-  z-index: 10;
+.corner-btn.pause-toggle {
+  display: none;
+}
+
+#app[data-screen="play"]:has(.play-root.is-playing) .pause-toggle {
+  display: inline-flex;
 }
 
 .corner-btn {
@@ -329,7 +495,8 @@ body {
   opacity: 0.7;
 }
 
-.home-toggle .theme-icon {
+.home-toggle .theme-icon,
+.pause-toggle .theme-icon {
   width: 1.12rem;
   height: 1.12rem;
 }
@@ -479,6 +646,8 @@ body {
   transform: rotate(-90deg);
 }
 
+#app[data-screen="play"] .nav-blob--right,
+#app[data-screen="home"] .nav-blob--left,
 #app[data-screen="home"] .nav-blob--right,
 #app[data-screen="home"] .nav-blob--bottom,
 #app[data-screen="work"] .nav-blob--left,
@@ -1264,7 +1433,8 @@ body {
     display: none;
   }
 
-  .work-detail-live-arm-shape {
+  .work-detail-live-arm-shape,
+  .play-start-shape {
     animation: none;
     border-radius: 50%;
     transition: none;
@@ -1324,8 +1494,17 @@ body {
     display: flex;
   }
 
+  #app[data-screen="home"] .swipe-hints__set--home {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+
   .screen {
     padding-bottom: 4.25rem;
+  }
+
+  .screen--play {
+    padding-bottom: 0;
   }
 
   .screen--home {
@@ -1353,6 +1532,7 @@ body {
     padding-bottom: 1rem;
   }
 
+  .screen--play,
   .screen--home,
   .screen--about.is-at-top,
   .screen--experience.is-at-top,

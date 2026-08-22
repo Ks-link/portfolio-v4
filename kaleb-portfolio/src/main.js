@@ -1,4 +1,5 @@
 import './style.css'
+import { mountPlay } from './play.js'
 
 const sunIcon = `
   <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -19,6 +20,13 @@ const homeIcon = `
   <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="currentColor" fill-rule="evenodd"
       d="M12.03125 1.5A1.0001 1.0001 0 0 0 11.492188 1.6386719L1.9921875 7.2265625A1.0001 1.0001 0 1 0 3 8.953125L3 20A1.0001 1.0001 0 0 0 4 21L20 21A1.0001 1.0001 0 0 0 21 20L21 8.953125A1.0001 1.0001 0 1 0 22.007812 7.2265625L12.507812 1.6386719A1.0001 1.0001 0 0 0 12.03125 1.5zM12 3.6601562L19 7.7773438L19 19L16 19L16 12A1.0001 1.0001 0 0 0 15 11L9 11A1.0001 1.0001 0 0 0 8 12L8 19L5 19L5 7.7773438L12 3.6601562zM10 13L14 13L14 19L10 19L10 13z"/>
+  </svg>
+`
+
+const pauseIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="currentColor"
+      d="M7.25 5.5A1.25 1.25 0 0 0 6 6.75v10.5A1.25 1.25 0 0 0 7.25 18.5h2A1.25 1.25 0 0 0 10.5 17.25V6.75A1.25 1.25 0 0 0 9.25 5.5zM14.75 5.5A1.25 1.25 0 0 0 13.5 6.75v10.5a1.25 1.25 0 0 0 1.25 1.25h2a1.25 1.25 0 0 0 1.25-1.25V6.75A1.25 1.25 0 0 0 16.75 5.5z"/>
   </svg>
 `
 
@@ -155,9 +163,14 @@ app.innerHTML = `
     <span class="blob blob--endcap" data-endcap="bottom"></span>
     ${Array.from({ length: BLOB_COUNT }, (_, i) => `<span class="blob" data-blob="${i}"></span>`).join('')}
   </div>
-  <button type="button" class="corner-btn home-toggle" aria-label="Home">
-    ${homeIcon}
-  </button>
+  <div class="corner-cluster">
+    <button type="button" class="corner-btn home-toggle" aria-label="Home">
+      ${homeIcon}
+    </button>
+    <button type="button" class="corner-btn pause-toggle" aria-label="Pause">
+      ${pauseIcon}
+    </button>
+  </div>
   <div class="corner-cluster corner-cluster--right">
     <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
       ${lavaLampOnIcon}
@@ -180,6 +193,7 @@ app.innerHTML = `
   </button>
   <div class="swipe-hints" aria-hidden="true">
     <p class="swipe-hints__set swipe-hints__set--home">
+      <span>swipe right — play</span>
       <span>swipe left — work</span>
       <span>swipe up — about</span>
     </p>
@@ -201,6 +215,9 @@ app.innerHTML = `
     </p>
   </div>
   <div class="stage">
+    <section class="screen screen--play" aria-label="Play">
+      <div class="play-root"></div>
+    </section>
     <section class="screen screen--home" aria-label="Home">
       <main class="hero">
         <h1 class="name">Kaleb Link</h1>
@@ -347,6 +364,7 @@ app.innerHTML = `
   </div>
 `
 
+const play = mountPlay(document.querySelector('.play-root'))
 const root = document.documentElement
 const toggle = document.querySelector('.theme-toggle')
 
@@ -373,6 +391,7 @@ toggle.addEventListener('click', () => {
 
 const blobsToggle = document.querySelector('.blobs-toggle')
 const homeToggle = document.querySelector('.home-toggle')
+const pauseToggle = document.querySelector('.pause-toggle')
 
 const getPreferredBlobs = () => {
   const stored = localStorage.getItem('blobSpawn')
@@ -396,7 +415,7 @@ blobsToggle.addEventListener('click', () => {
   applyBlobs(app.dataset.blobs === 'off' ? 'on' : 'off')
 })
 
-const screens = new Set(['home', 'work', 'about', 'experience'])
+const screens = new Set(['play', 'home', 'work', 'about', 'experience'])
 const hoverPreviewMq = window.matchMedia('(hover: hover)')
 
 const workScreen = document.querySelector('.screen--work')
@@ -486,7 +505,8 @@ const hashForRoute = (screen, project = '') => {
 }
 
 const edgeNav = {
-  home: { right: 'work', bottom: 'about' },
+  play: { right: 'home' },
+  home: { left: 'play', right: 'work', bottom: 'about' },
   work: { left: 'home', bottom: 'experience' },
   about: { top: 'home', right: 'experience' },
   experience: { left: 'about', top: 'work' },
@@ -494,6 +514,7 @@ const edgeNav = {
 
 const ariaForDest = (dest) => {
   if (dest === 'home') return 'Back to home'
+  if (dest === 'play') return 'Play'
   if (dest === 'work') return 'View work'
   if (dest === 'about') return 'About'
   if (dest === 'experience') return 'Experience'
@@ -501,7 +522,10 @@ const ariaForDest = (dest) => {
 }
 
 const navBlobs = [...document.querySelectorAll('.nav-blob')]
-const routeEffects = { syncScroll: () => { } }
+const routeEffects = { syncScroll: () => { }, syncCursor: () => { } }
+document.querySelector('.play-root')?.addEventListener('playchange', () => {
+  routeEffects.syncCursor()
+})
 
 const syncNavLabels = (screen, project = '') => {
   navBlobs.forEach((btn) => {
@@ -648,6 +672,9 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
   app.dataset.screen = screen
   app.style.setProperty('--work-swipe', '0px')
   syncNavLabels(screen, project)
+  if (screen === 'play') play.start()
+  else play.stop()
+  routeEffects.syncCursor()
 
   if (opening && workDetailEl) {
     applyProjectDetail(project, { focus: false })
@@ -701,6 +728,10 @@ setRoute(initialScreen, initialProject)
 
 homeToggle.addEventListener('click', () => {
   setScreen('home', { push: true })
+})
+
+pauseToggle?.addEventListener('click', () => {
+  play.pause()
 })
 
 workBack?.addEventListener('click', () => {
@@ -759,8 +790,14 @@ const swipeMq = window.matchMedia('(max-width: 48rem)')
 const SWIPE_MIN = 56
 const AXIS_LOCK = 10
 const swipeMap = {
+  play: {
+    x: { dir: -1, to: 'home' },
+  },
   home: {
-    x: { dir: -1, to: 'work' },
+    x: [
+      { dir: -1, to: 'work' },
+      { dir: 1, to: 'play' },
+    ],
     y: { dir: -1, to: 'about' },
   },
   work: {
@@ -787,7 +824,7 @@ let swipeStart = null
 let swipeClaimedClick = false
 
 const isInteractiveTarget = (el) =>
-  Boolean(el.closest?.('button, .profile-blob-shape'))
+  Boolean(el.closest?.('button, .profile-blob-shape, .play-root'))
 
 const scrolledToTop = (el) => !el || el.scrollTop <= 1
 
@@ -838,6 +875,12 @@ const gestureMatches = (route, delta, atTop, atBottom) => {
   return true
 }
 
+const matchSwipeRoute = (routes, delta, atTop, atBottom) => {
+  if (!routes) return null
+  const list = Array.isArray(routes) ? routes : [routes]
+  return list.find((route) => gestureMatches(route, delta, atTop, atBottom)) ?? null
+}
+
 const beginSwipe = (id, x, y, target) => {
   if (!swipeMq.matches || swipeStart) return
   if (isInteractiveTarget(target)) return
@@ -862,9 +905,9 @@ const offsetForGesture = (dx, dy) => {
   if (screen === 'work' && app.dataset.project && axis === 'x' && dx > 0) {
     return { x: dx, y: 0, claim: true, closeProject: true }
   }
-  const route = swipeMap[screen]?.[axis]
+  const routes = swipeMap[screen]?.[axis]
   const delta = axis === 'y' ? dy : dx
-  if (!gestureMatches(route, delta, atTop, atBottom)) return { x: 0, y: 0, claim: false }
+  if (!matchSwipeRoute(routes, delta, atTop, atBottom)) return { x: 0, y: 0, claim: false }
   return axis === 'y' ? { x: 0, y: dy, claim: true } : { x: dx, y: 0, claim: true }
 }
 
@@ -924,9 +967,10 @@ const endSwipe = (id) => {
   const dist = axis === 'y' ? dy : dx
   const abs = Math.abs(dist)
   const screen = app.dataset.screen || 'home'
-  const route = axis ? swipeMap[screen]?.[axis] : null
+  const routes = axis ? swipeMap[screen]?.[axis] : null
+  const route = matchSwipeRoute(routes, dist, atTop, atBottom)
   const next = route?.to
-  const validDir = gestureMatches(route, dist, atTop, atBottom)
+  const validDir = Boolean(route)
 
   app.classList.remove('is-swiping')
 
@@ -1268,7 +1312,7 @@ const createBlob = (el, index) => {
 }
 
 const blobs = blobEls.map((el, i) => createBlob(el, i))
-const spawnEnabled = () => app.dataset.blobs !== 'off'
+const spawnEnabled = () => app.dataset.blobs !== 'off' && app.dataset.screen !== 'play'
 
 const PROFILE_BLOB_SIZES = [0.88, 0.42, 0.38]
 const PROFILE_BLOB_SIZES_MOBILE = [0.92, 0.54, 0.5]
@@ -2455,7 +2499,7 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
   }
 
   const syncCursorMode = () => {
-    cursor.enabled = finePointerMq.matches
+    cursor.enabled = finePointerMq.matches && !app.querySelector('.play-root.is-playing')
     root.classList.toggle('has-blob-cursor', cursor.enabled)
     if (!cursor.enabled) {
       cursor.visible = false
@@ -2476,6 +2520,10 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
   }
 
   syncCursorMode()
+  routeEffects.syncCursor = () => {
+    syncCursorMode()
+    if (app.dataset.screen === 'play') hideCursor()
+  }
   finePointerMq.addEventListener('change', syncCursorMode)
 
   window.addEventListener(
