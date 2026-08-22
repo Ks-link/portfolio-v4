@@ -10,6 +10,7 @@ const MERGE_DELAY = 10
 const MERGE_TOUCH = 1.02
 const MERGE_FINISH = 0.24
 const MERGE_PULL = 1.25
+const MERGE_SEEK = 24
 const LAUNCH_SPEED = 960
 const AI_COUNT = 7
 const PLAYER_OWNER = 0
@@ -17,6 +18,10 @@ const RESPAWN_WAIT = 1.15
 const AI_RESPAWN_WAIT = 2.2
 const TAP_MS = 280
 const TAP_DIST = 16
+const STICK_RADIUS = 52
+const STICK_DEAD = 0.12
+const STICK_ZONE = 0.45
+const STICK_AIM = 2400
 
 const AI_COLORS = ['#5c8f76', '#c45c5c', '#5c7ec4', '#a56bb8', '#c49a4a', '#4aa3b5']
 
@@ -140,20 +145,48 @@ export const mountPlay = (root) => {
   hint.className = 'play-hint'
   hint.innerHTML = `
     <span class="play-hint--desktop">space — shoot</span>
-    <span class="play-hint--mobile">tap — shoot</span>
   `
 
-  root.replaceChildren(canvas, welcome, hint)
+  const hud = document.createElement('div')
+  hud.className = 'play-hud'
+  hud.innerHTML = `
+    <button type="button" class="play-shoot" aria-label="Shoot">
+      <span class="play-shoot-shape">
+        <span class="play-shoot-label">shoot</span>
+      </span>
+    </button>
+    <div class="play-stick" hidden>
+      <span class="play-stick-base"></span>
+      <span class="play-stick-thumb"></span>
+    </div>
+  `
+
+  const stats = document.createElement('p')
+  stats.className = 'play-stats'
+  stats.innerHTML = `
+    <span class="play-stats-score">score 0</span>
+    <span class="play-stats-kills">kills 0</span>
+  `
+
+  root.replaceChildren(canvas, welcome, hint, stats, hud)
   const ctx = canvas.getContext('2d')
   const startBtn = welcome.querySelector('.play-start')
   const startBlob = welcome.querySelector('.play-start-blob')
+  const shootBtn = hud.querySelector('.play-shoot')
+  const stickEl = hud.querySelector('.play-stick')
+  const stickThumb = hud.querySelector('.play-stick-thumb')
+  const statsScore = stats.querySelector('.play-stats-score')
+  const statsKills = stats.querySelector('.play-stats-kills')
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const hoverNone = window.matchMedia('(hover: none)')
+  const isMobileHud = () => hoverNone.matches
   const pointer = { x: WORLD / 2, y: WORLD / 2, valid: false }
   const mouse = { x: 0, y: 0 }
   const startMagnet = { x: 0, y: 0 }
   const camera = { x: WORLD / 2, y: WORLD / 2, zoom: 1 }
   const tap = { id: null, t: 0, x: 0, y: 0 }
+  const stick = { id: null, ox: 0, oy: 0, nx: 0, ny: 0, mag: 0, lastNx: 1, lastNy: 0 }
 
   let viewW = 1
   let viewH = 1
@@ -169,6 +202,7 @@ export const mountPlay = (root) => {
   let aiRespawnAt = new Map()
   let launchCool = 0
   let aiLaunchCool = new Map()
+  let kills = 0
 
   const theme = { bg: '#fffff4', text: '#322f2f', accent: '#ee8533' }
 
@@ -198,6 +232,53 @@ export const mountPlay = (root) => {
     pointer.x = w.x
     pointer.y = w.y
     pointer.valid = true
+  }
+
+  const localPoint = (clientX, clientY) => {
+    const rect = root.getBoundingClientRect()
+    return { x: clientX - rect.left, y: clientY - rect.top }
+  }
+
+  const hideStick = () => {
+    stick.id = null
+    stick.nx = 0
+    stick.ny = 0
+    stick.mag = 0
+    stickEl.hidden = true
+    stickThumb.style.transform = ''
+  }
+
+  const moveStick = (clientX, clientY) => {
+    const p = localPoint(clientX, clientY)
+    const dx = p.x - stick.ox
+    const dy = p.y - stick.oy
+    const dist = hypot(dx, dy)
+    const clamped = Math.min(dist, STICK_RADIUS)
+    const ux = dist > 0.001 ? dx / dist : 0
+    const uy = dist > 0.001 ? dy / dist : 0
+    stickThumb.style.transform = `translate(${ux * clamped}px, ${uy * clamped}px)`
+    const raw = clamped / STICK_RADIUS
+    if (raw < STICK_DEAD) {
+      stick.nx = 0
+      stick.ny = 0
+      stick.mag = 0
+      return
+    }
+    stick.nx = ux
+    stick.ny = uy
+    stick.mag = (raw - STICK_DEAD) / (1 - STICK_DEAD)
+    stick.lastNx = ux
+    stick.lastNy = uy
+  }
+
+  const showStick = (clientX, clientY) => {
+    const p = localPoint(clientX, clientY)
+    stick.ox = p.x
+    stick.oy = p.y
+    stickEl.hidden = false
+    stickEl.style.left = `${p.x}px`
+    stickEl.style.top = `${p.y}px`
+    moveStick(clientX, clientY)
   }
 
   const ownerCells = (owner) => cells.filter((c) => c.owner === owner)
@@ -254,6 +335,7 @@ export const mountPlay = (root) => {
     pointer.y = pos.y
     pointer.valid = false
     playerRespawnAt = 0
+    kills = 0
   }
 
   const spawnAI = (owner) => {
@@ -282,6 +364,7 @@ export const mountPlay = (root) => {
     playerRespawnAt = 0
     aiRespawnAt = new Map()
     aiLaunchCool = new Map()
+    kills = 0
     for (let i = 0; i < FOOD_COUNT; i++) spawnFoodOne()
     for (let i = 1; i <= AI_COUNT; i++) spawnAI(i)
     camera.x = WORLD / 2
@@ -299,11 +382,11 @@ export const mountPlay = (root) => {
     cell.y = ny
   }
 
-  const steerCell = (cell, tx, ty, dt) => {
+  const steerCell = (cell, tx, ty, dt, speedScale = 1) => {
     const dx = tx - cell.x
     const dy = ty - cell.y
     const dist = hypot(dx, dy) || 1
-    const max = speedOf(cell.mass)
+    const max = speedOf(cell.mass) * speedScale
     const spd = Math.min(max, dist * 3.4)
     const ax = (dx / dist) * spd
     const ay = (dy / dist) * spd
@@ -372,8 +455,16 @@ export const mountPlay = (root) => {
 
   const absorb = (eater, preyIndex) => {
     const prey = cells[preyIndex]
+    const lastOfOwner = prey.owner !== eater.owner && ownerCells(prey.owner).length === 1
     eater.mass += prey.mass
     cells.splice(preyIndex, 1)
+    if (lastOfOwner && eater.owner === PLAYER_OWNER) kills += 1
+  }
+
+  const syncStats = () => {
+    const mass = massCenter(ownerCells(PLAYER_OWNER)).mass
+    statsScore.textContent = `score ${Math.round(mass)}`
+    statsKills.textContent = `kills ${kills}`
   }
 
   const sameOwnerMergeReady = (a, b) =>
@@ -383,6 +474,31 @@ export const mountPlay = (root) => {
     if (reduceMotion) {
       for (const cell of cells) cell.merging = false
       return
+    }
+
+    const groups = new Map()
+    for (const cell of cells) {
+      const pack = groups.get(cell.owner)
+      if (pack) pack.push(cell)
+      else groups.set(cell.owner, [cell])
+    }
+    for (const pack of groups.values()) {
+      if (pack.length < 2) continue
+      const com = massCenter(pack)
+      for (const cell of pack) {
+        const dx = com.x - cell.x
+        const dy = com.y - cell.y
+        const dist = hypot(dx, dy)
+        if (dist < 8) continue
+        const step = Math.min(dist, MERGE_SEEK * dt)
+        const nx = dx / dist
+        const ny = dy / dist
+        cell.x += nx * step
+        cell.y += ny * step
+        cell.vx += nx * MERGE_SEEK * dt
+        cell.vy += ny * MERGE_SEEK * dt
+        clampCell(cell)
+      }
     }
 
     const sticky = new Set()
@@ -613,10 +729,19 @@ export const mountPlay = (root) => {
     const pCenter = massCenter(player)
     const aimX = pointer.valid ? pointer.x : pCenter.x
     const aimY = pointer.valid ? pointer.y : pCenter.y
+    const useStick = playing && isMobileHud()
 
     for (const cell of player) {
       cell.color = theme.accent
-      steerCell(cell, aimX, aimY, dt)
+      if (useStick) {
+        if (stick.mag > 0) {
+          steerCell(cell, cell.x + stick.nx * STICK_AIM, cell.y + stick.ny * STICK_AIM, dt, stick.mag)
+        } else {
+          steerCell(cell, cell.x, cell.y, dt, 0)
+        }
+      } else {
+        steerCell(cell, aimX, aimY, dt)
+      }
     }
 
     for (let owner = 1; owner <= AI_COUNT; owner++) {
@@ -641,8 +766,11 @@ export const mountPlay = (root) => {
       const camRate = reduceMotion ? 18 : 5.2
       camera.x = damp(camera.x, follow.x, camRate, dt)
       camera.y = damp(camera.y, follow.y, camRate, dt)
-      const cover = Math.max(radiusOf(follow.mass) * 9.5, Math.min(viewW, viewH) * 0.42)
-      const z = clamp(Math.min(viewW, viewH) / (cover * 2.15), 0.42, 1)
+      const landscape = viewW > viewH && isMobileHud()
+      const coverFloor = landscape ? 0.58 : 0.42
+      const zMin = landscape ? 0.32 : 0.42
+      const cover = Math.max(radiusOf(follow.mass) * 9.5, Math.min(viewW, viewH) * coverFloor)
+      const z = clamp(Math.min(viewW, viewH) / (cover * 2.15), zMin, 1)
       camera.zoom = reduceMotion ? z : damp(camera.zoom, z, 2.4, dt)
     } else if (!playing) {
       const tx = WORLD / 2 + Math.sin(time * 0.08) * 520
@@ -652,6 +780,8 @@ export const mountPlay = (root) => {
       camera.y = damp(camera.y, ty, camRate, dt)
       camera.zoom = damp(camera.zoom, 0.78, 1.2, dt)
     }
+
+    if (playing) syncStats()
   }
 
   const tickStartMagnet = (dt) => {
@@ -729,6 +859,41 @@ export const mountPlay = (root) => {
     ctx.restore()
   }
 
+  const drawCrownIcon = (size) => {
+    const s = size
+    ctx.beginPath()
+    ctx.moveTo(-s * 0.5, -s * 0.3)
+    ctx.lineTo(-s * 0.35, s * 0.24)
+    ctx.lineTo(s * 0.35, s * 0.24)
+    ctx.lineTo(s * 0.5, -s * 0.3)
+    ctx.lineTo(s * 0.25, -s * 0.1)
+    ctx.lineTo(0, -s * 0.48)
+    ctx.lineTo(-s * 0.25, -s * 0.1)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillRect(-s * 0.32, s * 0.3, s * 0.64, s * 0.1)
+  }
+
+  const heaviestCell = () => {
+    let best = null
+    for (const cell of cells) {
+      if (!best || cell.mass > best.mass) best = cell
+    }
+    return best
+  }
+
+  const drawLeaderCrown = (cell) => {
+    if (!cell) return
+    const r = radiusOf(cell.mass)
+    const size = Math.max(6, r * 0.34)
+    ctx.save()
+    ctx.translate(cell.x, cell.y)
+    ctx.globalAlpha = 0.78
+    ctx.fillStyle = theme.bg
+    drawCrownIcon(size)
+    ctx.restore()
+  }
+
   const drawMergeGoo = (a, b) => {
     const ra = radiusOf(a.mass)
     const rb = radiusOf(b.mass)
@@ -743,13 +908,14 @@ export const mountPlay = (root) => {
     if (metaballPath(ctx, a.x, a.y, ra, b.x, b.y, rb)) ctx.fill()
   }
 
-  const drawEnemyArrows = () => {
+  const drawEnemyArrows = (leader) => {
     if (!playing) return
     const pad = 18
     const insetW = viewW / 2 - pad
     const insetH = viewH / 2 - pad
     const size = 5.25
     const seen = new Set()
+    const leaderOwner = leader && leader.owner !== PLAYER_OWNER ? leader.owner : null
 
     for (const cell of cells) {
       if (cell.owner === PLAYER_OWNER || seen.has(cell.owner)) continue
@@ -767,17 +933,23 @@ export const mountPlay = (root) => {
 
       ctx.save()
       ctx.translate(viewW / 2 + sx * t, viewH / 2 + sy * t)
-      ctx.rotate(Math.atan2(sy, sx))
-      ctx.beginPath()
-      ctx.moveTo(-size * 0.4, -size * 0.72)
-      ctx.lineTo(size * 0.58, 0)
-      ctx.lineTo(-size * 0.4, size * 0.72)
-      ctx.strokeStyle = cell.color
-      ctx.globalAlpha = 0.34
-      ctx.lineWidth = 1.2
-      ctx.lineCap = 'round'
-      ctx.lineJoin = 'round'
-      ctx.stroke()
+      ctx.globalAlpha = 0.42
+      if (cell.owner === leaderOwner) {
+        ctx.fillStyle = cell.color
+        ctx.globalAlpha = 0.85
+        drawCrownIcon(16)
+      } else {
+        ctx.rotate(Math.atan2(sy, sx))
+        ctx.beginPath()
+        ctx.moveTo(-size * 0.4, -size * 0.72)
+        ctx.lineTo(size * 0.58, 0)
+        ctx.lineTo(-size * 0.4, size * 0.72)
+        ctx.strokeStyle = cell.color
+        ctx.lineWidth = 1.2
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.stroke()
+      }
       ctx.restore()
     }
   }
@@ -824,8 +996,11 @@ export const mountPlay = (root) => {
     drawGroup(others)
     drawGroup(mine)
 
+    const leader = heaviestCell()
+    if (playing) drawLeaderCrown(leader)
+
     ctx.restore()
-    drawEnemyArrows()
+    drawEnemyArrows(leader)
   }
 
   const tick = (now) => {
@@ -843,11 +1018,30 @@ export const mountPlay = (root) => {
     rafId = requestAnimationFrame(tick)
   }
 
+  const shootAim = (player) => {
+    if (!isMobileHud()) return pointer.valid ? pointer : massCenter(player)
+    let nx = stick.mag > 0 ? stick.nx : stick.lastNx
+    let ny = stick.mag > 0 ? stick.ny : stick.lastNy
+    if (hypot(nx, ny) < 0.01) {
+      const biggest = player.reduce((a, b) => (a.mass >= b.mass ? a : b))
+      const v = hypot(biggest.vx, biggest.vy)
+      if (v > 8) {
+        nx = biggest.vx / v
+        ny = biggest.vy / v
+      } else {
+        nx = 1
+        ny = 0
+      }
+    }
+    const center = massCenter(player)
+    return { x: center.x + nx * 400, y: center.y + ny * 400 }
+  }
+
   const tryLaunch = () => {
     if (!playing || launchCool > 0) return
     const player = ownerCells(PLAYER_OWNER)
     if (!player.length) return
-    const aim = pointer.valid ? pointer : massCenter(player)
+    const aim = shootAim(player)
     if (launchOwner(PLAYER_OWNER, aim.x, aim.y)) launchCool = 0.42
   }
 
@@ -855,12 +1049,23 @@ export const mountPlay = (root) => {
     if (!running) return
     mouse.x = e.clientX
     mouse.y = e.clientY
+    if (playing && isMobileHud()) {
+      if (stick.id === e.pointerId) moveStick(e.clientX, e.clientY)
+      return
+    }
     if (playing) setPointer(e.clientX, e.clientY)
   }
 
   const onPointerDown = (e) => {
     if (!running || !playing) return
     if (e.target?.closest?.('button')) return
+    if (isMobileHud()) {
+      const p = localPoint(e.clientX, e.clientY)
+      if (p.x < viewW * STICK_ZONE || stick.id != null) return
+      stick.id = e.pointerId
+      showStick(e.clientX, e.clientY)
+      return
+    }
     setPointer(e.clientX, e.clientY)
     tap.id = e.pointerId
     tap.t = e.timeStamp
@@ -869,7 +1074,12 @@ export const mountPlay = (root) => {
   }
 
   const onPointerUp = (e) => {
-    if (!running || !playing || tap.id !== e.pointerId) return
+    if (!running || !playing) return
+    if (isMobileHud()) {
+      if (stick.id === e.pointerId) hideStick()
+      return
+    }
+    if (tap.id !== e.pointerId) return
     const dt = e.timeStamp - tap.t
     const dist = hypot(e.clientX - tap.x, e.clientY - tap.y)
     tap.id = null
@@ -907,6 +1117,7 @@ export const mountPlay = (root) => {
     playing = false
     root.classList.remove('is-playing')
     tap.id = null
+    hideStick()
     pointer.valid = false
     startMagnet.x = 0
     startMagnet.y = 0
@@ -947,10 +1158,16 @@ export const mountPlay = (root) => {
     window.removeEventListener('pointercancel', onPointerUp)
     window.removeEventListener('keydown', onKeyDown)
     tap.id = null
+    hideStick()
     root.dispatchEvent(new Event('playchange', { bubbles: true }))
   }
 
   startBtn?.addEventListener('click', beginPlay)
+  shootBtn?.addEventListener('pointerdown', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    tryLaunch()
+  })
 
   return { start, stop, pause }
 }
