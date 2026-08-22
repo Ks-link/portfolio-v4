@@ -1,6 +1,6 @@
-const WORLD = 5200
 const GRID = 88
-const FOOD_COUNT = 720
+const WORLD = GRID * 48
+const FOOD_COUNT = 1600
 const FOOD_MASS = 1.15
 const START_MASS = 42
 const MIN_SPLIT_MASS = 36
@@ -10,7 +10,7 @@ const MERGE_DELAY = 10
 const MERGE_TOUCH = 1.02
 const MERGE_FINISH = 0.24
 const MERGE_PULL = 1.25
-const LAUNCH_SPEED = 820
+const LAUNCH_SPEED = 960
 const AI_COUNT = 7
 const PLAYER_OWNER = 0
 const RESPAWN_WAIT = 1.15
@@ -27,7 +27,7 @@ const damp = (current, target, lambda, dt) =>
   current + (target - current) * (1 - Math.exp(-lambda * dt))
 
 const radiusOf = (mass) => Math.sqrt(Math.max(mass, 0.2)) * 4.15
-const speedOf = (mass) => 430 / Math.pow(mass + 28, 0.38)
+const speedOf = (mass) => 520 / Math.pow(mass + 28, 0.38)
 
 const pointOn = (x, y, angle, r) => [x + Math.cos(angle) * r, y + Math.sin(angle) * r]
 
@@ -224,11 +224,13 @@ export const mountPlay = (root) => {
   }
 
   const spawnFoodOne = () => {
+    const palette = [theme.accent, ...AI_COLORS]
     food.push({
       x: rand(24, WORLD - 24),
       y: rand(24, WORLD - 24),
       mass: FOOD_MASS,
       phase: rand(0, Math.PI * 2),
+      color: palette[Math.floor(Math.random() * palette.length)],
     })
   }
 
@@ -707,7 +709,7 @@ export const mountPlay = (root) => {
     const r = radiusOf(item.mass) * wobble
     ctx.beginPath()
     ctx.arc(item.x, item.y, r, 0, Math.PI * 2)
-    ctx.fillStyle = theme.accent
+    ctx.fillStyle = item.color || theme.accent
     ctx.globalAlpha = 0.42
     ctx.fill()
     ctx.globalAlpha = 1
