@@ -1,6 +1,6 @@
 const WORLD = 5200
 const GRID = 88
-const FOOD_COUNT = 240
+const FOOD_COUNT = 720
 const FOOD_MASS = 1.15
 const START_MASS = 42
 const MIN_SPLIT_MASS = 36
