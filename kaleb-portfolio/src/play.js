@@ -22,6 +22,7 @@ const STICK_RADIUS = 52
 const STICK_DEAD = 0.12
 const STICK_ZONE = 0.45
 const STICK_AIM = 2400
+const SHOOT_CORNER = 150
 
 const AI_COLORS = ['#5c8f76', '#c45c5c', '#5c7ec4', '#a56bb8', '#c49a4a', '#4aa3b5']
 
@@ -1117,11 +1118,26 @@ export const mountPlay = (root) => {
     if (playing) setPointer(e.clientX, e.clientY)
   }
 
+  const inShootCorner = (p) =>
+    p.x <= Math.min(SHOOT_CORNER, viewW * 0.34) &&
+    p.y >= viewH - Math.min(SHOOT_CORNER, viewH * 0.34)
+
+  const flashShoot = () => {
+    if (!shootBtn) return
+    shootBtn.classList.add('is-pressed')
+    window.setTimeout(() => shootBtn.classList.remove('is-pressed'), 140)
+  }
+
   const onPointerDown = (e) => {
     if (!running || !playing) return
     if (e.target?.closest?.('button')) return
     if (isMobileHud()) {
       const p = localPoint(e.clientX, e.clientY)
+      if (inShootCorner(p)) {
+        flashShoot()
+        tryLaunch()
+        return
+      }
       if (p.x < viewW * STICK_ZONE || stick.id != null) return
       stick.id = e.pointerId
       showStick(e.clientX, e.clientY)
