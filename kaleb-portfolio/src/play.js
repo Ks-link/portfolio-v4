@@ -23,6 +23,13 @@ const STICK_DEAD = 0.12
 const STICK_ZONE = 0.45
 const STICK_AIM = 2400
 const SHOOT_CORNER = 150
+const AI_HUNT_RANGE = 520
+const AI_FLEE_PAD = 180
+const AI_DANGER_PAD = 80
+const AI_FLEE_STEP = 420
+const AI_LAUNCH_NEAR = 90
+const AI_LAUNCH_FAR = 340
+const AI_LAUNCH_THREAT_PAD = 140
 
 const AI_COLORS = ['#5c8f76', '#c45c5c', '#5c7ec4', '#a56bb8', '#c49a4a', '#4aa3b5']
 
@@ -625,64 +632,82 @@ export const mountPlay = (root) => {
     }
   }
 
-  const ownerTotals = () => {
-    const totals = new Map()
-    for (const cell of cells) {
-      const cur = totals.get(cell.owner) || { owner: cell.owner, mass: 0, x: 0, y: 0 }
-      cur.mass += cell.mass
-      cur.x += cell.x * cell.mass
-      cur.y += cell.y * cell.mass
-      totals.set(cell.owner, cur)
-    }
-    for (const cur of totals.values()) {
-      cur.x /= cur.mass
-      cur.y /= cur.mass
-    }
-    return totals
-  }
+  const thinkAI = (cell) => {
+    if (!cell) return null
+    const myR = radiusOf(cell.mass)
+    const threats = []
+    const preyList = []
 
-  const thinkAI = (owner) => {
-    const mine = ownerCells(owner)
-    if (!mine.length) return null
-    const me = massCenter(mine)
-    const myR = radiusOf(me.mass)
+    for (const other of cells) {
+      if (other.owner === cell.owner) continue
+      const dist = hypot(other.x - cell.x, other.y - cell.y)
+      if (other.mass > cell.mass * EAT_RATIO) threats.push({ cell: other, dist })
+      else if (cell.mass > other.mass * EAT_RATIO) preyList.push({ cell: other, dist })
+    }
 
-    let threat = null
-    let threatDist = Infinity
+    let nearestThreat = null
+    let nearestThreatDist = Infinity
+    for (const item of threats) {
+      if (item.dist < nearestThreatDist) {
+        nearestThreat = item.cell
+        nearestThreatDist = item.dist
+      }
+    }
+
     let prey = null
     let preyDist = Infinity
-
-    for (const other of ownerTotals().values()) {
-      if (other.owner === owner) continue
-      const dist = hypot(other.x - me.x, other.y - me.y)
-      if (other.mass > me.mass * EAT_RATIO && dist < threatDist) {
-        threat = other
-        threatDist = dist
-      } else if (me.mass > other.mass * EAT_RATIO && dist < preyDist) {
-        prey = other
-        preyDist = dist
+    let preyScore = Infinity
+    for (const item of preyList) {
+      if (item.dist > AI_HUNT_RANGE) continue
+      let isolation = Infinity
+      for (const danger of threats) {
+        const gap = hypot(danger.cell.x - item.cell.x, danger.cell.y - item.cell.y)
+        if (gap < isolation) isolation = gap
+      }
+      const score = item.dist - Math.min(isolation, 320) * 0.55
+      if (score < preyScore) {
+        prey = item.cell
+        preyDist = item.dist
+        preyScore = score
       }
     }
 
-    if (threat && threatDist < radiusOf(threat.mass) + myR + 240) {
-      const dx = me.x - threat.x
-      const dy = me.y - threat.y
-      const dist = hypot(dx, dy) || 1
+    const imminent =
+      nearestThreat &&
+      nearestThreatDist < radiusOf(nearestThreat.mass) + myR + AI_DANGER_PAD
+    const canHunt =
+      prey && preyDist < AI_HUNT_RANGE && (!imminent || preyDist < nearestThreatDist)
+    if (canHunt) return { x: prey.x, y: prey.y, hunt: prey }
+
+    const fleeRange = nearestThreat ? radiusOf(nearestThreat.mass) + myR + AI_FLEE_PAD : 0
+    if (nearestThreat && nearestThreatDist < fleeRange) {
+      let fx = 0
+      let fy = 0
+      for (const item of threats) {
+        const range = radiusOf(item.cell.mass) + myR + AI_FLEE_PAD
+        if (item.dist > range) continue
+        const away = hypot(cell.x - item.cell.x, cell.y - item.cell.y) || 1
+        const weight = ((range - item.dist) / range) * item.cell.mass
+        fx += ((cell.x - item.cell.x) / away) * weight
+        fy += ((cell.y - item.cell.y) / away) * weight
+      }
+      let dist = hypot(fx, fy)
+      if (dist < 0.001) {
+        fx = cell.x - nearestThreat.x
+        fy = cell.y - nearestThreat.y
+        dist = hypot(fx, fy) || 1
+      }
       return {
-        x: me.x + (dx / dist) * 420,
-        y: me.y + (dy / dist) * 420,
+        x: cell.x + (fx / dist) * AI_FLEE_STEP,
+        y: cell.y + (fy / dist) * AI_FLEE_STEP,
         hunt: null,
       }
-    }
-
-    if (prey && preyDist < 520) {
-      return { x: prey.x, y: prey.y, hunt: prey }
     }
 
     let pellet = null
     let pelletDist = Infinity
     for (const item of food) {
-      const dist = hypot(item.x - me.x, item.y - me.y)
+      const dist = hypot(item.x - cell.x, item.y - cell.y)
       if (dist < pelletDist) {
         pellet = item
         pelletDist = dist
@@ -690,24 +715,39 @@ export const mountPlay = (root) => {
     }
     if (pellet) return { x: pellet.x, y: pellet.y, hunt: null }
 
-    return { x: me.x + Math.cos(time * 0.2 + owner) * 200, y: me.y + Math.sin(time * 0.17 + owner) * 200, hunt: null }
+    return {
+      x: cell.x + Math.cos(time * 0.2 + cell.owner) * 200,
+      y: cell.y + Math.sin(time * 0.17 + cell.owner) * 200,
+      hunt: null,
+    }
   }
 
-  const maybeAILaunch = (owner, goal) => {
+  const splitWouldBeSafe = (cell, hunt, half) => {
+    const halfR = radiusOf(half)
+    for (const other of cells) {
+      if (other === hunt || other.owner === cell.owner) continue
+      if (other.mass <= half * EAT_RATIO) continue
+      const reach = radiusOf(other.mass) + halfR + AI_LAUNCH_THREAT_PAD
+      if (hypot(other.x - cell.x, other.y - cell.y) < reach) return false
+      if (hypot(other.x - hunt.x, other.y - hunt.y) < reach) return false
+    }
+    return true
+  }
+
+  const maybeAILaunch = (cell, goal) => {
     if (!goal?.hunt) return
-    const cool = aiLaunchCool.get(owner) ?? 0
+    const cool = aiLaunchCool.get(cell.owner) ?? 0
     if (cool > 0) return
-    const mine = ownerCells(owner)
-    const me = massCenter(mine)
-    if (me.mass < MIN_SPLIT_MASS * 1.15) return
+    if (cell.mass < MIN_SPLIT_MASS * 1.15) return
     const hunt = goal.hunt
-    const dx = hunt.x - me.x
-    const dy = hunt.y - me.y
-    const dist = hypot(dx, dy)
-    const reach = radiusOf(me.mass) + 90
-    if (dist < reach || dist > 340) return
-    if (launchOwner(owner, hunt.x, hunt.y)) {
-      aiLaunchCool.set(owner, 3.5 + Math.random() * 2.5)
+    const half = cell.mass / 2
+    if (half <= hunt.mass * EAT_RATIO) return
+    if (!splitWouldBeSafe(cell, hunt, half)) return
+    const dist = hypot(hunt.x - cell.x, hunt.y - cell.y)
+    const reach = radiusOf(cell.mass) + AI_LAUNCH_NEAR
+    if (dist < reach || dist > AI_LAUNCH_FAR) return
+    if (splitCell(cell, hunt.x - cell.x, hunt.y - cell.y)) {
+      aiLaunchCool.set(cell.owner, 3.5 + Math.random() * 2.5)
     }
   }
 
@@ -758,10 +798,10 @@ export const mountPlay = (root) => {
     }
 
     for (let owner = 1; owner <= AI_COUNT; owner++) {
-      const goal = thinkAI(owner)
-      if (!goal) continue
-      maybeAILaunch(owner, goal)
       for (const cell of ownerCells(owner)) {
+        const goal = thinkAI(cell)
+        if (!goal) continue
+        maybeAILaunch(cell, goal)
         steerCell(cell, goal.x, goal.y, dt)
       }
     }
