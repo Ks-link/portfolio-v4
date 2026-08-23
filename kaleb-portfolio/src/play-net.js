@@ -11,9 +11,9 @@ import {
 import { auth, rtdb } from './firebase.js'
 
 export const EXTRA_SLOT = 0
-export const AI_COUNT = 15
-export const SLOT_COUNT = 16
-export const MAX_HUMANS = 16
+export const AI_COUNT = 11
+export const SLOT_COUNT = 12
+export const MAX_HUMANS = 12
 export const HOST_STALE_MS = 30000
 export const HEARTBEAT_MS = 2000
 export const PRESENCE_STALE_MS = 30000
@@ -110,8 +110,8 @@ export const packCells = (cells) =>
   cells.map((c) => [
     Math.round(c.x * 10) / 10,
     Math.round(c.y * 10) / 10,
-    Math.round(c.vx),
-    Math.round(c.vy),
+    Math.round(c.vx * 10) / 10,
+    Math.round(c.vy * 10) / 10,
     Math.round(c.mass * 10) / 10,
     c.owner,
     c.color,

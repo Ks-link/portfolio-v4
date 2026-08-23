@@ -70,6 +70,9 @@ const FOOD_PALETTE = ['#ee8533', ...AI_COLORS]
 const CELL_PUB_MS = 80
 const FOOD_PUB_MS = 500
 const INPUT_PUB_MS = 50
+const SNAP_DT = CELL_PUB_MS / 1000
+const RECONCILE_RATE = 8
+const REMOTE_SNAP_RATE = 14
 
 const escapeHtml = (value) =>
   String(value)
@@ -209,7 +212,7 @@ export const mountPlay = (root) => {
         </span>
       </span>
     </button>
-    <p class="play-full-error" hidden>the map is full — 16 players max</p>
+    <p class="play-full-error" hidden>the map is full — 12 players max</p>
     <form class="play-name-prompt">
       <p class="play-name-prompt-title">new high score <span class="play-name-prompt-score">0</span></p>
       <label class="play-name-field">
@@ -328,6 +331,7 @@ export const mountPlay = (root) => {
   let lastFoodPub = 0
   let foodDirty = false
   let hadLocalCells = false
+  let playLockedUntil = 0
   let claiming = false
   let sessionReady = null
   let slotDiffEnabled = false
@@ -340,7 +344,7 @@ export const mountPlay = (root) => {
     const rect = root.getBoundingClientRect()
     viewW = Math.max(1, rect.width)
     viewH = Math.max(1, rect.height)
-    dpr = Math.min(2, window.devicePixelRatio || 1)
+    dpr = Math.min(isMobileHud() ? 1.5 : 2, window.devicePixelRatio || 1)
     canvas.width = Math.round(viewW * dpr)
     canvas.height = Math.round(viewH * dpr)
   }
@@ -774,10 +778,14 @@ export const mountPlay = (root) => {
 
   const eatFood = () => {
     for (const cell of cells) {
-      const r = radiusOf(cell.mass)
+      const reach = radiusOf(cell.mass) * 0.92
       for (let i = food.length - 1; i >= 0; i--) {
         const pellet = food[i]
-        if (hypot(cell.x - pellet.x, cell.y - pellet.y) < r * 0.92) {
+        const dx = cell.x - pellet.x
+        if (Math.abs(dx) > reach) continue
+        const dy = cell.y - pellet.y
+        if (Math.abs(dy) > reach) continue
+        if (hypot(dx, dy) < reach) {
           cell.mass += pellet.mass
           food.splice(i, 1)
           spawnFoodOne()
@@ -906,9 +914,9 @@ export const mountPlay = (root) => {
   }
 
   const handleLocalDeath = () => {
-    if (!playing || naming) return
-    if (scoreQualifies(peakScore, boardEntries)) showNamePrompt(peakScore)
-    pause()
+    playLockedUntil = performance.now() + 550
+    if (scoreQualifies(peakScore, boardEntries) && !naming) showNamePrompt(peakScore)
+    if (playing) pause()
   }
 
   const maintainPop = (dt) => {
@@ -927,9 +935,10 @@ export const mountPlay = (root) => {
         if (ownerCells(owner).length) continue
         const uid = netSlots[owner]?.uid
         const presence = uid ? netPresence[uid] : null
+        if (!presence) continue
         const wasPlaying = remoteWasPlaying.get(owner)
-        remoteWasPlaying.set(owner, !!presence?.playing)
-        if (!presence?.playing) continue
+        remoteWasPlaying.set(owner, !!presence.playing)
+        if (!presence.playing) continue
         if (!wasPlaying) spawnHuman(owner)
       }
     }
@@ -974,7 +983,7 @@ export const mountPlay = (root) => {
     const player = ownerCells(localOwner)
     const aim = localAim(player)
     for (const cell of player) {
-      cell.color = theme.accent
+      cell.color = humanColor(localOwner)
       steerCell(cell, aim.x, aim.y, dt, aim.scale)
     }
   }
@@ -1100,7 +1109,7 @@ export const mountPlay = (root) => {
       }
     } else {
       if (playing && localOwner >= 0) {
-        for (const cell of ownerCells(localOwner)) cell.color = theme.accent
+        steerLocal(dt)
         if (hadLocalCells && !ownerCells(localOwner).length) {
           hadLocalCells = false
           handleLocalDeath()
@@ -1169,7 +1178,7 @@ export const mountPlay = (root) => {
   }
 
   const drawPellet = (item) => {
-    const wobble = reduceMotion ? 1 : 1 + Math.sin(time * 2.1 + item.phase) * 0.08
+    const wobble = reduceMotion || isMobileHud() ? 1 : 1 + Math.sin(time * 2.1 + item.phase) * 0.08
     const r = radiusOf(item.mass) * wobble
     ctx.beginPath()
     ctx.arc(item.x, item.y, r, 0, Math.PI * 2)
@@ -1386,7 +1395,15 @@ export const mountPlay = (root) => {
     ctx.translate(-camera.x, -camera.y)
 
     drawGrid()
-    for (const item of food) drawPellet(item)
+    const foodPad = 28
+    const foodLeft = camera.x - viewW / 2 / camera.zoom - foodPad
+    const foodTop = camera.y - viewH / 2 / camera.zoom - foodPad
+    const foodRight = camera.x + viewW / 2 / camera.zoom + foodPad
+    const foodBottom = camera.y + viewH / 2 / camera.zoom + foodPad
+    for (const item of food) {
+      if (item.x < foodLeft || item.x > foodRight || item.y < foodTop || item.y > foodBottom) continue
+      drawPellet(item)
+    }
 
     const others = cells.filter((c) => c.owner !== localOwner)
     const mine = cells.filter((c) => c.owner === localOwner)
@@ -1596,10 +1613,81 @@ export const mountPlay = (root) => {
     }
   }
 
+  const pairByNear = (prev, next) => {
+    if (prev.length !== next.length) return null
+    const used = new Set()
+    const pairs = []
+    for (const a of prev) {
+      let best = -1
+      let bestD = Infinity
+      for (let i = 0; i < next.length; i++) {
+        if (used.has(i)) continue
+        const d = hypot(a.x - next[i].x, a.y - next[i].y)
+        if (d < bestD) {
+          bestD = d
+          best = i
+        }
+      }
+      if (best < 0) return null
+      used.add(best)
+      pairs.push([a, next[best]])
+    }
+    return pairs
+  }
+
+  const pullCell = (cell, incoming, rate) => {
+    cell.x = damp(cell.x, incoming.x, rate, SNAP_DT)
+    cell.y = damp(cell.y, incoming.y, rate, SNAP_DT)
+    cell.vx = damp(cell.vx, incoming.vx, rate, SNAP_DT)
+    cell.vy = damp(cell.vy, incoming.vy, rate, SNAP_DT)
+    cell.mass = damp(cell.mass, incoming.mass, rate, SNAP_DT)
+    cell.mergeAt = incoming.mergeAt
+    cell.stretch = incoming.stretch
+    cell.angle = incoming.angle
+    cell.merging = incoming.merging
+    cell.color = incoming.color
+    cell.owner = incoming.owner
+  }
+
+  const blendOwnerGroup = (prev, next, rate) => {
+    const pairs = pairByNear(prev, next)
+    if (!pairs) return next
+    for (const [cell, incoming] of pairs) pullCell(cell, incoming, rate)
+    return pairs.map(([cell]) => cell)
+  }
+
   const applyRemoteCells = (payload) => {
     if (isHost || !payload) return
     if (typeof payload.t === 'number') time = payload.t
-    cells = unpackCells(payload.cells || payload)
+    const incoming = unpackCells(payload.cells || payload)
+    if (localOwner < 0) {
+      cells = incoming
+      return
+    }
+
+    const remotes = []
+    const remoteOwners = new Set()
+    for (const cell of incoming) {
+      if (cell.owner !== localOwner) remoteOwners.add(cell.owner)
+    }
+    for (const owner of remoteOwners) {
+      remotes.push(
+        ...blendOwnerGroup(
+          cells.filter((c) => c.owner === owner),
+          incoming.filter((c) => c.owner === owner),
+          REMOTE_SNAP_RATE,
+        ),
+      )
+    }
+
+    const locals = playing
+      ? blendOwnerGroup(
+          cells.filter((c) => c.owner === localOwner),
+          incoming.filter((c) => c.owner === localOwner),
+          RECONCILE_RATE,
+        )
+      : []
+    cells = remotes.concat(locals)
   }
 
   const applyRemoteFood = (payload) => {
@@ -1628,6 +1716,7 @@ export const mountPlay = (root) => {
 
   const beginPlay = async () => {
     if (!running || playing || naming || claiming) return
+    if (performance.now() < playLockedUntil) return
     if (localOwner >= 0 && isHumanOwner(localOwner)) {
       resumePlay()
       return
@@ -1656,6 +1745,8 @@ export const mountPlay = (root) => {
   const pause = () => {
     if (!running || !playing) return
     playing = false
+    hadLocalCells = false
+    if (localOwner >= 0) cells = cells.filter((c) => c.owner !== localOwner)
     session?.writePresence({ playing: false })
     root.classList.remove('is-playing')
     tap.id = null
@@ -1715,7 +1806,9 @@ export const mountPlay = (root) => {
     netSlots = defaultSlots()
     netInputs = {}
     netPresence = {}
+    remoteWasPlaying = new Map()
     hadLocalCells = false
+    playLockedUntil = 0
     setMapFull(false)
     root.classList.remove('is-playing')
     resize()
