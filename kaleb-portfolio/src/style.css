@@ -281,13 +281,14 @@ body {
 
 .play-shoot {
   position: absolute;
-  left: max(1rem, env(safe-area-inset-left));
-  bottom: max(1rem, env(safe-area-inset-bottom));
+  left: 0;
+  bottom: 0;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-end;
+  justify-content: flex-start;
   margin: 0;
-  padding: 0;
+  padding: 3.25rem 3.5rem max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
   border: 0;
   background: transparent;
   pointer-events: auto;
@@ -300,9 +301,9 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3.15rem;
-  height: 3.15rem;
-  padding: 0.32rem;
+  width: 3.75rem;
+  height: 3.75rem;
+  padding: 0.36rem;
   background: var(--nav-blob);
   opacity: 0.88;
   border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
@@ -316,7 +317,7 @@ body {
 .play-shoot-label {
   font-family: var(--sans);
   font-weight: 500;
-  font-size: 0.48rem;
+  font-size: 0.55rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   line-height: 1.15;
@@ -325,7 +326,8 @@ body {
   opacity: 0.75;
 }
 
-.play-shoot:active .play-shoot-shape {
+.play-shoot:active .play-shoot-shape,
+.play-shoot.is-pressed .play-shoot-shape {
   transform: scale(0.9);
   opacity: 1;
 }
@@ -379,18 +381,20 @@ body {
 
 @media (orientation: landscape) and (hover: none) {
   .play-shoot {
-    left: max(0.7rem, env(safe-area-inset-left));
-    bottom: max(0.7rem, env(safe-area-inset-bottom));
+    left: 0;
+    bottom: 0;
+    padding: 2.6rem 2.8rem max(0.7rem, env(safe-area-inset-bottom))
+      max(0.7rem, env(safe-area-inset-left));
   }
 
   .play-shoot-shape {
-    width: 2.55rem;
-    height: 2.55rem;
-    padding: 0.24rem;
+    width: 3.05rem;
+    height: 3.05rem;
+    padding: 0.28rem;
   }
 
   .play-shoot-label {
-    font-size: 0.42rem;
+    font-size: 0.48rem;
   }
 
   .play-stick-base {
