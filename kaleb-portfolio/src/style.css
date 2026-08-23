@@ -300,9 +300,9 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3.15rem;
-  height: 3.15rem;
-  padding: 0.32rem;
+  width: 3.75rem;
+  height: 3.75rem;
+  padding: 0.36rem;
   background: var(--nav-blob);
   opacity: 0.88;
   border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
@@ -316,7 +316,7 @@ body {
 .play-shoot-label {
   font-family: var(--sans);
   font-weight: 500;
-  font-size: 0.48rem;
+  font-size: 0.55rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   line-height: 1.15;
@@ -384,13 +384,13 @@ body {
   }
 
   .play-shoot-shape {
-    width: 2.55rem;
-    height: 2.55rem;
-    padding: 0.24rem;
+    width: 3.05rem;
+    height: 3.05rem;
+    padding: 0.28rem;
   }
 
   .play-shoot-label {
-    font-size: 0.42rem;
+    font-size: 0.48rem;
   }
 
   .play-stick-base {

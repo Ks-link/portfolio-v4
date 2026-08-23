@@ -31,8 +31,19 @@ const hypot = Math.hypot
 const damp = (current, target, lambda, dt) =>
   current + (target - current) * (1 - Math.exp(-lambda * dt))
 
+const wrapAngle = (a) => {
+  while (a > Math.PI) a -= Math.PI * 2
+  while (a < -Math.PI) a += Math.PI * 2
+  return a
+}
+
+const dampAngle = (current, target, lambda, dt) => {
+  const diff = wrapAngle(target - current)
+  return wrapAngle(current + diff * (1 - Math.exp(-lambda * dt)))
+}
+
 const radiusOf = (mass) => Math.sqrt(Math.max(mass, 0.2)) * 4.15
-const speedOf = (mass) => 520 / Math.pow(mass + 28, 0.38)
+const speedOf = (mass) => 620 / Math.pow(mass + 28, 0.38)
 
 const pointOn = (x, y, angle, r) => [x + Math.cos(angle) * r, y + Math.sin(angle) * r]
 
@@ -187,6 +198,7 @@ export const mountPlay = (root) => {
   const camera = { x: WORLD / 2, y: WORLD / 2, zoom: 1 }
   const tap = { id: null, t: 0, x: 0, y: 0 }
   const stick = { id: null, ox: 0, oy: 0, nx: 0, ny: 0, mag: 0, lastNx: 1, lastNy: 0 }
+  const heading = { angle: 0, alpha: 0 }
 
   let viewW = 1
   let viewH = 1
@@ -760,6 +772,7 @@ export const mountPlay = (root) => {
     }
 
     for (const cell of cells) tickStretch(cell, dt)
+    tickMoveHeading(dt, player)
 
     const follow = massCenter(ownerCells(PLAYER_OWNER))
     if (playing && follow.mass) {
@@ -894,6 +907,53 @@ export const mountPlay = (root) => {
     ctx.restore()
   }
 
+  const tickMoveHeading = (dt, player) => {
+    const steering = playing && isMobileHud() && stick.mag > 0 && player.length
+    if (steering) {
+      const target = Math.atan2(stick.ny, stick.nx)
+      if (heading.alpha < 0.05) heading.angle = target
+      else heading.angle = dampAngle(heading.angle, target, 16, dt)
+      heading.alpha = damp(heading.alpha, 1, 14, dt)
+      return
+    }
+    heading.alpha = damp(heading.alpha, 0, 12, dt)
+    if (heading.alpha < 0.01) heading.alpha = 0
+  }
+
+  const drawHeadingChevron = (color) => {
+    const size = 3.6 / camera.zoom
+    ctx.beginPath()
+    ctx.moveTo(-size * 0.22, -size * 0.62)
+    ctx.lineTo(size * 0.38, 0)
+    ctx.lineTo(-size * 0.22, size * 0.62)
+    ctx.strokeStyle = color
+    ctx.lineWidth = 1.05 / camera.zoom
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+  }
+
+  const drawMoveHeading = () => {
+    if (heading.alpha < 0.02) return
+    const player = ownerCells(PLAYER_OWNER)
+    if (!player.length) return
+    ctx.save()
+    ctx.globalAlpha = 0.82 * heading.alpha
+    for (const blob of player) {
+      const r = radiusOf(blob.mass)
+      const orbit = r * (1 + (blob.stretch || 0)) + 7 / camera.zoom
+      ctx.save()
+      ctx.translate(
+        blob.x + Math.cos(heading.angle) * orbit,
+        blob.y + Math.sin(heading.angle) * orbit,
+      )
+      ctx.rotate(heading.angle)
+      drawHeadingChevron(blob.color)
+      ctx.restore()
+    }
+    ctx.restore()
+  }
+
   const drawMergeGoo = (a, b) => {
     const ra = radiusOf(a.mass)
     const rb = radiusOf(b.mass)
@@ -998,6 +1058,7 @@ export const mountPlay = (root) => {
 
     const leader = heaviestCell()
     if (playing) drawLeaderCrown(leader)
+    drawMoveHeading()
 
     ctx.restore()
     drawEnemyArrows(leader)
@@ -1118,6 +1179,7 @@ export const mountPlay = (root) => {
     root.classList.remove('is-playing')
     tap.id = null
     hideStick()
+    heading.alpha = 0
     pointer.valid = false
     startMagnet.x = 0
     startMagnet.y = 0
@@ -1159,6 +1221,7 @@ export const mountPlay = (root) => {
     window.removeEventListener('keydown', onKeyDown)
     tap.id = null
     hideStick()
+    heading.alpha = 0
     root.dispatchEvent(new Event('playchange', { bubbles: true }))
   }
 
