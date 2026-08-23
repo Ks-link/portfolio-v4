@@ -3,6 +3,7 @@
     "authorizedDomains": [
       "localhost",
       "kaleblink.com",
+      "www.kaleblink.com",
       "kaleblink-portfolio-v4.web.app",
       "kaleblink-portfolio-v4.firebaseapp.com"
     ],

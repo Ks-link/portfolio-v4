@@ -13,7 +13,7 @@ export const EXTRA_SLOT = 0
 export const AI_COUNT = 15
 export const SLOT_COUNT = 16
 export const MAX_HUMANS = 16
-export const HOST_STALE_MS = 5000
+export const HOST_STALE_MS = 8000
 export const HEARTBEAT_MS = 2000
 export const PRESENCE_STALE_MS = 8000
 
@@ -387,7 +387,7 @@ const connectRemote = async (handlers) => {
   const cred = await Promise.race([
     signInAnonymously(auth),
     new Promise((_, reject) => {
-      window.setTimeout(() => reject(new Error('auth timeout')), 4000)
+      window.setTimeout(() => reject(new Error('auth timeout')), 12000)
     }),
   ])
   const uid = cred.user.uid
@@ -405,19 +405,56 @@ const connectRemote = async (handlers) => {
   let claimedSlot = -1
   let playing = false
   let closed = false
+  let latestHost = null
+  let latestPresence = {}
+  let latestCells = null
+  let latestFood = null
   const unsubs = []
 
   await onDisconnect(presenceRef).remove()
   await onDisconnect(inputsRef).remove()
   await set(presenceRef, { at: Date.now(), playing: false, slot: null })
 
+  const stampIsLive = (at) => !!at && Date.now() - at < HOST_STALE_MS
+
+  const hostIsLive = (host) => {
+    if (!host?.uid) return false
+    const seen = latestPresence[host.uid]
+    if (stampIsLive(seen?.at)) return true
+    return stampIsLive(host.at)
+  }
+
   const becomeHost = async () => {
     await runTransaction(hostRef, (current) => {
-      if (current?.uid && current.uid !== uid && Date.now() - (current.at || 0) < HOST_STALE_MS) {
-        return current
-      }
+      if (current?.uid && current.uid !== uid && hostIsLive(current)) return current
       return { uid, at: Date.now() }
     })
+  }
+
+  const applyLatestWorld = () => {
+    if (hostNow) return
+    if (latestCells) handlers.onCells?.(latestCells)
+    if (latestFood) handlers.onFood?.(latestFood)
+  }
+
+  const setHostState = (next) => {
+    if (next === hostNow && hostKnown) return
+    const wasHost = hostNow
+    hostNow = next
+    hostKnown = true
+    setHostDisconnect(hostNow)
+    if (next && !wasHost) {
+      if (latestCells) handlers.onCells?.(latestCells)
+      if (latestFood) handlers.onFood?.(latestFood)
+    }
+    handlers.onHostChange?.(hostNow)
+    if (!hostNow) applyLatestWorld()
+  }
+
+  const syncHost = () => {
+    if (closed) return
+    if (!hostIsLive(latestHost)) becomeHost()
+    setHostState(latestHost?.uid === uid && hostIsLive(latestHost))
   }
 
   const setHostDisconnect = async (on) => {
@@ -439,16 +476,8 @@ const connectRemote = async (handlers) => {
   unsubs.push(
     onValue(hostRef, (snap) => {
       if (closed) return
-      const host = snap.val()
-      const stale = !host?.uid || Date.now() - (host.at || 0) >= HOST_STALE_MS
-      if (stale) becomeHost()
-      const next = host?.uid === uid && !stale
-      if (next !== hostNow || !hostKnown) {
-        hostNow = next
-        hostKnown = true
-        setHostDisconnect(hostNow)
-        handlers.onHostChange?.(hostNow)
-      }
+      latestHost = snap.val()
+      syncHost()
     }),
   )
 
@@ -461,17 +490,17 @@ const connectRemote = async (handlers) => {
 
   unsubs.push(
     onValue(cellsRef, (snap) => {
-      if (closed || hostNow) return
-      const val = snap.val()
-      if (val) handlers.onCells?.(val)
+      if (closed) return
+      latestCells = snap.val()
+      if (!hostNow && latestCells) handlers.onCells?.(latestCells)
     }),
   )
 
   unsubs.push(
     onValue(foodRef, (snap) => {
-      if (closed || hostNow) return
-      const val = snap.val()
-      if (val) handlers.onFood?.(val)
+      if (closed) return
+      latestFood = snap.val()
+      if (!hostNow && latestFood) handlers.onFood?.(latestFood)
     }),
   )
 
@@ -485,7 +514,9 @@ const connectRemote = async (handlers) => {
   unsubs.push(
     onValue(allPresenceRef, (snap) => {
       if (closed) return
-      handlers.onPresence?.(snap.val() || {})
+      latestPresence = snap.val() || {}
+      handlers.onPresence?.(latestPresence)
+      syncHost()
     }),
   )
 
@@ -493,6 +524,7 @@ const connectRemote = async (handlers) => {
     if (closed) return
     set(presenceRef, { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null })
     if (hostNow) update(hostRef, { uid, at: Date.now() })
+    syncHost()
   }, HEARTBEAT_MS)
 
   await becomeHost()

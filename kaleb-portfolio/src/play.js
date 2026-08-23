@@ -1663,9 +1663,8 @@ export const mountPlay = (root) => {
   const bindSession = async () => {
     session = await connectPlaySession({
       onHostChange(next) {
-        const wasHost = isHost
+        if (next) slotDiffEnabled = true
         isHost = next
-        if (next && !wasHost) slotDiffEnabled = true
       },
       onSlots: applySlots,
       onCells: applyRemoteCells,
