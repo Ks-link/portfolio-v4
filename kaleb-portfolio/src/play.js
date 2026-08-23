@@ -261,7 +261,11 @@ export const mountPlay = (root) => {
     <span class="play-stats-kills">kills 0</span>
   `
 
-  root.replaceChildren(canvas, welcome, hint, stats, hud)
+  const liveCount = document.createElement('p')
+  liveCount.className = 'play-live-count'
+  liveCount.textContent = 'live 0'
+
+  root.replaceChildren(canvas, welcome, hint, stats, liveCount, hud)
   const ctx = canvas.getContext('2d')
   const startBtn = welcome.querySelector('.play-start')
   const startBlob = welcome.querySelector('.play-start-blob')
@@ -611,6 +615,22 @@ export const mountPlay = (root) => {
     eater.mass += prey.mass
     cells.splice(preyIndex, 1)
     if (lastOfOwner && eater.owner === localOwner) kills += 1
+  }
+
+  const liveUserCount = () => {
+    const now = Date.now()
+    let n = 0
+    for (const row of Object.values(netPresence)) {
+      if (now - (row?.at || 0) < PRESENCE_STALE_MS) n += 1
+    }
+    if (!n && session) n = 1
+    return n
+  }
+
+  const syncLiveCount = () => {
+    const n = liveUserCount()
+    const local = !session || String(session.uid || '').startsWith('local-')
+    liveCount.textContent = local ? `live ${n} · local` : `live ${n}`
   }
 
   const syncStats = () => {
@@ -1096,6 +1116,7 @@ export const mountPlay = (root) => {
     tickMoveHeading(dt, player)
     followCamera(dt)
     if (playing) syncStats()
+    syncLiveCount()
   }
 
   const tickStartMagnet = (dt) => {
@@ -1674,9 +1695,11 @@ export const mountPlay = (root) => {
       },
       onPresence(next) {
         netPresence = next || {}
+        syncLiveCount()
       },
     })
     slotDiffEnabled = isHost
+    syncLiveCount()
     return session
   }
 

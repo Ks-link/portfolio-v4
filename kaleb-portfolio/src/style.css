@@ -445,6 +445,22 @@ body {
   display: flex;
 }
 
+.play-live-count {
+  position: absolute;
+  z-index: 6;
+  top: calc(max(1.25rem, env(safe-area-inset-top)) + 2.75rem);
+  right: max(1.25rem, env(safe-area-inset-right));
+  margin: 0;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: var(--text);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 @media (max-width: 639px) {
   .play-stats {
     top: calc(max(1.25rem, env(safe-area-inset-top)) + 2.5rem + 0.35rem);
