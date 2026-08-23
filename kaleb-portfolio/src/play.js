@@ -167,7 +167,12 @@ export const mountPlay = (root) => {
   const welcome = document.createElement('div')
   welcome.className = 'play-welcome'
   welcome.innerHTML = `
-    <ol class="play-leaderboard" aria-label="Global leaderboard"></ol>
+    <div class="play-leaderboard-wrap">
+      <ol class="play-leaderboard" aria-label="Global leaderboard"></ol>
+      <svg class="play-leaderboard-chevron" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M10 5l7 7-7 7"/>
+      </svg>
+    </div>
     <button type="button" class="play-start" aria-label="Play">
       <span class="play-start-blob">
         <span class="play-start-shape">
@@ -229,6 +234,7 @@ export const mountPlay = (root) => {
   const ctx = canvas.getContext('2d')
   const startBtn = welcome.querySelector('.play-start')
   const startBlob = welcome.querySelector('.play-start-blob')
+  const boardWrap = welcome.querySelector('.play-leaderboard-wrap')
   const boardEl = welcome.querySelector('.play-leaderboard')
   const nameForm = welcome.querySelector('.play-name-prompt')
   const nameInput = welcome.querySelector('.play-name-input')
@@ -1271,6 +1277,10 @@ export const mountPlay = (root) => {
 
   const observer = new ResizeObserver(resize)
 
+  const syncBoardChevron = () => {
+    boardWrap?.classList.toggle('is-scrolled', (boardEl?.scrollTop ?? 0) > 1)
+  }
+
   const renderBoard = (entries) => {
     boardEntries = entries
     if (!boardEl) return
@@ -1288,6 +1298,7 @@ export const mountPlay = (root) => {
       }
     }
     boardEl.innerHTML = rows.join('')
+    syncBoardChevron()
   }
 
   const showNamePrompt = (score) => {
@@ -1386,6 +1397,7 @@ export const mountPlay = (root) => {
     root.dispatchEvent(new Event('playchange', { bubbles: true }))
   }
 
+  boardEl?.addEventListener('scroll', syncBoardChevron, { passive: true })
   startBtn?.addEventListener('click', beginPlay)
   nameInput?.addEventListener('input', () => {
     const caret = nameInput.selectionStart
