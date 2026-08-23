@@ -4,7 +4,7 @@
       "global": {
         ".read": "auth != null",
         "host": {
-          ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || now - data.child('at').val() > 5000 || !newData.exists() && data.child('uid').val() === auth.uid)"
+          ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || !newData.exists() && data.child('uid').val() === auth.uid || now - data.child('at').val() > 30000 && !root.child('play/global/presence').child(data.child('uid').val()).exists())"
         },
         "slots": {
           ".write": "auth != null"

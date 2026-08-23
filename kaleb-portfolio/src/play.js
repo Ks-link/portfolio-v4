@@ -10,7 +10,6 @@ import {
   AI_COUNT,
   EXTRA_SLOT,
   MAX_HUMANS,
-  PRESENCE_STALE_MS,
   SLOT_COUNT,
   connectPlaySession,
   defaultSlots,
@@ -313,7 +312,8 @@ export const mountPlay = (root) => {
   let unsubBoard = null
   let naming = false
   let localOwner = -1
-  let isHost = true
+  let isHost = false
+  let hostKnown = false
   let session = null
   let netSlots = defaultSlots()
   let netInputs = {}
@@ -618,10 +618,9 @@ export const mountPlay = (root) => {
   }
 
   const liveUserCount = () => {
-    const now = Date.now()
     let n = 0
     for (const row of Object.values(netPresence)) {
-      if (now - (row?.at || 0) < PRESENCE_STALE_MS) n += 1
+      if (row) n += 1
     }
     if (!n && session) n = 1
     return n
@@ -630,7 +629,9 @@ export const mountPlay = (root) => {
   const syncLiveCount = () => {
     const n = liveUserCount()
     const local = !session || String(session.uid || '').startsWith('local-')
-    liveCount.textContent = local ? `live ${n} · local` : `live ${n}`
+    if (local) liveCount.textContent = `live ${n} · local`
+    else if (isHost) liveCount.textContent = `live ${n} · host`
+    else liveCount.textContent = `live ${n}`
   }
 
   const syncStats = () => {
@@ -1064,16 +1065,14 @@ export const mountPlay = (root) => {
 
   const reapGoneHumans = () => {
     if (!isHost || !session) return
-    const now = Date.now()
+    if (!Object.keys(netPresence).length) return
     let changed = false
     const next = { ...netSlots }
     for (let owner = 0; owner < SLOT_COUNT; owner++) {
       const slot = next[owner]
       if (slot?.kind !== 'human') continue
       if (slot.uid && slot.uid === session.uid) continue
-      if (slot.at && now - slot.at < PRESENCE_STALE_MS) continue
-      const presence = slot.uid ? netPresence[slot.uid] : null
-      if (presence && now - (presence.at || 0) < PRESENCE_STALE_MS) continue
+      if (slot.uid && netPresence[slot.uid]) continue
       next[owner] = owner === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
       changed = true
     }
@@ -1082,7 +1081,7 @@ export const mountPlay = (root) => {
 
   const update = (dt, now) => {
     syncTheme()
-    const simulating = isHost || !session
+    const simulating = !session || (hostKnown && isHost)
     if (simulating) {
       time += dt
       maintainPop(dt)
@@ -1684,8 +1683,10 @@ export const mountPlay = (root) => {
   const bindSession = async () => {
     session = await connectPlaySession({
       onHostChange(next) {
+        hostKnown = true
         if (next) slotDiffEnabled = true
         isHost = next
+        syncLiveCount()
       },
       onSlots: applySlots,
       onCells: applyRemoteCells,
@@ -1709,6 +1710,7 @@ export const mountPlay = (root) => {
     playing = false
     localOwner = -1
     isHost = false
+    hostKnown = false
     slotDiffEnabled = false
     netSlots = defaultSlots()
     netInputs = {}
@@ -1755,6 +1757,7 @@ export const mountPlay = (root) => {
     sessionReady = null
     localOwner = -1
     isHost = false
+    hostKnown = false
     slotDiffEnabled = false
     netSlots = defaultSlots()
     unsubBoard?.()

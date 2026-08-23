@@ -4,6 +4,7 @@ import {
   onValue,
   ref,
   runTransaction,
+  serverTimestamp,
   set,
   update,
 } from 'firebase/database'
@@ -13,9 +14,9 @@ export const EXTRA_SLOT = 0
 export const AI_COUNT = 15
 export const SLOT_COUNT = 16
 export const MAX_HUMANS = 16
-export const HOST_STALE_MS = 8000
+export const HOST_STALE_MS = 30000
 export const HEARTBEAT_MS = 2000
-export const PRESENCE_STALE_MS = 8000
+export const PRESENCE_STALE_MS = 30000
 
 const ROOT = 'play/global'
 
@@ -71,6 +72,19 @@ export const packFood = (food) => {
   return { n, p: bytesToB64(buf) }
 }
 
+const asList = (value) => {
+  if (Array.isArray(value)) return value
+  if (!value || typeof value !== 'object') return []
+  return Object.keys(value)
+    .filter((key) => Number.isInteger(Number(key)) && Number(key) >= 0)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((key) => value[key])
+}
+
+const warnWrite = (label) => (err) => {
+  console.warn(`play-net ${label}`, err)
+}
+
 export const unpackFood = (packed, palette) => {
   if (!packed?.p || !packed.n) return []
   const buf = b64ToBytes(packed.p)
@@ -108,22 +122,28 @@ export const packCells = (cells) =>
   ])
 
 export const unpackCells = (packed) => {
-  if (!Array.isArray(packed)) return []
-  return packed.map((row) => ({
-    x: row[0],
-    y: row[1],
-    vx: row[2],
-    vy: row[3],
-    mass: row[4],
-    owner: row[5],
-    color: row[6],
-    mergeAt: row[7],
-    stretch: row[8],
-    angle: row[9],
-    merging: !!row[10],
-    phase: 0,
-    wobble: 1,
-  }))
+  const rows = asList(packed)
+  return rows
+    .map((row) => {
+      const cell = asList(row)
+      if (cell.length < 7) return null
+      return {
+        x: cell[0],
+        y: cell[1],
+        vx: cell[2],
+        vy: cell[3],
+        mass: cell[4],
+        owner: cell[5],
+        color: cell[6],
+        mergeAt: cell[7],
+        stretch: cell[8],
+        angle: cell[9],
+        merging: !!cell[10],
+        phase: 0,
+        wobble: 1,
+      }
+    })
+    .filter(Boolean)
 }
 
 export const pickClaimSlot = (current, uid) => {
@@ -166,6 +186,7 @@ const connectLocal = (handlers) => {
   const channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel(CHANNEL) : null
   let slots = readJson(SLOTS_KEY, defaultSlots())
   let hostNow = false
+  let hostKnown = false
   let claimedSlot = -1
   let playing = false
   let closed = false
@@ -181,8 +202,9 @@ const connectLocal = (handlers) => {
   }
 
   const setHost = (next) => {
-    if (next === hostNow) return
+    if (next === hostNow && hostKnown) return
     hostNow = next
+    hostKnown = true
     handlers.onHostChange?.(hostNow)
   }
 
@@ -399,6 +421,8 @@ const connectRemote = async (handlers) => {
   const allPresenceRef = ref(rtdb, `${ROOT}/presence`)
   const cellsRef = ref(rtdb, `${ROOT}/snapCells`)
   const foodRef = ref(rtdb, `${ROOT}/snapFood`)
+  const connectedRef = ref(rtdb, '.info/connected')
+  const offsetRef = ref(rtdb, '.info/serverTimeOffset')
 
   let hostNow = false
   let hostKnown = false
@@ -409,26 +433,44 @@ const connectRemote = async (handlers) => {
   let latestPresence = {}
   let latestCells = null
   let latestFood = null
+  let serverOffset = 0
   const unsubs = []
 
-  await onDisconnect(presenceRef).remove()
-  await onDisconnect(inputsRef).remove()
-  await set(presenceRef, { at: Date.now(), playing: false, slot: null })
+  const serverNow = () => Date.now() + serverOffset
 
-  const stampIsLive = (at) => !!at && Date.now() - at < HOST_STALE_MS
+  const presencePayload = () => ({
+    at: serverTimestamp(),
+    playing,
+    slot: claimedSlot >= 0 ? claimedSlot : null,
+  })
+
+  const stampIsLive = (at) => {
+    if (at == null) return false
+    if (typeof at !== 'number') return true
+    return serverNow() - at < HOST_STALE_MS
+  }
+
+  const presenceIsLive = (row) => {
+    if (!row) return false
+    if (typeof row.at !== 'number') return true
+    return serverNow() - row.at < PRESENCE_STALE_MS
+  }
 
   const hostIsLive = (host) => {
     if (!host?.uid) return false
-    const seen = latestPresence[host.uid]
-    if (stampIsLive(seen?.at)) return true
+    if (presenceIsLive(latestPresence[host.uid])) return true
     return stampIsLive(host.at)
   }
 
   const becomeHost = async () => {
-    await runTransaction(hostRef, (current) => {
-      if (current?.uid && current.uid !== uid && hostIsLive(current)) return current
-      return { uid, at: Date.now() }
-    })
+    try {
+      await runTransaction(hostRef, (current) => {
+        if (current?.uid && current.uid !== uid && hostIsLive(current)) return current
+        return { uid, at: serverTimestamp() }
+      })
+    } catch (err) {
+      warnWrite('becomeHost')(err)
+    }
   }
 
   const applyLatestWorld = () => {
@@ -437,12 +479,36 @@ const connectRemote = async (handlers) => {
     if (latestFood) handlers.onFood?.(latestFood)
   }
 
+  const setSlotDisconnect = async (slot) => {
+    if (slot < 0) return
+    const slotRef = ref(rtdb, `${ROOT}/slots/${slot}`)
+    await onDisconnect(slotRef).set(slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' })
+  }
+
+  const clearSlotDisconnect = async (slot) => {
+    if (slot < 0) return
+    await onDisconnect(ref(rtdb, `${ROOT}/slots/${slot}`)).cancel()
+  }
+
+  const armDisconnects = async () => {
+    await onDisconnect(presenceRef).remove()
+    await onDisconnect(inputsRef).remove()
+    if (claimedSlot >= 0) await setSlotDisconnect(claimedSlot)
+    if (hostNow) await onDisconnect(hostRef).remove()
+    else await onDisconnect(hostRef).cancel()
+  }
+
+  const setHostDisconnect = async (on) => {
+    if (on) await onDisconnect(hostRef).remove()
+    else await onDisconnect(hostRef).cancel()
+  }
+
   const setHostState = (next) => {
     if (next === hostNow && hostKnown) return
     const wasHost = hostNow
     hostNow = next
     hostKnown = true
-    setHostDisconnect(hostNow)
+    setHostDisconnect(hostNow).catch(warnWrite('hostDisconnect'))
     if (next && !wasHost) {
       if (latestCells) handlers.onCells?.(latestCells)
       if (latestFood) handlers.onFood?.(latestFood)
@@ -457,21 +523,32 @@ const connectRemote = async (handlers) => {
     setHostState(latestHost?.uid === uid && hostIsLive(latestHost))
   }
 
-  const setHostDisconnect = async (on) => {
-    if (on) await onDisconnect(hostRef).remove()
-    else await onDisconnect(hostRef).cancel()
+  const flushBeat = () => {
+    if (closed) return
+    set(presenceRef, presencePayload()).catch(warnWrite('presence'))
+    if (hostNow) update(hostRef, { uid, at: serverTimestamp() }).catch(warnWrite('host'))
+    syncHost()
   }
 
-  const setSlotDisconnect = async (slot) => {
-    if (slot < 0) return
-    const slotRef = ref(rtdb, `${ROOT}/slots/${slot}`)
-    await onDisconnect(slotRef).set(slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' })
-  }
+  unsubs.push(
+    onValue(offsetRef, (snap) => {
+      if (closed) return
+      serverOffset = Number(snap.val()) || 0
+    }),
+  )
 
-  const clearSlotDisconnect = async (slot) => {
-    if (slot < 0) return
-    await onDisconnect(ref(rtdb, `${ROOT}/slots/${slot}`)).cancel()
-  }
+  unsubs.push(
+    onValue(connectedRef, async (snap) => {
+      if (closed || snap.val() !== true) return
+      try {
+        await armDisconnects()
+        await set(presenceRef, presencePayload())
+      } catch (err) {
+        warnWrite('reconnect')(err)
+      }
+      syncHost()
+    }),
+  )
 
   unsubs.push(
     onValue(hostRef, (snap) => {
@@ -520,12 +597,11 @@ const connectRemote = async (handlers) => {
     }),
   )
 
-  const beat = window.setInterval(() => {
-    if (closed) return
-    set(presenceRef, { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null })
-    if (hostNow) update(hostRef, { uid, at: Date.now() })
-    syncHost()
-  }, HEARTBEAT_MS)
+  const beat = window.setInterval(flushBeat, HEARTBEAT_MS)
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') flushBeat()
+  }
+  document.addEventListener('visibilitychange', onVisible)
 
   await becomeHost()
 
@@ -549,7 +625,7 @@ const connectRemote = async (handlers) => {
       if (claimedSlot >= 0 && claimedSlot !== slot) await clearSlotDisconnect(claimedSlot)
       claimedSlot = slot
       await setSlotDisconnect(slot)
-      await set(presenceRef, { at: Date.now(), playing: true, slot })
+      await set(presenceRef, presencePayload())
       return { slot }
     },
     async releaseSlot() {
@@ -564,51 +640,48 @@ const connectRemote = async (handlers) => {
       })
       claimedSlot = -1
       playing = false
-      await set(presenceRef, { at: Date.now(), playing: false, slot: null })
+      await set(presenceRef, presencePayload())
     },
     writeInput(input) {
       if (closed) return
-      set(inputsRef, { ...input, at: Date.now() })
+      set(inputsRef, { ...input, at: serverTimestamp() }).catch(warnWrite('input'))
     },
     writePresence(next) {
       playing = !!next.playing
-      set(presenceRef, {
-        at: Date.now(),
-        playing,
-        slot: claimedSlot >= 0 ? claimedSlot : null,
-      })
+      set(presenceRef, presencePayload()).catch(warnWrite('presence'))
     },
     publishCells(payload) {
       if (!hostNow || closed) return
-      set(cellsRef, payload)
+      set(cellsRef, payload).catch(warnWrite('snapCells'))
     },
     publishFood(payload) {
       if (!hostNow || closed) return
-      set(foodRef, payload)
+      set(foodRef, payload).catch(warnWrite('snapFood'))
     },
     writeSlots(next) {
       if (!hostNow || closed) return
-      set(slotsRef, next)
+      set(slotsRef, next).catch(warnWrite('slots'))
     },
     disconnect() {
       if (closed) return
       closed = true
       window.clearInterval(beat)
+      document.removeEventListener('visibilitychange', onVisible)
       for (const unsub of unsubs) unsub()
       const slot = claimedSlot
       claimedSlot = -1
       playing = false
-      set(presenceRef, null)
-      set(inputsRef, null)
+      set(presenceRef, null).catch(warnWrite('presenceClear'))
+      set(inputsRef, null).catch(warnWrite('inputClear'))
       if (slot >= 0) {
         runTransaction(slotsRef, (current) => {
           const slots = current ? { ...current } : defaultSlots()
           if (slots[slot]?.uid !== uid) return slots
           slots[slot] = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
           return slots
-        })
+        }).catch(warnWrite('slotRelease'))
       }
-      if (hostNow) set(hostRef, null)
+      if (hostNow) set(hostRef, null).catch(warnWrite('hostClear'))
     },
   }
 }
