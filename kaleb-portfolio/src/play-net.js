@@ -1,0 +1,592 @@
+import { signInAnonymously } from 'firebase/auth'
+import {
+  onDisconnect,
+  onValue,
+  ref,
+  runTransaction,
+  set,
+  update,
+} from 'firebase/database'
+import { auth, rtdb } from './firebase.js'
+
+export const EXTRA_SLOT = 0
+export const AI_COUNT = 15
+export const SLOT_COUNT = 16
+export const MAX_HUMANS = 16
+export const HOST_STALE_MS = 5000
+export const HEARTBEAT_MS = 2000
+export const PRESENCE_STALE_MS = 8000
+
+const ROOT = 'play/global'
+
+export const defaultSlots = () => {
+  const slots = { [EXTRA_SLOT]: { kind: 'empty' } }
+  for (let i = 1; i <= AI_COUNT; i++) slots[i] = { kind: 'ai' }
+  return slots
+}
+
+export const humanCount = (slots) => {
+  if (!slots) return 0
+  let n = 0
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    if (slots[i]?.kind === 'human') n += 1
+  }
+  return n
+}
+
+export const slotOfUid = (slots, uid) => {
+  if (!slots || !uid) return -1
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    if (slots[i]?.kind === 'human' && slots[i].uid === uid) return i
+  }
+  return -1
+}
+
+const bytesToB64 = (bytes) => {
+  let bin = ''
+  const chunk = 0x8000
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  }
+  return btoa(bin)
+}
+
+const b64ToBytes = (b64) => {
+  const bin = atob(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return bytes
+}
+
+export const packFood = (food) => {
+  const n = food.length
+  const buf = new Uint8Array(n * 5)
+  const view = new DataView(buf.buffer)
+  for (let i = 0; i < n; i++) {
+    const o = i * 5
+    view.setUint16(o, Math.max(0, Math.min(65535, Math.round(food[i].x))), true)
+    view.setUint16(o + 2, Math.max(0, Math.min(65535, Math.round(food[i].y))), true)
+    buf[o + 4] = food[i].ci ?? 0
+  }
+  return { n, p: bytesToB64(buf) }
+}
+
+export const unpackFood = (packed, palette) => {
+  if (!packed?.p || !packed.n) return []
+  const buf = b64ToBytes(packed.p)
+  const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+  const next = []
+  const n = Math.min(packed.n, Math.floor(buf.length / 5))
+  for (let i = 0; i < n; i++) {
+    const o = i * 5
+    const ci = buf[o + 4] % palette.length
+    next.push({
+      x: view.getUint16(o, true),
+      y: view.getUint16(o + 2, true),
+      mass: 1.15,
+      phase: (i * 1.618) % (Math.PI * 2),
+      color: palette[ci],
+      ci,
+    })
+  }
+  return next
+}
+
+export const packCells = (cells) =>
+  cells.map((c) => [
+    Math.round(c.x * 10) / 10,
+    Math.round(c.y * 10) / 10,
+    Math.round(c.vx),
+    Math.round(c.vy),
+    Math.round(c.mass * 10) / 10,
+    c.owner,
+    c.color,
+    Math.round(c.mergeAt * 100) / 100,
+    Math.round((c.stretch || 0) * 100) / 100,
+    Math.round((c.angle || 0) * 100) / 100,
+    c.merging ? 1 : 0,
+  ])
+
+export const unpackCells = (packed) => {
+  if (!Array.isArray(packed)) return []
+  return packed.map((row) => ({
+    x: row[0],
+    y: row[1],
+    vx: row[2],
+    vy: row[3],
+    mass: row[4],
+    owner: row[5],
+    color: row[6],
+    mergeAt: row[7],
+    stretch: row[8],
+    angle: row[9],
+    merging: !!row[10],
+    phase: 0,
+    wobble: 1,
+  }))
+}
+
+export const pickClaimSlot = (current, uid) => {
+  const slots = current ? { ...current } : defaultSlots()
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    if (!slots[i]) slots[i] = i === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+  }
+  const existing = slotOfUid(slots, uid)
+  if (existing >= 0) return { slots, slot: existing }
+  if (humanCount(slots) >= MAX_HUMANS) return { full: true, slots }
+  if (slots[EXTRA_SLOT]?.kind !== 'human') {
+    slots[EXTRA_SLOT] = { kind: 'human', uid, at: Date.now() }
+    return { slots, slot: EXTRA_SLOT }
+  }
+  const ai = []
+  for (let i = 1; i <= AI_COUNT; i++) {
+    if (slots[i]?.kind === 'ai') ai.push(i)
+  }
+  if (!ai.length) return { full: true, slots }
+  const slot = ai[Math.floor(Math.random() * ai.length)]
+  slots[slot] = { kind: 'human', uid, at: Date.now() }
+  return { slots, slot }
+}
+
+const HOST_KEY = 'kaleb-play-host'
+const SLOTS_KEY = 'kaleb-play-slots'
+const CHANNEL = 'kaleb-play-global'
+
+const readJson = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+const connectLocal = (handlers) => {
+  const uid = `local-${Math.random().toString(36).slice(2, 10)}`
+  const channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel(CHANNEL) : null
+  let slots = readJson(SLOTS_KEY, defaultSlots())
+  let hostNow = false
+  let claimedSlot = -1
+  let playing = false
+  let closed = false
+  const presence = {}
+  const inputs = {}
+
+  const broadcast = (msg) => {
+    try {
+      channel?.postMessage(msg)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const setHost = (next) => {
+    if (next === hostNow) return
+    hostNow = next
+    handlers.onHostChange?.(hostNow)
+  }
+
+  const elect = () => {
+    const host = readJson(HOST_KEY, null)
+    const stale = !host?.uid || Date.now() - (host.at || 0) >= HOST_STALE_MS
+    if (!stale && host.uid !== uid) {
+      setHost(false)
+      return
+    }
+    if (stale && host?.uid !== uid) {
+      slots = defaultSlots()
+      try {
+        localStorage.setItem(SLOTS_KEY, JSON.stringify(slots))
+      } catch {
+        /* ignore */
+      }
+    }
+    localStorage.setItem(HOST_KEY, JSON.stringify({ uid, at: Date.now() }))
+    window.setTimeout(() => {
+      if (closed) return
+      const confirm = readJson(HOST_KEY, null)
+      setHost(confirm?.uid === uid)
+    }, 16)
+  }
+
+  const applySlots = (next) => {
+    slots = next
+    try {
+      localStorage.setItem(SLOTS_KEY, JSON.stringify(slots))
+    } catch {
+      /* ignore */
+    }
+    handlers.onSlots?.(slots)
+    broadcast({ type: 'slots', slots })
+  }
+
+  const onMessage = (event) => {
+    const msg = event.data
+    if (closed || !msg || (msg.uid === uid && msg.type !== 'claim-result')) return
+    if (msg.type === 'hello' && hostNow) {
+      broadcast({ type: 'slots', slots })
+      return
+    }
+    if (msg.type === 'host') {
+      if (msg.uid !== uid && Date.now() - (msg.at || 0) < HOST_STALE_MS) setHost(false)
+      return
+    }
+    if (msg.type === 'slots') {
+      slots = msg.slots || defaultSlots()
+      handlers.onSlots?.(slots)
+      return
+    }
+    if (msg.type === 'cells' && !hostNow) {
+      handlers.onCells?.(msg.payload)
+      return
+    }
+    if (msg.type === 'food' && !hostNow) {
+      handlers.onFood?.(msg.payload)
+      return
+    }
+    if (msg.type === 'inputs' && hostNow) {
+      inputs[msg.uid] = msg.input
+      handlers.onInputs?.({ ...inputs })
+      return
+    }
+    if (msg.type === 'presence') {
+      presence[msg.uid] = msg.presence
+      handlers.onPresence?.({ ...presence })
+      return
+    }
+    if (msg.type === 'claim' && hostNow) {
+      const result = pickClaimSlot(slots, msg.uid)
+      if (result.full) {
+        broadcast({ type: 'claim-result', uid: msg.uid, full: true })
+        return
+      }
+      applySlots(result.slots)
+      broadcast({ type: 'claim-result', uid: msg.uid, slot: result.slot })
+      return
+    }
+    if (msg.type === 'release' && hostNow) {
+      const slot = slotOfUid(slots, msg.uid)
+      if (slot < 0) return
+      const next = { ...slots }
+      next[slot] = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+      applySlots(next)
+    }
+  }
+
+  channel?.addEventListener('message', onMessage)
+  elect()
+  handlers.onSlots?.(slots)
+  broadcast({ type: 'hello', uid })
+
+  const beat = window.setInterval(() => {
+    if (closed) return
+    presence[uid] = { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null }
+    broadcast({ type: 'presence', uid, presence: presence[uid] })
+    handlers.onPresence?.({ ...presence })
+    if (hostNow) {
+      localStorage.setItem(HOST_KEY, JSON.stringify({ uid, at: Date.now() }))
+      broadcast({ type: 'host', uid, at: Date.now() })
+    } else {
+      const host = readJson(HOST_KEY, null)
+      if (!host?.uid || Date.now() - (host.at || 0) >= HOST_STALE_MS) elect()
+    }
+  }, HEARTBEAT_MS)
+
+  return {
+    uid,
+    isHost: () => hostNow,
+    getSlots: () => slots,
+    async claimSlot() {
+      if (hostNow || !channel) {
+        const result = pickClaimSlot(slots, uid)
+        if (result.full) return { full: true }
+        claimedSlot = result.slot
+        applySlots(result.slots)
+        return { slot: result.slot }
+      }
+      return new Promise((resolve) => {
+        const timer = window.setTimeout(() => resolve({ full: true }), 2500)
+        const onResult = (event) => {
+          const msg = event.data
+          if (msg?.type !== 'claim-result' || msg.uid !== uid) return
+          window.clearTimeout(timer)
+          channel.removeEventListener('message', onResult)
+          if (msg.full) resolve({ full: true })
+          else {
+            claimedSlot = msg.slot
+            resolve({ slot: msg.slot })
+          }
+        }
+        channel.addEventListener('message', onResult)
+        broadcast({ type: 'claim', uid })
+      })
+    },
+    async releaseSlot() {
+      if (claimedSlot < 0) return
+      claimedSlot = -1
+      playing = false
+      if (hostNow || !channel) {
+        const slot = slotOfUid(slots, uid)
+        if (slot < 0) return
+        const next = { ...slots }
+        next[slot] = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+        applySlots(next)
+        return
+      }
+      broadcast({ type: 'release', uid })
+    },
+    writeInput(input) {
+      if (hostNow) {
+        inputs[uid] = input
+        handlers.onInputs?.({ ...inputs })
+        return
+      }
+      broadcast({ type: 'inputs', uid, input })
+    },
+    writePresence(next) {
+      playing = !!next.playing
+      presence[uid] = { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null }
+      broadcast({ type: 'presence', uid, presence: presence[uid] })
+    },
+    publishCells(payload) {
+      if (!hostNow) return
+      broadcast({ type: 'cells', uid, payload })
+    },
+    publishFood(payload) {
+      if (!hostNow) return
+      broadcast({ type: 'food', uid, payload })
+    },
+    writeSlots(next) {
+      if (!hostNow) return
+      applySlots(next)
+    },
+    disconnect() {
+      if (closed) return
+      closed = true
+      window.clearInterval(beat)
+      channel?.removeEventListener('message', onMessage)
+      if (claimedSlot >= 0) {
+        if (hostNow) {
+          const slot = slotOfUid(slots, uid)
+          if (slot >= 0) {
+            const next = { ...slots }
+            next[slot] = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+            applySlots(next)
+          }
+        } else {
+          broadcast({ type: 'release', uid })
+        }
+      }
+      if (hostNow) localStorage.removeItem(HOST_KEY)
+      channel?.close()
+    },
+  }
+}
+
+const connectRemote = async (handlers) => {
+  const cred = await Promise.race([
+    signInAnonymously(auth),
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error('auth timeout')), 4000)
+    }),
+  ])
+  const uid = cred.user.uid
+  const hostRef = ref(rtdb, `${ROOT}/host`)
+  const slotsRef = ref(rtdb, `${ROOT}/slots`)
+  const presenceRef = ref(rtdb, `${ROOT}/presence/${uid}`)
+  const inputsRef = ref(rtdb, `${ROOT}/inputs/${uid}`)
+  const allInputsRef = ref(rtdb, `${ROOT}/inputs`)
+  const allPresenceRef = ref(rtdb, `${ROOT}/presence`)
+  const cellsRef = ref(rtdb, `${ROOT}/snapCells`)
+  const foodRef = ref(rtdb, `${ROOT}/snapFood`)
+
+  let hostNow = false
+  let hostKnown = false
+  let claimedSlot = -1
+  let playing = false
+  let closed = false
+  const unsubs = []
+
+  await onDisconnect(presenceRef).remove()
+  await onDisconnect(inputsRef).remove()
+  await set(presenceRef, { at: Date.now(), playing: false, slot: null })
+
+  const becomeHost = async () => {
+    await runTransaction(hostRef, (current) => {
+      if (current?.uid && current.uid !== uid && Date.now() - (current.at || 0) < HOST_STALE_MS) {
+        return current
+      }
+      return { uid, at: Date.now() }
+    })
+  }
+
+  const setHostDisconnect = async (on) => {
+    if (on) await onDisconnect(hostRef).remove()
+    else await onDisconnect(hostRef).cancel()
+  }
+
+  const setSlotDisconnect = async (slot) => {
+    if (slot < 0) return
+    const slotRef = ref(rtdb, `${ROOT}/slots/${slot}`)
+    await onDisconnect(slotRef).set(slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' })
+  }
+
+  const clearSlotDisconnect = async (slot) => {
+    if (slot < 0) return
+    await onDisconnect(ref(rtdb, `${ROOT}/slots/${slot}`)).cancel()
+  }
+
+  unsubs.push(
+    onValue(hostRef, (snap) => {
+      if (closed) return
+      const host = snap.val()
+      const stale = !host?.uid || Date.now() - (host.at || 0) >= HOST_STALE_MS
+      if (stale) becomeHost()
+      const next = host?.uid === uid && !stale
+      if (next !== hostNow || !hostKnown) {
+        hostNow = next
+        hostKnown = true
+        setHostDisconnect(hostNow)
+        handlers.onHostChange?.(hostNow)
+      }
+    }),
+  )
+
+  unsubs.push(
+    onValue(slotsRef, (snap) => {
+      if (closed) return
+      handlers.onSlots?.(snap.val() || defaultSlots())
+    }),
+  )
+
+  unsubs.push(
+    onValue(cellsRef, (snap) => {
+      if (closed || hostNow) return
+      const val = snap.val()
+      if (val) handlers.onCells?.(val)
+    }),
+  )
+
+  unsubs.push(
+    onValue(foodRef, (snap) => {
+      if (closed || hostNow) return
+      const val = snap.val()
+      if (val) handlers.onFood?.(val)
+    }),
+  )
+
+  unsubs.push(
+    onValue(allInputsRef, (snap) => {
+      if (closed || !hostNow) return
+      handlers.onInputs?.(snap.val() || {})
+    }),
+  )
+
+  unsubs.push(
+    onValue(allPresenceRef, (snap) => {
+      if (closed) return
+      handlers.onPresence?.(snap.val() || {})
+    }),
+  )
+
+  const beat = window.setInterval(() => {
+    if (closed) return
+    set(presenceRef, { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null })
+    if (hostNow) update(hostRef, { uid, at: Date.now() })
+  }, HEARTBEAT_MS)
+
+  await becomeHost()
+
+  return {
+    uid,
+    isHost: () => hostNow,
+    getSlots: () => defaultSlots(),
+    async claimSlot() {
+      let slot = -1
+      let full = false
+      await runTransaction(slotsRef, (current) => {
+        const result = pickClaimSlot(current, uid)
+        if (result.full) {
+          full = true
+          return current || defaultSlots()
+        }
+        slot = result.slot
+        return result.slots
+      })
+      if (full || slot < 0) return { full: true }
+      if (claimedSlot >= 0 && claimedSlot !== slot) await clearSlotDisconnect(claimedSlot)
+      claimedSlot = slot
+      await setSlotDisconnect(slot)
+      await set(presenceRef, { at: Date.now(), playing: true, slot })
+      return { slot }
+    },
+    async releaseSlot() {
+      if (claimedSlot < 0) return
+      const slot = claimedSlot
+      await clearSlotDisconnect(slot)
+      await runTransaction(slotsRef, (current) => {
+        const slots = current ? { ...current } : defaultSlots()
+        if (slots[slot]?.uid !== uid) return slots
+        slots[slot] = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+        return slots
+      })
+      claimedSlot = -1
+      playing = false
+      await set(presenceRef, { at: Date.now(), playing: false, slot: null })
+    },
+    writeInput(input) {
+      if (closed) return
+      set(inputsRef, { ...input, at: Date.now() })
+    },
+    writePresence(next) {
+      playing = !!next.playing
+      set(presenceRef, {
+        at: Date.now(),
+        playing,
+        slot: claimedSlot >= 0 ? claimedSlot : null,
+      })
+    },
+    publishCells(payload) {
+      if (!hostNow || closed) return
+      set(cellsRef, payload)
+    },
+    publishFood(payload) {
+      if (!hostNow || closed) return
+      set(foodRef, payload)
+    },
+    writeSlots(next) {
+      if (!hostNow || closed) return
+      set(slotsRef, next)
+    },
+    disconnect() {
+      if (closed) return
+      closed = true
+      window.clearInterval(beat)
+      for (const unsub of unsubs) unsub()
+      const slot = claimedSlot
+      claimedSlot = -1
+      playing = false
+      set(presenceRef, null)
+      set(inputsRef, null)
+      if (slot >= 0) {
+        runTransaction(slotsRef, (current) => {
+          const slots = current ? { ...current } : defaultSlots()
+          if (slots[slot]?.uid !== uid) return slots
+          slots[slot] = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+          return slots
+        })
+      }
+      if (hostNow) set(hostRef, null)
+    },
+  }
+}
+
+export const connectPlaySession = async (handlers) => {
+  try {
+    return await connectRemote(handlers)
+  } catch (err) {
+    console.warn('play session offline, using local world', err)
+    handlers.onError?.(err)
+    return connectLocal(handlers)
+  }
+}

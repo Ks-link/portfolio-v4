@@ -1,0 +1,31 @@
+{
+  "rules": {
+    "play": {
+      "global": {
+        ".read": "auth != null",
+        "host": {
+          ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || now - data.child('at').val() > 5000 || !newData.exists() && data.child('uid').val() === auth.uid)"
+        },
+        "slots": {
+          ".write": "auth != null"
+        },
+        "presence": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        },
+        "inputs": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        },
+        "snapCells": {
+          ".write": "auth != null && root.child('play/global/host/uid').val() === auth.uid"
+        },
+        "snapFood": {
+          ".write": "auth != null && root.child('play/global/host/uid').val() === auth.uid"
+        }
+      }
+    }
+  }
+}
