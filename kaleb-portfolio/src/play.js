@@ -335,6 +335,7 @@ export const mountPlay = (root) => {
   let claiming = false
   let sessionReady = null
   let slotDiffEnabled = false
+  let emptyLobby = false
 
   const theme = { bg: '#fffff4', text: '#322f2f', accent: '#ee8533' }
 
@@ -1108,6 +1109,12 @@ export const mountPlay = (root) => {
         reapGoneHumans()
       }
     } else {
+      for (const cell of cells) {
+        if (playing && cell.owner === localOwner) continue
+        cell.x += (cell.vx || 0) * dt
+        cell.y += (cell.vy || 0) * dt
+        clampCell(cell)
+      }
       if (playing && localOwner >= 0) {
         steerLocal(dt)
         if (hadLocalCells && !ownerCells(localOwner).length) {
@@ -1638,9 +1645,9 @@ export const mountPlay = (root) => {
   const pullCell = (cell, incoming, rate) => {
     cell.x = damp(cell.x, incoming.x, rate, SNAP_DT)
     cell.y = damp(cell.y, incoming.y, rate, SNAP_DT)
-    cell.vx = damp(cell.vx, incoming.vx, rate, SNAP_DT)
-    cell.vy = damp(cell.vy, incoming.vy, rate, SNAP_DT)
-    cell.mass = damp(cell.mass, incoming.mass, rate, SNAP_DT)
+    cell.vx = incoming.vx
+    cell.vy = incoming.vy
+    cell.mass = incoming.mass
     cell.mergeAt = incoming.mergeAt
     cell.stretch = incoming.stretch
     cell.angle = incoming.angle
@@ -1660,11 +1667,6 @@ export const mountPlay = (root) => {
     if (isHost || !payload) return
     if (typeof payload.t === 'number') time = payload.t
     const incoming = unpackCells(payload.cells || payload)
-    if (localOwner < 0) {
-      cells = incoming
-      return
-    }
-
     const remotes = []
     const remoteOwners = new Set()
     for (const cell of incoming) {
@@ -1680,13 +1682,14 @@ export const mountPlay = (root) => {
       )
     }
 
-    const locals = playing
-      ? blendOwnerGroup(
-          cells.filter((c) => c.owner === localOwner),
-          incoming.filter((c) => c.owner === localOwner),
-          RECONCILE_RATE,
-        )
-      : []
+    const locals =
+      playing && localOwner >= 0
+        ? blendOwnerGroup(
+            cells.filter((c) => c.owner === localOwner),
+            incoming.filter((c) => c.owner === localOwner),
+            RECONCILE_RATE,
+          )
+        : []
     cells = remotes.concat(locals)
   }
 
@@ -1773,10 +1776,20 @@ export const mountPlay = (root) => {
 
   const bindSession = async () => {
     session = await connectPlaySession({
-      onHostChange(next) {
+      onHostChange(next, meta) {
         hostKnown = true
-        if (next) slotDiffEnabled = true
         isHost = next
+        if (next && meta?.empty) {
+          emptyLobby = true
+          slotDiffEnabled = false
+          resetWorld()
+          remoteWasPlaying = new Map()
+          foodDirty = true
+          lastCellPub = 0
+          lastFoodPub = 0
+        } else if (next) {
+          slotDiffEnabled = true
+        }
         syncLiveCount()
       },
       onSlots: applySlots,
@@ -1790,7 +1803,13 @@ export const mountPlay = (root) => {
         syncLiveCount()
       },
     })
-    slotDiffEnabled = isHost
+    if (emptyLobby) {
+      session.writeSlots(defaultSlots())
+      slotDiffEnabled = true
+      emptyLobby = false
+    } else {
+      slotDiffEnabled = isHost
+    }
     syncLiveCount()
     return session
   }
@@ -1803,6 +1822,7 @@ export const mountPlay = (root) => {
     isHost = false
     hostKnown = false
     slotDiffEnabled = false
+    emptyLobby = false
     netSlots = defaultSlots()
     netInputs = {}
     netPresence = {}

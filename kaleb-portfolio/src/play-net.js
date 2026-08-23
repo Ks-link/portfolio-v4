@@ -85,6 +85,16 @@ const warnWrite = (label) => (err) => {
   console.warn(`play-net ${label}`, err)
 }
 
+const livePresenceMap = (map, now = Date.now()) => {
+  const live = {}
+  for (const [id, row] of Object.entries(map || {})) {
+    if (!row) continue
+    if (typeof row.at === 'number' && now - row.at >= PRESENCE_STALE_MS) continue
+    live[id] = row
+  }
+  return live
+}
+
 export const unpackFood = (packed, palette) => {
   if (!packed?.p || !packed.n) return []
   const buf = b64ToBytes(packed.p)
@@ -273,7 +283,7 @@ const connectLocal = (handlers) => {
     }
     if (msg.type === 'presence') {
       presence[msg.uid] = msg.presence
-      handlers.onPresence?.({ ...presence })
+      handlers.onPresence?.(livePresenceMap(presence))
       return
     }
     if (msg.type === 'claim' && hostNow) {
@@ -304,7 +314,7 @@ const connectLocal = (handlers) => {
     if (closed) return
     presence[uid] = { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null }
     broadcast({ type: 'presence', uid, presence: presence[uid] })
-    handlers.onPresence?.({ ...presence })
+    handlers.onPresence?.(livePresenceMap(presence))
     if (hostNow) {
       localStorage.setItem(HOST_KEY, JSON.stringify({ uid, at: Date.now() }))
       broadcast({ type: 'host', uid, at: Date.now() })
@@ -369,6 +379,7 @@ const connectLocal = (handlers) => {
       playing = !!next.playing
       presence[uid] = { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null }
       broadcast({ type: 'presence', uid, presence: presence[uid] })
+      handlers.onPresence?.(livePresenceMap(presence))
     },
     publishCells(payload) {
       if (!hostNow) return
@@ -397,6 +408,15 @@ const connectLocal = (handlers) => {
           }
         } else {
           broadcast({ type: 'release', uid })
+        }
+      }
+      const others = Object.keys(presence).filter((id) => id !== uid)
+      if (hostNow && !others.length) {
+        slots = defaultSlots()
+        try {
+          localStorage.setItem(SLOTS_KEY, JSON.stringify(slots))
+        } catch {
+          /* ignore */
         }
       }
       if (hostNow) localStorage.removeItem(HOST_KEY)
@@ -503,6 +523,17 @@ const connectRemote = async (handlers) => {
     else await onDisconnect(hostRef).cancel()
   }
 
+  const otherLive = () => {
+    const live = livePresenceMap(latestPresence, serverNow())
+    return Object.keys(live).filter((id) => id !== uid)
+  }
+
+  const clearSharedWorld = () => {
+    set(slotsRef, defaultSlots()).catch(warnWrite('slotsReset'))
+    set(cellsRef, null).catch(warnWrite('snapCellsReset'))
+    set(foodRef, null).catch(warnWrite('snapFoodReset'))
+  }
+
   const setHostState = (next) => {
     if (next === hostNow && hostKnown) return
     const wasHost = hostNow
@@ -510,8 +541,17 @@ const connectRemote = async (handlers) => {
     hostKnown = true
     setHostDisconnect(hostNow).catch(warnWrite('hostDisconnect'))
     if (next && !wasHost) {
-      if (latestCells) handlers.onCells?.(latestCells)
-      if (latestFood) handlers.onFood?.(latestFood)
+      if (otherLive().length) {
+        if (latestCells) handlers.onCells?.(latestCells)
+        if (latestFood) handlers.onFood?.(latestFood)
+        handlers.onHostChange?.(true)
+      } else {
+        latestCells = null
+        latestFood = null
+        clearSharedWorld()
+        handlers.onHostChange?.(true, { empty: true })
+      }
+      return
     }
     handlers.onHostChange?.(hostNow)
     if (!hostNow) applyLatestWorld()
@@ -523,10 +563,15 @@ const connectRemote = async (handlers) => {
     setHostState(latestHost?.uid === uid && hostIsLive(latestHost))
   }
 
+  const emitLivePresence = () => {
+    handlers.onPresence?.(livePresenceMap(latestPresence, serverNow()))
+  }
+
   const flushBeat = () => {
     if (closed) return
     set(presenceRef, presencePayload()).catch(warnWrite('presence'))
     if (hostNow) update(hostRef, { uid, at: serverTimestamp() }).catch(warnWrite('host'))
+    emitLivePresence()
     syncHost()
   }
 
@@ -592,7 +637,7 @@ const connectRemote = async (handlers) => {
     onValue(allPresenceRef, (snap) => {
       if (closed) return
       latestPresence = snap.val() || {}
-      handlers.onPresence?.(latestPresence)
+      emitLivePresence()
       syncHost()
     }),
   )
@@ -673,7 +718,8 @@ const connectRemote = async (handlers) => {
       playing = false
       set(presenceRef, null).catch(warnWrite('presenceClear'))
       set(inputsRef, null).catch(warnWrite('inputClear'))
-      if (slot >= 0) {
+      if (hostNow && !otherLive().length) clearSharedWorld()
+      else if (slot >= 0) {
         runTransaction(slotsRef, (current) => {
           const slots = current ? { ...current } : defaultSlots()
           if (slots[slot]?.uid !== uid) return slots
