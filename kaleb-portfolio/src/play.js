@@ -1,3 +1,12 @@
+import {
+  LEADERBOARD_SIZE,
+  NAME_PATTERN,
+  sanitizeName,
+  scoreQualifies,
+  subscribeTop10,
+  submitScore,
+} from './leaderboard.js'
+
 const GRID = 88
 const WORLD = GRID * 48
 const FOOD_COUNT = 1600
@@ -32,6 +41,13 @@ const AI_LAUNCH_FAR = 340
 const AI_LAUNCH_THREAT_PAD = 140
 
 const AI_COLORS = ['#5c8f76', '#c45c5c', '#5c7ec4', '#a56bb8', '#c49a4a', '#4aa3b5']
+
+const escapeHtml = (value) =>
+  String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
 
 const rand = (min, max) => min + Math.random() * (max - min)
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n))
@@ -142,7 +158,7 @@ const makeCell = ({ x, y, mass, owner, color, vx = 0, vy = 0, mergeAt = 0 }) => 
 })
 
 export const mountPlay = (root) => {
-  if (!root) return { start() {}, stop() {} }
+  if (!root) return { start() {}, stop() {}, pause() {}, kill() {} }
 
   const canvas = document.createElement('canvas')
   canvas.className = 'play-canvas'
@@ -151,6 +167,7 @@ export const mountPlay = (root) => {
   const welcome = document.createElement('div')
   welcome.className = 'play-welcome'
   welcome.innerHTML = `
+    <ol class="play-leaderboard" aria-label="Global leaderboard"></ol>
     <button type="button" class="play-start" aria-label="Play">
       <span class="play-start-blob">
         <span class="play-start-shape">
@@ -158,6 +175,27 @@ export const mountPlay = (root) => {
         </span>
       </span>
     </button>
+    <form class="play-name-prompt">
+      <p class="play-name-prompt-title">new high score <span class="play-name-prompt-score">0</span></p>
+      <label class="play-name-field">
+        <span class="play-name-field-label">name</span>
+        <input
+          class="play-name-input"
+          type="text"
+          maxlength="9"
+          pattern="[A-Za-z0-9]+"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          inputmode="text"
+          aria-label="Leaderboard name"
+        />
+      </label>
+      <div class="play-name-actions">
+        <button type="submit" class="play-name-save">save</button>
+        <button type="button" class="play-name-skip">skip</button>
+      </div>
+    </form>
   `
 
   const hint = document.createElement('p')
@@ -191,6 +229,11 @@ export const mountPlay = (root) => {
   const ctx = canvas.getContext('2d')
   const startBtn = welcome.querySelector('.play-start')
   const startBlob = welcome.querySelector('.play-start-blob')
+  const boardEl = welcome.querySelector('.play-leaderboard')
+  const nameForm = welcome.querySelector('.play-name-prompt')
+  const nameInput = welcome.querySelector('.play-name-input')
+  const nameScoreEl = welcome.querySelector('.play-name-prompt-score')
+  const nameSkip = welcome.querySelector('.play-name-skip')
   const shootBtn = hud.querySelector('.play-shoot')
   const stickEl = hud.querySelector('.play-stick')
   const stickThumb = hud.querySelector('.play-stick-thumb')
@@ -223,6 +266,11 @@ export const mountPlay = (root) => {
   let launchCool = 0
   let aiLaunchCool = new Map()
   let kills = 0
+  let peakScore = 0
+  let boardEntries = []
+  let pendingNameScore = 0
+  let unsubBoard = null
+  let naming = false
 
   const theme = { bg: '#fffff4', text: '#322f2f', accent: '#ee8533' }
 
@@ -356,6 +404,7 @@ export const mountPlay = (root) => {
     pointer.valid = false
     playerRespawnAt = 0
     kills = 0
+    peakScore = Math.round(START_MASS)
   }
 
   const spawnAI = (owner) => {
@@ -482,8 +531,9 @@ export const mountPlay = (root) => {
   }
 
   const syncStats = () => {
-    const mass = massCenter(ownerCells(PLAYER_OWNER)).mass
-    statsScore.textContent = `score ${Math.round(mass)}`
+    const mass = Math.round(massCenter(ownerCells(PLAYER_OWNER)).mass)
+    if (mass > peakScore) peakScore = mass
+    statsScore.textContent = `score ${mass}`
     statsKills.textContent = `kills ${kills}`
   }
 
@@ -753,8 +803,15 @@ export const mountPlay = (root) => {
 
   const maintainPop = (dt) => {
     if (playing && !ownerCells(PLAYER_OWNER).length) {
-      if (!playerRespawnAt) playerRespawnAt = time + RESPAWN_WAIT
-      else if (time >= playerRespawnAt) spawnPlayer()
+      if (!playerRespawnAt) {
+        const finalPeak = peakScore
+        if (scoreQualifies(finalPeak, boardEntries)) {
+          showNamePrompt(finalPeak)
+          pause()
+        } else {
+          playerRespawnAt = time + RESPAWN_WAIT
+        }
+      } else if (time >= playerRespawnAt) spawnPlayer()
     }
 
     for (let owner = 1; owner <= AI_COUNT; owner++) {
@@ -842,7 +899,7 @@ export const mountPlay = (root) => {
     if (!startBlob) return
     let targetX = 0
     let targetY = 0
-    const magnetOn = !playing && !reduceMotion && window.matchMedia('(hover: hover)').matches
+    const magnetOn = !playing && !naming && !reduceMotion && window.matchMedia('(hover: hover)').matches
     if (magnetOn) {
       const rect = startBlob.getBoundingClientRect()
       const cx = rect.left + rect.width / 2 - startMagnet.x
@@ -1214,8 +1271,42 @@ export const mountPlay = (root) => {
 
   const observer = new ResizeObserver(resize)
 
+  const renderBoard = (entries) => {
+    boardEntries = entries
+    if (!boardEl) return
+    const rows = []
+    for (let i = 0; i < LEADERBOARD_SIZE; i++) {
+      const entry = entries[i]
+      if (entry) {
+        rows.push(
+          `<li><span class="play-leaderboard-rank">${i + 1}</span><span class="play-leaderboard-name">${escapeHtml(entry.name)}</span><span class="play-leaderboard-score">${entry.score}</span></li>`,
+        )
+      } else {
+        rows.push(
+          `<li class="is-empty"><span class="play-leaderboard-rank">${i + 1}</span><span class="play-leaderboard-name">—</span><span class="play-leaderboard-score"></span></li>`,
+        )
+      }
+    }
+    boardEl.innerHTML = rows.join('')
+  }
+
+  const showNamePrompt = (score) => {
+    naming = true
+    pendingNameScore = score
+    welcome.classList.add('is-naming')
+    if (nameScoreEl) nameScoreEl.textContent = String(Math.round(score))
+    if (nameInput) nameInput.value = ''
+  }
+
+  const hideNamePrompt = () => {
+    naming = false
+    pendingNameScore = 0
+    welcome.classList.remove('is-naming')
+    if (nameInput) nameInput.value = ''
+  }
+
   const beginPlay = () => {
-    if (!running || playing) return
+    if (!running || playing || naming) return
     playing = true
     root.classList.add('is-playing')
     if (!ownerCells(PLAYER_OWNER).length) {
@@ -1241,8 +1332,17 @@ export const mountPlay = (root) => {
     startMagnet.y = 0
     startBlob?.style.setProperty('--magnet-x', '0px')
     startBlob?.style.setProperty('--magnet-y', '0px')
-    requestAnimationFrame(() => startBtn?.focus({ preventScroll: true }))
+    requestAnimationFrame(() => {
+      if (naming) nameInput?.focus({ preventScroll: true })
+      else startBtn?.focus({ preventScroll: true })
+    })
     root.dispatchEvent(new Event('playchange', { bubbles: true }))
+  }
+
+  const kill = () => {
+    if (!running || !playing) return
+    if (!ownerCells(PLAYER_OWNER).length) return
+    cells = cells.filter((c) => c.owner !== PLAYER_OWNER)
   }
 
   const start = () => {
@@ -1260,6 +1360,8 @@ export const mountPlay = (root) => {
     window.addEventListener('pointercancel', onPointerUp)
     window.addEventListener('keydown', onKeyDown)
     rafId = requestAnimationFrame(tick)
+    renderBoard(boardEntries)
+    unsubBoard = subscribeTop10(renderBoard, () => renderBoard(boardEntries))
     requestAnimationFrame(() => startBtn?.focus({ preventScroll: true }))
   }
 
@@ -1275,6 +1377,9 @@ export const mountPlay = (root) => {
     window.removeEventListener('pointerup', onPointerUp)
     window.removeEventListener('pointercancel', onPointerUp)
     window.removeEventListener('keydown', onKeyDown)
+    unsubBoard?.()
+    unsubBoard = null
+    hideNamePrompt()
     tap.id = null
     hideStick()
     heading.alpha = 0
@@ -1282,11 +1387,37 @@ export const mountPlay = (root) => {
   }
 
   startBtn?.addEventListener('click', beginPlay)
+  nameInput?.addEventListener('input', () => {
+    const caret = nameInput.selectionStart
+    const next = sanitizeName(nameInput.value)
+    if (nameInput.value !== next) {
+      nameInput.value = next
+      const pos = Math.min(caret ?? next.length, next.length)
+      nameInput.setSelectionRange(pos, pos)
+    }
+  })
+  nameForm?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const name = sanitizeName(nameInput?.value)
+    if (!NAME_PATTERN.test(name) || !pendingNameScore) return
+    const score = pendingNameScore
+    try {
+      await submitScore(name, score)
+      hideNamePrompt()
+      requestAnimationFrame(() => startBtn?.focus({ preventScroll: true }))
+    } catch {
+      nameInput?.focus({ preventScroll: true })
+    }
+  })
+  nameSkip?.addEventListener('click', () => {
+    hideNamePrompt()
+    requestAnimationFrame(() => startBtn?.focus({ preventScroll: true }))
+  })
   shootBtn?.addEventListener('pointerdown', (e) => {
     e.preventDefault()
     e.stopPropagation()
     tryLaunch()
   })
 
-  return { start, stop, pause }
+  return { start, stop, pause, kill }
 }

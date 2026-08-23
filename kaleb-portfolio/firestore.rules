@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: scores
+    // Document ID: auto-id
+    // Fields:
+    //   - name: string (required, 1-9 alphanumeric) - public display name
+    //   - score: int (required, 1-999999) - peak mass this life
+    //   - createdAt: timestamp (required, server time) - write time
+    //
+    // Public global leaderboard. No auth. Client-reported scores.
+    // Create-only; no updates or deletes.
+    //
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidScore(data) {
+      return hasOnlyAllowedFields(['name', 'score', 'createdAt'])
+        && data.name is string
+        && data.name.matches('^[A-Za-z0-9]{1,9}$')
+        && data.score is int
+        && data.score > 0
+        && data.score < 1000000
+        && data.createdAt == request.time;
+    }
+
+    match /scores/{scoreId} {
+      allow get, list: if true;
+      allow create: if isValidScore(request.resource.data);
+      allow update, delete: if false;
+    }
+  }
+}
