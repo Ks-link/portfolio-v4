@@ -30,6 +30,13 @@ const pauseIcon = `
   </svg>
 `
 
+const killIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="currentColor"
+      d="M6.75 5.5A1.25 1.25 0 0 0 5.5 6.75v10.5A1.25 1.25 0 0 0 6.75 18.5h10.5A1.25 1.25 0 0 0 18.5 17.25V6.75A1.25 1.25 0 0 0 17.25 5.5z"/>
+  </svg>
+`
+
 const lavaLampOnIcon = `
   <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="currentColor"
@@ -169,6 +176,9 @@ app.innerHTML = `
     </button>
     <button type="button" class="corner-btn pause-toggle" aria-label="Pause">
       ${pauseIcon}
+    </button>
+    <button type="button" class="corner-btn kill-toggle" aria-label="Die">
+      ${killIcon}
     </button>
   </div>
   <div class="corner-cluster corner-cluster--right">
@@ -392,6 +402,7 @@ toggle.addEventListener('click', () => {
 const blobsToggle = document.querySelector('.blobs-toggle')
 const homeToggle = document.querySelector('.home-toggle')
 const pauseToggle = document.querySelector('.pause-toggle')
+const killToggle = document.querySelector('.kill-toggle')
 
 const getPreferredBlobs = () => {
   const stored = localStorage.getItem('blobSpawn')
@@ -732,6 +743,10 @@ homeToggle.addEventListener('click', () => {
 
 pauseToggle?.addEventListener('click', () => {
   play.pause()
+})
+
+killToggle?.addEventListener('click', () => {
+  play.kill()
 })
 
 workBack?.addEventListener('click', () => {
@@ -2499,7 +2514,7 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
   }
 
   const syncCursorMode = () => {
-    cursor.enabled = finePointerMq.matches && !app.querySelector('.play-root.is-playing')
+    cursor.enabled = finePointerMq.matches
     root.classList.toggle('has-blob-cursor', cursor.enabled)
     if (!cursor.enabled) {
       cursor.visible = false
@@ -2520,10 +2535,7 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
   }
 
   syncCursorMode()
-  routeEffects.syncCursor = () => {
-    syncCursorMode()
-    if (app.dataset.screen === 'play') hideCursor()
-  }
+  routeEffects.syncCursor = syncCursorMode
   finePointerMq.addEventListener('change', syncCursorMode)
 
   window.addEventListener(
