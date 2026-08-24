@@ -786,11 +786,12 @@ const connectRemote = async (handlers) => {
       document.removeEventListener('visibilitychange', onVisible)
       for (const unsub of unsubs) unsub()
       const slot = claimedSlot
+      const wipe = hostNow && !otherLive().length && !otherHumanSeats()
       claimedSlot = -1
       playing = false
       set(presenceRef, null).catch(warnWrite('presenceClear'))
       set(inputsRef, null).catch(warnWrite('inputClear'))
-      if (hostNow && !otherLive().length && !otherHumanSeats()) clearSharedWorld()
+      if (wipe) clearSharedWorld()
       else if (slot >= 0) {
         runTransaction(slotsRef, (current) => {
           const slots = current ? { ...current } : defaultSlots()
