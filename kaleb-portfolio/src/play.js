@@ -517,7 +517,7 @@ export const mountPlay = (root) => {
     aiLaunchCool.set(owner, 1.2 + Math.random() * 2)
   }
 
-  const resetWorld = () => {
+  const clearArena = () => {
     syncTheme()
     cells = []
     food = []
@@ -526,11 +526,58 @@ export const mountPlay = (root) => {
     aiRespawnAt = new Map()
     aiLaunchCool = new Map()
     kills = 0
-    for (let i = 0; i < FOOD_COUNT; i++) spawnFoodOne()
-    for (let i = 1; i <= AI_COUNT; i++) spawnAI(i)
+    foodDirty = true
     camera.x = WORLD / 2
     camera.y = WORLD / 2
     camera.zoom = 0.78
+  }
+
+  const anyPlaying = () => {
+    if (playing) return true
+    for (const row of Object.values(netPresence)) {
+      if (row?.playing) return true
+    }
+    return false
+  }
+
+  const arenaPopulated = () => food.length > 0 || cells.some((c) => isAIOwner(c.owner))
+
+  const populateArena = () => {
+    syncTheme()
+    if (!food.length) {
+      for (let i = 0; i < FOOD_COUNT; i++) spawnFoodOne()
+    }
+    for (let i = 1; i <= AI_COUNT; i++) {
+      if (!isAIOwner(i)) continue
+      if (!ownerCells(i).length) spawnAI(i)
+    }
+  }
+
+  const vacateArena = () => {
+    cells = cells.filter((c) => !isAIOwner(c.owner))
+    if (food.length) {
+      food = []
+      foodDirty = true
+    }
+    aiRespawnAt = new Map()
+    aiLaunchCool = new Map()
+  }
+
+  const syncArena = () => {
+    if (session && !isHost) return
+    if (anyPlaying()) {
+      if (!arenaPopulated()) {
+        populateArena()
+        lastCellPub = 0
+        lastFoodPub = 0
+      }
+      return
+    }
+    if (food.length || cells.some((c) => isAIOwner(c.owner))) {
+      vacateArena()
+      lastCellPub = 0
+      lastFoodPub = 0
+    }
   }
 
   const clampCell = (cell) => {
@@ -789,7 +836,8 @@ export const mountPlay = (root) => {
         if (hypot(dx, dy) < reach) {
           cell.mass += pellet.mass
           food.splice(i, 1)
-          spawnFoodOne()
+          if (anyPlaying()) spawnFoodOne()
+          else foodDirty = true
         }
       }
     }
@@ -941,7 +989,7 @@ export const mountPlay = (root) => {
       }
     }
 
-    if (isHost || !session) {
+    if ((isHost || !session) && anyPlaying()) {
       for (let owner = 1; owner <= AI_COUNT; owner++) {
         if (!isAIOwner(owner)) continue
         if (ownerCells(owner).length) continue
@@ -1092,6 +1140,7 @@ export const mountPlay = (root) => {
     const simulating = !session || (hostKnown && isHost)
     if (simulating) {
       time += dt
+      syncArena()
       maintainPop(dt)
       steerLocal(dt)
       steerRemoteHumans(dt)
@@ -1626,7 +1675,7 @@ export const mountPlay = (root) => {
       if (before.kind === 'human' && after.kind !== 'human') {
         if (owner === localOwner && playing) continue
         cells = cells.filter((c) => c.owner !== owner)
-        if (after.kind === 'ai') spawnAI(owner)
+        if (after.kind === 'ai' && anyPlaying()) spawnAI(owner)
       }
     }
   }
@@ -1675,7 +1724,11 @@ export const mountPlay = (root) => {
   }
 
   const applyRemoteCells = (payload) => {
-    if (isHost || !payload) return
+    if (isHost) return
+    if (!payload) {
+      cells = playing && localOwner >= 0 ? cells.filter((c) => c.owner === localOwner) : []
+      return
+    }
     if (typeof payload.t === 'number') time = payload.t
     const incoming = unpackCells(payload.cells || payload)
     const remotes = []
@@ -1705,7 +1758,11 @@ export const mountPlay = (root) => {
   }
 
   const applyRemoteFood = (payload) => {
-    if (isHost || !payload) return
+    if (isHost) return
+    if (!payload) {
+      food = []
+      return
+    }
     food = unpackFood(payload, FOOD_PALETTE)
   }
 
@@ -1797,12 +1854,12 @@ export const mountPlay = (root) => {
         if (next && meta?.empty) {
           emptyLobby = true
           slotDiffEnabled = false
-          resetWorld()
-          foodDirty = true
+          clearArena()
           lastCellPub = 0
           lastFoodPub = 0
         } else if (next) {
           slotDiffEnabled = true
+          syncArena()
         }
         syncLiveCount()
       },
@@ -1815,6 +1872,7 @@ export const mountPlay = (root) => {
       onPresence(next) {
         netPresence = next || {}
         syncLiveCount()
+        syncArena()
       },
     })
     if (emptyLobby) {
@@ -1846,7 +1904,7 @@ export const mountPlay = (root) => {
     setMapFull(false)
     root.classList.remove('is-playing')
     resize()
-    resetWorld()
+    clearArena()
     last = performance.now()
     observer.observe(root)
     window.addEventListener('pointermove', onPointerMove, { passive: true })

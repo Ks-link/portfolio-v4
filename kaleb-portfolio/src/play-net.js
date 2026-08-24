@@ -609,11 +609,10 @@ const connectRemote = async (handlers) => {
     hostKnown = true
     setHostDisconnect(hostNow).catch(warnWrite('hostDisconnect'))
     if (next && !wasHost) {
-      if (worldInUse()) inheritWorld()
+      if (worldInUse() || latestCells || latestFood) inheritWorld()
       else {
         latestCells = null
         latestFood = null
-        clearSharedWorld()
         handlers.onHostChange?.(true, { empty: true })
       }
       return
