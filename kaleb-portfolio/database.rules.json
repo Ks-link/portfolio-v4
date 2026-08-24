@@ -4,19 +4,19 @@
       "global": {
         ".read": "auth != null",
         "host": {
-          ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || !newData.exists() && data.child('uid').val() === auth.uid || now - data.child('at').val() > 30000 && !root.child('play/global/presence').child(data.child('uid').val()).exists())"
+          ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || data.child('clientId').val().beginsWith(auth.uid + '_') || !newData.exists() && (data.child('uid').val() === auth.uid || data.child('clientId').val().beginsWith(auth.uid + '_')) || now - data.child('at').val() > 30000 && !root.child('play/global/presence').child(data.child('clientId').val()).exists() && !root.child('play/global/presence').child(data.child('uid').val()).exists())"
         },
         "slots": {
           ".write": "auth != null"
         },
         "presence": {
-          "$uid": {
-            ".write": "auth != null && auth.uid === $uid"
+          "$id": {
+            ".write": "auth != null && ($id === auth.uid || $id.beginsWith(auth.uid + '_'))"
           }
         },
         "inputs": {
-          "$uid": {
-            ".write": "auth != null && auth.uid === $uid"
+          "$id": {
+            ".write": "auth != null && ($id === auth.uid || $id.beginsWith(auth.uid + '_'))"
           }
         },
         "snapCells": {

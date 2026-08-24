@@ -19,6 +19,22 @@ export const HEARTBEAT_MS = 2000
 export const PRESENCE_STALE_MS = 30000
 
 const ROOT = 'play/global'
+const CLIENT_KEY = 'kaleb-play-client'
+
+const randomId = () => Math.random().toString(36).slice(2, 10)
+
+export const playClientId = (authUid) => {
+  const prefix = authUid ? `${authUid}_` : 'local-'
+  try {
+    const existing = sessionStorage.getItem(CLIENT_KEY)
+    if (existing && existing.startsWith(prefix)) return existing
+    const next = `${prefix}${randomId()}`
+    sessionStorage.setItem(CLIENT_KEY, next)
+    return next
+  } catch {
+    return `${prefix}${randomId()}`
+  }
+}
 
 export const defaultSlots = () => {
   const slots = { [EXTRA_SLOT]: { kind: 'empty' } }
@@ -192,7 +208,7 @@ const readJson = (key, fallback) => {
 }
 
 const connectLocal = (handlers) => {
-  const uid = `local-${Math.random().toString(36).slice(2, 10)}`
+  const uid = playClientId()
   const channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel(CHANNEL) : null
   let slots = readJson(SLOTS_KEY, defaultSlots())
   let hostNow = false
@@ -432,7 +448,8 @@ const connectRemote = async (handlers) => {
       window.setTimeout(() => reject(new Error('auth timeout')), 12000)
     }),
   ])
-  const uid = cred.user.uid
+  const authUid = cred.user.uid
+  const uid = playClientId(authUid)
   const hostRef = ref(rtdb, `${ROOT}/host`)
   const slotsRef = ref(rtdb, `${ROOT}/slots`)
   const presenceRef = ref(rtdb, `${ROOT}/presence/${uid}`)
@@ -451,6 +468,7 @@ const connectRemote = async (handlers) => {
   let closed = false
   let latestHost = null
   let latestPresence = {}
+  let latestSlots = defaultSlots()
   let latestCells = null
   let latestFood = null
   let serverOffset = 0
@@ -477,16 +495,26 @@ const connectRemote = async (handlers) => {
   }
 
   const hostIsLive = (host) => {
-    if (!host?.uid) return false
+    if (!host?.uid && !host?.clientId) return false
+    if (presenceIsLive(latestPresence[host.clientId])) return true
     if (presenceIsLive(latestPresence[host.uid])) return true
     return stampIsLive(host.at)
   }
 
+  const hostPayload = () => ({
+    uid: authUid,
+    clientId: uid,
+    at: serverTimestamp(),
+  })
+
   const becomeHost = async () => {
     try {
       await runTransaction(hostRef, (current) => {
-        if (current?.uid && current.uid !== uid && hostIsLive(current)) return current
-        return { uid, at: serverTimestamp() }
+        if (current?.clientId && current.clientId !== uid && hostIsLive(current)) return current
+        if (!current?.clientId && current?.uid && current.uid !== authUid && hostIsLive(current)) {
+          return current
+        }
+        return hostPayload()
       })
     } catch (err) {
       warnWrite('becomeHost')(err)
@@ -560,7 +588,7 @@ const connectRemote = async (handlers) => {
   const syncHost = () => {
     if (closed) return
     if (!hostIsLive(latestHost)) becomeHost()
-    setHostState(latestHost?.uid === uid && hostIsLive(latestHost))
+    setHostState(latestHost?.clientId === uid && hostIsLive(latestHost))
   }
 
   const emitLivePresence = () => {
@@ -570,7 +598,7 @@ const connectRemote = async (handlers) => {
   const flushBeat = () => {
     if (closed) return
     set(presenceRef, presencePayload()).catch(warnWrite('presence'))
-    if (hostNow) update(hostRef, { uid, at: serverTimestamp() }).catch(warnWrite('host'))
+    if (hostNow) update(hostRef, hostPayload()).catch(warnWrite('host'))
     emitLivePresence()
     syncHost()
   }
@@ -606,7 +634,8 @@ const connectRemote = async (handlers) => {
   unsubs.push(
     onValue(slotsRef, (snap) => {
       if (closed) return
-      handlers.onSlots?.(snap.val() || defaultSlots())
+      latestSlots = snap.val() || defaultSlots()
+      handlers.onSlots?.(latestSlots)
     }),
   )
 
@@ -653,7 +682,7 @@ const connectRemote = async (handlers) => {
   return {
     uid,
     isHost: () => hostNow,
-    getSlots: () => defaultSlots(),
+    getSlots: () => latestSlots,
     async claimSlot() {
       let slot = -1
       let full = false
@@ -705,6 +734,7 @@ const connectRemote = async (handlers) => {
     },
     writeSlots(next) {
       if (!hostNow || closed) return
+      latestSlots = next
       set(slotsRef, next).catch(warnWrite('slots'))
     },
     disconnect() {

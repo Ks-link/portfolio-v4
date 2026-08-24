@@ -13,6 +13,7 @@ import {
   SLOT_COUNT,
   connectPlaySession,
   defaultSlots,
+  humanCount,
   packCells,
   packFood,
   unpackCells,
@@ -323,7 +324,6 @@ export const mountPlay = (root) => {
   let netPresence = {}
   let lastSplitSeq = new Map()
   let lastKillSeq = new Map()
-  let remoteWasPlaying = new Map()
   let pendingSplitSeq = 0
   let pendingKillSeq = 0
   let lastInputWrite = 0
@@ -936,11 +936,8 @@ export const mountPlay = (root) => {
         if (ownerCells(owner).length) continue
         const uid = netSlots[owner]?.uid
         const presence = uid ? netPresence[uid] : null
-        if (!presence) continue
-        const wasPlaying = remoteWasPlaying.get(owner)
-        remoteWasPlaying.set(owner, !!presence.playing)
-        if (!presence.playing) continue
-        if (!wasPlaying) spawnHuman(owner)
+        if (!presence?.playing) continue
+        spawnHuman(owner)
       }
     }
 
@@ -1720,13 +1717,17 @@ export const mountPlay = (root) => {
   const beginPlay = async () => {
     if (!running || playing || naming || claiming) return
     if (performance.now() < playLockedUntil) return
-    if (localOwner >= 0 && isHumanOwner(localOwner)) {
+    if (
+      localOwner >= 0 &&
+      isHumanOwner(localOwner) &&
+      (!session?.uid || netSlots[localOwner]?.uid === session.uid)
+    ) {
       resumePlay()
       return
     }
     claiming = true
     try {
-      if (!session) session = await sessionReady
+      session = (await sessionReady) || session
       if (!running || !session) return
       const result = await session.claimSlot()
       if (!running) return
@@ -1783,7 +1784,6 @@ export const mountPlay = (root) => {
           emptyLobby = true
           slotDiffEnabled = false
           resetWorld()
-          remoteWasPlaying = new Map()
           foodDirty = true
           lastCellPub = 0
           lastFoodPub = 0
@@ -1804,7 +1804,8 @@ export const mountPlay = (root) => {
       },
     })
     if (emptyLobby) {
-      session.writeSlots(defaultSlots())
+      const seats = session.getSlots?.() || netSlots
+      if (humanCount(seats) === 0) session.writeSlots(defaultSlots())
       slotDiffEnabled = true
       emptyLobby = false
     } else {
@@ -1826,7 +1827,6 @@ export const mountPlay = (root) => {
     netSlots = defaultSlots()
     netInputs = {}
     netPresence = {}
-    remoteWasPlaying = new Map()
     hadLocalCells = false
     playLockedUntil = 0
     setMapFull(false)
