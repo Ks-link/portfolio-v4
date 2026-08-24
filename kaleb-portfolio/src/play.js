@@ -262,13 +262,10 @@ export const mountPlay = (root) => {
   stats.innerHTML = `
     <span class="play-stats-score">score 0</span>
     <span class="play-stats-kills">kills 0</span>
+    <span class="play-stats-active">active 0</span>
   `
 
-  const liveCount = document.createElement('p')
-  liveCount.className = 'play-live-count'
-  liveCount.textContent = 'live 0'
-
-  root.replaceChildren(canvas, welcome, hint, stats, liveCount, hud)
+  root.replaceChildren(canvas, welcome, hint, stats, hud)
   const ctx = canvas.getContext('2d')
   const startBtn = welcome.querySelector('.play-start')
   const startBlob = welcome.querySelector('.play-start-blob')
@@ -284,6 +281,7 @@ export const mountPlay = (root) => {
   const stickThumb = hud.querySelector('.play-stick-thumb')
   const statsScore = stats.querySelector('.play-stats-score')
   const statsKills = stats.querySelector('.play-stats-kills')
+  const statsActive = stats.querySelector('.play-stats-active')
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const hoverNone = window.matchMedia('(hover: none)')
@@ -681,11 +679,7 @@ export const mountPlay = (root) => {
   }
 
   const syncLiveCount = () => {
-    const n = liveUserCount()
-    const local = !session || String(session.uid || '').startsWith('local-')
-    if (local) liveCount.textContent = `live ${n} · local`
-    else if (isHost) liveCount.textContent = `live ${n} · host`
-    else liveCount.textContent = `live ${n}`
+    statsActive.textContent = `active ${liveUserCount()}`
   }
 
   const syncStats = () => {
