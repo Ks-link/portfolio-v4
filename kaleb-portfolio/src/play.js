@@ -331,6 +331,8 @@ export const mountPlay = (root) => {
   let lastFoodPub = 0
   let foodDirty = false
   let hadLocalCells = false
+  let playLife = 0
+  let remotePlayLife = new Map()
   let playLockedUntil = 0
   let claiming = false
   let sessionReady = null
@@ -532,10 +534,10 @@ export const mountPlay = (root) => {
     camera.zoom = 0.78
   }
 
-  const anyPlaying = () => {
-    if (playing) return true
+  const anyPresent = () => {
+    if (running) return true
     for (const row of Object.values(netPresence)) {
-      if (row?.playing) return true
+      if (row) return true
     }
     return false
   }
@@ -565,7 +567,7 @@ export const mountPlay = (root) => {
 
   const syncArena = () => {
     if (session && !isHost) return
-    if (anyPlaying()) {
+    if (anyPresent()) {
       if (!arenaPopulated()) {
         populateArena()
         lastCellPub = 0
@@ -836,7 +838,7 @@ export const mountPlay = (root) => {
         if (hypot(dx, dy) < reach) {
           cell.mass += pellet.mass
           food.splice(i, 1)
-          if (anyPlaying()) spawnFoodOne()
+          if (anyPresent()) spawnFoodOne()
           else foodDirty = true
         }
       }
@@ -981,15 +983,18 @@ export const mountPlay = (root) => {
     if (isHost) {
       for (let owner = 0; owner < SLOT_COUNT; owner++) {
         if (!isHumanOwner(owner) || owner === localOwner) continue
-        if (ownerCells(owner).length) continue
         const uid = netSlots[owner]?.uid
         const presence = uid ? netPresence[uid] : null
         if (!presence?.playing) continue
-        spawnHuman(owner)
+        const life = Number(presence.life) > 0 ? Number(presence.life) : 1
+        const last = remotePlayLife.get(owner) ?? 0
+        if (life <= last) continue
+        remotePlayLife.set(owner, life)
+        if (!ownerCells(owner).length) spawnHuman(owner)
       }
     }
 
-    if ((isHost || !session) && anyPlaying()) {
+    if ((isHost || !session) && anyPresent()) {
       for (let owner = 1; owner <= AI_COUNT; owner++) {
         if (!isAIOwner(owner)) continue
         if (ownerCells(owner).length) continue
@@ -1666,8 +1671,9 @@ export const mountPlay = (root) => {
       const before = prev[owner] || { kind: owner === EXTRA_SLOT ? 'empty' : 'ai' }
       const after = incoming[owner] || before
       if (before.kind === after.kind && before.uid === after.uid) continue
+      remotePlayLife.delete(owner)
       if (after.kind === 'human' && before.kind !== 'human') {
-        if (owner === localOwner && ownerCells(owner).length) continue
+        if (owner === localOwner && (ownerCells(owner).length || !playing)) continue
         if (before.kind === 'ai') replaceAIWithHuman(owner)
         else spawnHuman(owner)
         continue
@@ -1675,7 +1681,7 @@ export const mountPlay = (root) => {
       if (before.kind === 'human' && after.kind !== 'human') {
         if (owner === localOwner && playing) continue
         cells = cells.filter((c) => c.owner !== owner)
-        if (after.kind === 'ai' && anyPlaying()) spawnAI(owner)
+        if (after.kind === 'ai' && anyPresent()) spawnAI(owner)
       }
     }
   }
@@ -1774,7 +1780,8 @@ export const mountPlay = (root) => {
 
   const resumePlay = () => {
     playing = true
-    session?.writePresence({ playing: true })
+    playLife += 1
+    session?.writePresence({ playing: true, life: playLife })
     ensureLocalSpawn()
     root.classList.add('is-playing')
     startMagnet.x = 0
@@ -1854,6 +1861,7 @@ export const mountPlay = (root) => {
         if (next && meta?.empty) {
           emptyLobby = true
           slotDiffEnabled = false
+          remotePlayLife = new Map()
           clearArena()
           lastCellPub = 0
           lastFoodPub = 0
@@ -1900,6 +1908,8 @@ export const mountPlay = (root) => {
     netInputs = {}
     netPresence = {}
     hadLocalCells = false
+    playLife = 0
+    remotePlayLife = new Map()
     playLockedUntil = 0
     setMapFull(false)
     root.classList.remove('is-playing')

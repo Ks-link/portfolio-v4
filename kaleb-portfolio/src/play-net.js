@@ -215,6 +215,7 @@ const connectLocal = (handlers) => {
   let hostKnown = false
   let claimedSlot = -1
   let playing = false
+  let playLife = 0
   let closed = false
   const presence = {}
   const inputs = {}
@@ -332,7 +333,7 @@ const connectLocal = (handlers) => {
 
   const beat = window.setInterval(() => {
     if (closed) return
-    presence[uid] = { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null }
+    presence[uid] = { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null, life: playLife }
     broadcast({ type: 'presence', uid, presence: presence[uid] })
     handlers.onPresence?.(livePresenceMap(presence))
     if (hostNow) {
@@ -397,7 +398,8 @@ const connectLocal = (handlers) => {
     },
     writePresence(next) {
       playing = !!next.playing
-      presence[uid] = { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null }
+      if (typeof next.life === 'number') playLife = next.life
+      presence[uid] = { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null, life: playLife }
       broadcast({ type: 'presence', uid, presence: presence[uid] })
       handlers.onPresence?.(livePresenceMap(presence))
     },
@@ -469,6 +471,7 @@ const connectRemote = async (handlers) => {
   let hostKnown = false
   let claimedSlot = -1
   let playing = false
+  let playLife = 0
   let closed = false
   let latestHost = null
   let latestPresence = {}
@@ -485,6 +488,7 @@ const connectRemote = async (handlers) => {
     at: serverTimestamp(),
     playing,
     slot: claimedSlot >= 0 ? claimedSlot : null,
+    life: playLife,
   })
 
   const stampIsLive = (at) => {
@@ -759,6 +763,7 @@ const connectRemote = async (handlers) => {
     },
     writePresence(next) {
       playing = !!next.playing
+      if (typeof next.life === 'number') playLife = next.life
       set(presenceRef, presencePayload()).catch(warnWrite('presence'))
     },
     publishCells(payload) {
