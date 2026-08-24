@@ -242,11 +242,15 @@ const connectLocal = (handlers) => {
       return
     }
     if (stale && host?.uid !== uid) {
-      slots = defaultSlots()
-      try {
-        localStorage.setItem(SLOTS_KEY, JSON.stringify(slots))
-      } catch {
-        /* ignore */
+      const keep = claimedSlot >= 0 || humanCount(slots) > 0
+      if (!keep) {
+        slots = defaultSlots()
+        try {
+          localStorage.setItem(SLOTS_KEY, JSON.stringify(slots))
+        } catch {
+          /* ignore */
+        }
+        handlers.onSlots?.(slots)
       }
     }
     localStorage.setItem(HOST_KEY, JSON.stringify({ uid, at: Date.now() }))
@@ -427,7 +431,7 @@ const connectLocal = (handlers) => {
         }
       }
       const others = Object.keys(presence).filter((id) => id !== uid)
-      if (hostNow && !others.length) {
+      if (hostNow && !others.length && humanCount(slots) === 0) {
         slots = defaultSlots()
         try {
           localStorage.setItem(SLOTS_KEY, JSON.stringify(slots))
@@ -469,6 +473,7 @@ const connectRemote = async (handlers) => {
   let latestHost = null
   let latestPresence = {}
   let latestSlots = defaultSlots()
+  let latestInputs = {}
   let latestCells = null
   let latestFood = null
   let serverOffset = 0
@@ -556,8 +561,43 @@ const connectRemote = async (handlers) => {
     return Object.keys(live).filter((id) => id !== uid)
   }
 
+  const otherHumanSeats = (slots = latestSlots) => {
+    let n = 0
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      if (slots[i]?.kind === 'human' && slots[i].uid && slots[i].uid !== uid) n += 1
+    }
+    return n
+  }
+
+  const worldInUse = () => {
+    if (claimedSlot >= 0) return true
+    if (otherLive().length) return true
+    if (otherHumanSeats()) return true
+    return false
+  }
+
+  const restoreClaimedSeat = () => {
+    if (claimedSlot < 0) return
+    const slots = latestSlots ? { ...latestSlots } : defaultSlots()
+    const row = slots[claimedSlot]
+    if (row?.kind === 'human' && row.uid === uid) return
+    slots[claimedSlot] = { kind: 'human', uid, at: Date.now() }
+    latestSlots = slots
+    set(slotsRef, slots).catch(warnWrite('slotsRestore'))
+    handlers.onSlots?.(slots)
+  }
+
+  const inheritWorld = () => {
+    if (latestCells) handlers.onCells?.(latestCells)
+    if (latestFood) handlers.onFood?.(latestFood)
+    handlers.onInputs?.(latestInputs)
+    restoreClaimedSeat()
+    handlers.onHostChange?.(true)
+  }
+
   const clearSharedWorld = () => {
-    set(slotsRef, defaultSlots()).catch(warnWrite('slotsReset'))
+    latestSlots = defaultSlots()
+    set(slotsRef, latestSlots).catch(warnWrite('slotsReset'))
     set(cellsRef, null).catch(warnWrite('snapCellsReset'))
     set(foodRef, null).catch(warnWrite('snapFoodReset'))
   }
@@ -569,11 +609,8 @@ const connectRemote = async (handlers) => {
     hostKnown = true
     setHostDisconnect(hostNow).catch(warnWrite('hostDisconnect'))
     if (next && !wasHost) {
-      if (otherLive().length) {
-        if (latestCells) handlers.onCells?.(latestCells)
-        if (latestFood) handlers.onFood?.(latestFood)
-        handlers.onHostChange?.(true)
-      } else {
+      if (worldInUse()) inheritWorld()
+      else {
         latestCells = null
         latestFood = null
         clearSharedWorld()
@@ -657,8 +694,9 @@ const connectRemote = async (handlers) => {
 
   unsubs.push(
     onValue(allInputsRef, (snap) => {
-      if (closed || !hostNow) return
-      handlers.onInputs?.(snap.val() || {})
+      if (closed) return
+      latestInputs = snap.val() || {}
+      if (hostNow) handlers.onInputs?.(latestInputs)
     }),
   )
 
@@ -748,7 +786,7 @@ const connectRemote = async (handlers) => {
       playing = false
       set(presenceRef, null).catch(warnWrite('presenceClear'))
       set(inputsRef, null).catch(warnWrite('inputClear'))
-      if (hostNow && !otherLive().length) clearSharedWorld()
+      if (hostNow && !otherLive().length && !otherHumanSeats()) clearSharedWorld()
       else if (slot >= 0) {
         runTransaction(slotsRef, (current) => {
           const slots = current ? { ...current } : defaultSlots()

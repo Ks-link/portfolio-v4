@@ -1079,6 +1079,7 @@ export const mountPlay = (root) => {
       const slot = next[owner]
       if (slot?.kind !== 'human') continue
       if (slot.uid && slot.uid === session.uid) continue
+      if (owner === localOwner) continue
       if (slot.uid && netPresence[slot.uid]) continue
       next[owner] = owner === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
       changed = true
@@ -1596,8 +1597,19 @@ export const mountPlay = (root) => {
   }
 
   const applySlots = (next) => {
-    const incoming = next || defaultSlots()
+    const incoming = { ...(next || defaultSlots()) }
     const prev = netSlots
+    if (
+      localOwner >= 0 &&
+      playing &&
+      session?.uid &&
+      prev[localOwner]?.kind === 'human' &&
+      prev[localOwner]?.uid === session.uid &&
+      incoming[localOwner]?.kind !== 'human'
+    ) {
+      incoming[localOwner] = { kind: 'human', uid: session.uid, at: Date.now() }
+      if (isHost) session.writeSlots(incoming)
+    }
     netSlots = incoming
     syncMapFull()
     if (!isHost || !slotDiffEnabled) return
@@ -1606,11 +1618,13 @@ export const mountPlay = (root) => {
       const after = incoming[owner] || before
       if (before.kind === after.kind && before.uid === after.uid) continue
       if (after.kind === 'human' && before.kind !== 'human') {
+        if (owner === localOwner && ownerCells(owner).length) continue
         if (before.kind === 'ai') replaceAIWithHuman(owner)
         else spawnHuman(owner)
         continue
       }
       if (before.kind === 'human' && after.kind !== 'human') {
+        if (owner === localOwner && playing) continue
         cells = cells.filter((c) => c.owner !== owner)
         if (after.kind === 'ai') spawnAI(owner)
       }
