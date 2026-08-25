@@ -137,6 +137,7 @@ const navArrow = `
       <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
         d="M10 5l7 7-7 7"/>
     </svg>
+    <span class="nav-blob-label" aria-hidden="true"></span>
   </span>
 `
 
@@ -554,13 +555,16 @@ document.querySelector('.play-root')?.addEventListener('playchange', () => {
 
 const syncNavLabels = (screen, project = '') => {
   navBlobs.forEach((btn) => {
+    const labelEl = btn.querySelector('.nav-blob-label')
     if (screen === 'work' && project && btn.dataset.edge === 'left') {
       btn.setAttribute('aria-label', 'Back to work')
+      if (labelEl) labelEl.textContent = 'work'
       return
     }
     const dest = edgeNav[screen]?.[btn.dataset.edge]
     if (!dest) return
     btn.setAttribute('aria-label', ariaForDest(dest))
+    if (labelEl) labelEl.textContent = dest
   })
 }
 
