@@ -140,6 +140,20 @@ const navArrow = `
   </span>
 `
 
+const swipeChevron = (dir) => `
+  <svg class="swipe-hints__chevron swipe-hints__chevron--${dir}" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+      d="M8.5 5l7 7-7 7"/>
+  </svg>
+`
+
+const swipeDir = (dir, to, label) => `
+  <button type="button" class="swipe-hints__dir swipe-hints__dir--${dir}" data-to="${to}">
+    ${swipeChevron(dir)}
+    <span class="swipe-hints__label">${label}</span>
+  </button>
+`
+
 const app = document.querySelector('#app')
 
 app.innerHTML = `
@@ -201,29 +215,29 @@ app.innerHTML = `
   <button type="button" class="nav-blob nav-blob--top" data-edge="top" aria-label="Back to home">
     ${navArrow}
   </button>
-  <div class="swipe-hints" aria-hidden="true">
-    <p class="swipe-hints__set swipe-hints__set--home">
-      <span>swipe right — play</span>
-      <span>swipe left — work</span>
-      <span>swipe up — about</span>
-    </p>
-    <p class="swipe-hints__set swipe-hints__set--work">
-      <span>swipe right — home</span>
-      <span>swipe up — experience</span>
-    </p>
-    <p class="swipe-hints__set swipe-hints__set--work-detail">
-      <span>swipe right — work</span>
-      <span>swipe up — experience</span>
-    </p>
-    <p class="swipe-hints__set swipe-hints__set--about">
-      <span>swipe down — home</span>
-      <span>swipe left — experience</span>
-    </p>
-    <p class="swipe-hints__set swipe-hints__set--experience">
-      <span>swipe right — about</span>
-      <span>swipe down — work</span>
-    </p>
-  </div>
+  <nav class="swipe-hints">
+    <div class="swipe-hints__set swipe-hints__set--home">
+      ${swipeDir('left', 'play', 'play')}
+      ${swipeDir('down', 'about', 'about')}
+      ${swipeDir('right', 'work', 'work')}
+    </div>
+    <div class="swipe-hints__set swipe-hints__set--work">
+      ${swipeDir('left', 'home', 'home')}
+      ${swipeDir('down', 'experience', 'experience')}
+    </div>
+    <div class="swipe-hints__set swipe-hints__set--work-detail">
+      ${swipeDir('left', 'work', 'work')}
+      ${swipeDir('down', 'experience', 'experience')}
+    </div>
+    <div class="swipe-hints__set swipe-hints__set--about">
+      ${swipeDir('up', 'home', 'home')}
+      ${swipeDir('right', 'experience', 'experience')}
+    </div>
+    <div class="swipe-hints__set swipe-hints__set--experience">
+      ${swipeDir('left', 'about', 'about')}
+      ${swipeDir('up', 'work', 'work')}
+    </div>
+  </nav>
   <div class="stage">
     <section class="screen screen--play" aria-label="Play">
       <div class="play-root"></div>
@@ -725,6 +739,13 @@ navBlobs.forEach((btn) => {
       return
     }
     const dest = edgeNav[screen]?.[btn.dataset.edge]
+    if (dest) setScreen(dest, { push: true })
+  })
+})
+
+document.querySelectorAll('.swipe-hints__dir').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const dest = btn.dataset.to
     if (dest) setScreen(dest, { push: true })
   })
 })
