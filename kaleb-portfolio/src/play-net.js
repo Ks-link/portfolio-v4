@@ -159,7 +159,7 @@ export const unpackCells = (packed) => {
         vx: cell[2],
         vy: cell[3],
         mass: cell[4],
-        owner: cell[5],
+        owner: Number(cell[5]),
         color: cell[6],
         mergeAt: cell[7],
         stretch: cell[8],
@@ -172,7 +172,7 @@ export const unpackCells = (packed) => {
     .filter(Boolean)
 }
 
-export const pickClaimSlot = (current, uid) => {
+export const pickClaimSlot = (current, uid, preferredSlot = -1) => {
   const slots = current ? { ...current } : defaultSlots()
   for (let i = 0; i < SLOT_COUNT; i++) {
     if (!slots[i]) slots[i] = i === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
@@ -180,18 +180,27 @@ export const pickClaimSlot = (current, uid) => {
   const existing = slotOfUid(slots, uid)
   if (existing >= 0) return { slots, slot: existing }
   if (humanCount(slots) >= MAX_HUMANS) return { full: true, slots }
-  if (slots[EXTRA_SLOT]?.kind !== 'human') {
-    slots[EXTRA_SLOT] = { kind: 'human', uid, at: Date.now() }
-    return { slots, slot: EXTRA_SLOT }
+  const take = (slot) => {
+    slots[slot] = { kind: 'human', uid, at: Date.now() }
+    return { slots, slot }
   }
+  const preferred = Number(preferredSlot)
+  if (
+    Number.isInteger(preferred) &&
+    preferred >= 0 &&
+    preferred < SLOT_COUNT &&
+    slots[preferred]?.kind !== 'human'
+  ) {
+    return take(preferred)
+  }
+  if (slots[EXTRA_SLOT]?.kind !== 'human') return take(EXTRA_SLOT)
   const ai = []
   for (let i = 1; i <= AI_COUNT; i++) {
     if (slots[i]?.kind === 'ai') ai.push(i)
   }
   if (!ai.length) return { full: true, slots }
   const slot = ai[Math.floor(Math.random() * ai.length)]
-  slots[slot] = { kind: 'human', uid, at: Date.now() }
-  return { slots, slot }
+  return take(slot)
 }
 
 const HOST_KEY = 'kaleb-play-host'
@@ -308,7 +317,7 @@ const connectLocal = (handlers) => {
       return
     }
     if (msg.type === 'claim' && hostNow) {
-      const result = pickClaimSlot(slots, msg.uid)
+      const result = pickClaimSlot(slots, msg.uid, msg.preferredSlot)
       if (result.full) {
         broadcast({ type: 'claim-result', uid: msg.uid, full: true })
         return
@@ -349,9 +358,9 @@ const connectLocal = (handlers) => {
     uid,
     isHost: () => hostNow,
     getSlots: () => slots,
-    async claimSlot() {
+    async claimSlot(preferredSlot = -1) {
       if (hostNow || !channel) {
-        const result = pickClaimSlot(slots, uid)
+        const result = pickClaimSlot(slots, uid, preferredSlot)
         if (result.full) return { full: true }
         claimedSlot = result.slot
         applySlots(result.slots)
@@ -371,7 +380,7 @@ const connectLocal = (handlers) => {
           }
         }
         channel.addEventListener('message', onResult)
-        broadcast({ type: 'claim', uid })
+        broadcast({ type: 'claim', uid, preferredSlot })
       })
     },
     async releaseSlot() {
@@ -399,6 +408,9 @@ const connectLocal = (handlers) => {
     writePresence(next) {
       playing = !!next.playing
       if (typeof next.life === 'number') playLife = next.life
+      if (Number.isInteger(Number(next.slot)) && Number(next.slot) >= 0) {
+        claimedSlot = Number(next.slot)
+      }
       presence[uid] = { at: Date.now(), playing, slot: claimedSlot >= 0 ? claimedSlot : null, life: playLife }
       broadcast({ type: 'presence', uid, presence: presence[uid] })
       handlers.onPresence?.(livePresenceMap(presence))
@@ -480,6 +492,7 @@ const connectRemote = async (handlers) => {
   let latestCells = null
   let latestFood = null
   let serverOffset = 0
+  let lastInputDebugAt = 0
   const unsubs = []
 
   const serverNow = () => Date.now() + serverOffset
@@ -536,12 +549,6 @@ const connectRemote = async (handlers) => {
     if (latestFood) handlers.onFood?.(latestFood)
   }
 
-  const setSlotDisconnect = async (slot) => {
-    if (slot < 0) return
-    const slotRef = ref(rtdb, `${ROOT}/slots/${slot}`)
-    await onDisconnect(slotRef).set(slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' })
-  }
-
   const clearSlotDisconnect = async (slot) => {
     if (slot < 0) return
     await onDisconnect(ref(rtdb, `${ROOT}/slots/${slot}`)).cancel()
@@ -550,7 +557,7 @@ const connectRemote = async (handlers) => {
   const armDisconnects = async () => {
     await onDisconnect(presenceRef).remove()
     await onDisconnect(inputsRef).remove()
-    if (claimedSlot >= 0) await setSlotDisconnect(claimedSlot)
+    if (claimedSlot >= 0) await clearSlotDisconnect(claimedSlot)
     if (hostNow) await onDisconnect(hostRef).remove()
     else await onDisconnect(hostRef).cancel()
   }
@@ -638,7 +645,10 @@ const connectRemote = async (handlers) => {
   const flushBeat = () => {
     if (closed) return
     set(presenceRef, presencePayload()).catch(warnWrite('presence'))
-    if (hostNow) update(hostRef, hostPayload()).catch(warnWrite('host'))
+    if (hostNow) {
+      update(hostRef, hostPayload()).catch(warnWrite('host'))
+      handlers.onInputs?.(latestInputs)
+    }
     emitLivePresence()
     syncHost()
   }
@@ -699,6 +709,29 @@ const connectRemote = async (handlers) => {
     onValue(allInputsRef, (snap) => {
       if (closed) return
       latestInputs = snap.val() || {}
+      // #region agent log
+      if (hostNow && Date.now() - lastInputDebugAt > 1000) {
+        lastInputDebugAt = Date.now()
+        fetch('http://127.0.0.1:7259/ingest/d65bc10e-eea4-4340-9762-0b0b13a88a0c', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7f0aff' },
+        body: JSON.stringify({
+          sessionId: '7f0aff',
+          runId: 'post-fix',
+          hypothesisId: 'A',
+          location: 'play-net.js:allInputs',
+          message: 'host received inputs snap',
+          data: {
+            hostNow,
+            keys: Object.keys(latestInputs).map((k) => k.slice(-8)),
+            slots: Object.values(latestInputs).map((v) => v?.slot),
+            cxs: Object.values(latestInputs).map((v) => Math.round(Number(v?.cx) || 0)),
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+      }
+      // #endregion
       if (hostNow) handlers.onInputs?.(latestInputs)
     }),
   )
@@ -724,11 +757,11 @@ const connectRemote = async (handlers) => {
     uid,
     isHost: () => hostNow,
     getSlots: () => latestSlots,
-    async claimSlot() {
+    async claimSlot(preferredSlot = -1) {
       let slot = -1
       let full = false
       await runTransaction(slotsRef, (current) => {
-        const result = pickClaimSlot(current, uid)
+        const result = pickClaimSlot(current, uid, preferredSlot)
         if (result.full) {
           full = true
           return current || defaultSlots()
@@ -739,7 +772,7 @@ const connectRemote = async (handlers) => {
       if (full || slot < 0) return { full: true }
       if (claimedSlot >= 0 && claimedSlot !== slot) await clearSlotDisconnect(claimedSlot)
       claimedSlot = slot
-      await setSlotDisconnect(slot)
+      await clearSlotDisconnect(slot)
       await set(presenceRef, presencePayload())
       return { slot }
     },
@@ -759,11 +792,55 @@ const connectRemote = async (handlers) => {
     },
     writeInput(input) {
       if (closed) return
-      set(inputsRef, { ...input, at: serverTimestamp() }).catch(warnWrite('input'))
+      // #region agent log
+      fetch('http://127.0.0.1:7259/ingest/d65bc10e-eea4-4340-9762-0b0b13a88a0c', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7f0aff' },
+        body: JSON.stringify({
+          sessionId: '7f0aff',
+          runId: 'post-fix',
+          hypothesisId: 'A',
+          location: 'play-net.js:writeInput',
+          message: 'firebase writeInput',
+          data: {
+            uidTail: uid.slice(-8),
+            hostNow,
+            slot: input?.slot,
+            splitSeq: input?.splitSeq,
+            x: Math.round(Number(input?.x) || 0),
+            y: Math.round(Number(input?.y) || 0),
+            cx: Math.round(Number(input?.cx) || 0),
+            cy: Math.round(Number(input?.cy) || 0),
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+      // #endregion
+      set(inputsRef, { ...input, at: serverTimestamp() }).catch((err) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7259/ingest/d65bc10e-eea4-4340-9762-0b0b13a88a0c', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7f0aff' },
+          body: JSON.stringify({
+            sessionId: '7f0aff',
+            runId: 'post-fix',
+            hypothesisId: 'A',
+            location: 'play-net.js:writeInput',
+            message: 'writeInput failed',
+            data: { err: String(err?.message || err) },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {})
+        // #endregion
+        warnWrite('input')(err)
+      })
     },
     writePresence(next) {
       playing = !!next.playing
       if (typeof next.life === 'number') playLife = next.life
+      if (Number.isInteger(Number(next.slot)) && Number(next.slot) >= 0) {
+        claimedSlot = Number(next.slot)
+      }
       set(presenceRef, presencePayload()).catch(warnWrite('presence'))
     },
     publishCells(payload) {
@@ -789,6 +866,8 @@ const connectRemote = async (handlers) => {
       const wipe = hostNow && !otherLive().length && !otherHumanSeats()
       claimedSlot = -1
       playing = false
+      if (slot >= 0) clearSlotDisconnect(slot).catch(warnWrite('slotDisconnectCancel'))
+      onDisconnect(hostRef).cancel().catch(warnWrite('hostDisconnectCancel'))
       set(presenceRef, null).catch(warnWrite('presenceClear'))
       set(inputsRef, null).catch(warnWrite('inputClear'))
       if (wipe) clearSharedWorld()
