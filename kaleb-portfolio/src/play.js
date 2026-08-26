@@ -49,6 +49,7 @@ const AI_FLEE_STEP = 420
 const AI_LAUNCH_NEAR = 90
 const AI_LAUNCH_FAR = 340
 const AI_LAUNCH_THREAT_PAD = 140
+const SPAWN_PROTECT = 5
 
 const AI_COLORS = [
   '#5c8f76',
@@ -287,7 +288,7 @@ export const mountPlay = (root) => {
   const hoverNone = window.matchMedia('(hover: none)')
   const isMobileHud = () => hoverNone.matches
   const pointer = { x: WORLD / 2, y: WORLD / 2, valid: false }
-  const mouse = { x: 0, y: 0 }
+  const mouse = { x: 0, y: 0, valid: false }
   const startMagnet = { x: 0, y: 0 }
   const camera = { x: WORLD / 2, y: WORLD / 2, zoom: 1 }
   const tap = { id: null, t: 0, x: 0, y: 0 }
@@ -305,6 +306,7 @@ export const mountPlay = (root) => {
   let cells = []
   let food = []
   let aiRespawnAt = new Map()
+  let spawnProtectUntil = new Map()
   let launchCool = 0
   let aiLaunchCool = new Map()
   let kills = 0
@@ -361,10 +363,18 @@ export const mountPlay = (root) => {
   }
 
   const setPointer = (clientX, clientY) => {
+    mouse.x = clientX
+    mouse.y = clientY
+    mouse.valid = true
     const w = screenToWorld(clientX, clientY)
     pointer.x = w.x
     pointer.y = w.y
     pointer.valid = true
+  }
+
+  const refreshPointer = () => {
+    if (!playing || isMobileHud() || !mouse.valid) return
+    setPointer(mouse.x, mouse.y)
   }
 
   const localPoint = (clientX, clientY) => {
@@ -417,6 +427,8 @@ export const mountPlay = (root) => {
   const ownerCells = (owner) => cells.filter((c) => c.owner === owner)
   const isAIOwner = (owner) => netSlots[owner]?.kind === 'ai'
   const isHumanOwner = (owner) => netSlots[owner]?.kind === 'human'
+  const isSpawnProtected = (owner) =>
+    isHumanOwner(owner) && time < (spawnProtectUntil.get(owner) ?? 0)
   const humanColor = (owner) =>
     owner === EXTRA_SLOT ? theme.accent : AI_COLORS[(owner - 1 + AI_COLORS.length) % AI_COLORS.length]
 
@@ -492,6 +504,7 @@ export const mountPlay = (root) => {
         color: humanColor(owner),
       }),
     )
+    spawnProtectUntil.set(owner, time + SPAWN_PROTECT)
     if (owner === localOwner) adoptLocalSpawn(pos)
   }
 
@@ -524,6 +537,7 @@ export const mountPlay = (root) => {
     time = 0
     launchCool = 0
     aiRespawnAt = new Map()
+    spawnProtectUntil = new Map()
     aiLaunchCool = new Map()
     kills = 0
     foodDirty = true
@@ -654,6 +668,7 @@ export const mountPlay = (root) => {
   }
 
   const canEat = (eater, prey) => {
+    if (isAIOwner(eater.owner) && isSpawnProtected(prey.owner)) return false
     if (eater.mass < prey.mass * EAT_RATIO) return false
     const er = radiusOf(eater.mass)
     const pr = radiusOf(prey.mass)
@@ -849,7 +864,9 @@ export const mountPlay = (root) => {
       if (other.owner === cell.owner) continue
       const dist = hypot(other.x - cell.x, other.y - cell.y)
       if (other.mass > cell.mass * EAT_RATIO) threats.push({ cell: other, dist })
-      else if (cell.mass > other.mass * EAT_RATIO) preyList.push({ cell: other, dist })
+      else if (cell.mass > other.mass * EAT_RATIO && !isSpawnProtected(other.owner)) {
+        preyList.push({ cell: other, dist })
+      }
     }
 
     let nearestThreat = null
@@ -1136,6 +1153,7 @@ export const mountPlay = (root) => {
 
   const update = (dt, now) => {
     syncTheme()
+    refreshPointer()
     const simulating = !session || (hostKnown && isHost)
     if (simulating) {
       time += dt
@@ -1542,6 +1560,7 @@ export const mountPlay = (root) => {
     if (!running) return
     mouse.x = e.clientX
     mouse.y = e.clientY
+    mouse.valid = true
     if (playing && isMobileHud()) {
       if (stick.id === e.pointerId) moveStick(e.clientX, e.clientY)
       return
