@@ -2543,7 +2543,7 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
     root.classList.toggle('has-blob-cursor', cursor.enabled)
     if (!cursor.enabled) {
       cursor.visible = false
-      blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving')
+      blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving', 'is-melted')
       blobCursorMotion.style.transform = ''
     }
   }
@@ -2555,7 +2555,7 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
       clearTimeout(cursor.settleTimer)
       cursor.settleTimer = 0
     }
-    blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving')
+    blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving', 'is-melted')
     blobCursorMotion.style.transform = ''
   }
 
@@ -2572,9 +2572,11 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
         return
       }
 
+      const overNavBlob = Boolean(e.target?.closest?.('.nav-blob'))
       const hovering = Boolean(e.target?.closest?.(cursorInteractive))
       blobCursorRoot.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`
-      blobCursorRoot.classList.toggle('is-hover', hovering)
+      blobCursorRoot.classList.toggle('is-hover', hovering && !overNavBlob)
+      blobCursorRoot.classList.toggle('is-melted', overNavBlob)
 
       if (!cursor.visible) {
         cursor.visible = true

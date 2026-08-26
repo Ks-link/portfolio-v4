@@ -790,10 +790,15 @@ body {
   mix-blend-mode: var(--cursor-blend);
   contain: layout style;
   will-change: transform;
+  transition: opacity 0.2s ease;
 }
 
 .blob-cursor.is-on {
   opacity: 1;
+}
+
+.blob-cursor.is-on.is-melted {
+  opacity: 0;
 }
 
 .blob-cursor-motion {
@@ -826,6 +831,10 @@ body {
 
 .blob-cursor.is-down .blob-cursor-shape {
   transform: scale(0.78);
+}
+
+.blob-cursor.is-melted .blob-cursor-shape {
+  transform: scale(0);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -986,6 +995,7 @@ body {
   background: var(--nav-blob);
   color: var(--accent);
   opacity: 0.92;
+  border: 3px solid transparent;
   --nav-blob-r0: 58% 42% 50% 46% / 44% 52% 42% 58%;
   --nav-blob-r1: 44% 56% 40% 60% / 54% 40% 60% 44%;
   --nav-blob-r2: 52% 44% 60% 40% / 40% 58% 44% 56%;
@@ -996,6 +1006,7 @@ body {
     padding 0.35s cubic-bezier(0.22, 1, 0.36, 1),
     gap 0.35s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.3s ease,
+    border-color 0.2s ease,
     border-radius 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -1146,6 +1157,7 @@ body {
     gap: 0.4rem;
     opacity: 1;
     animation: none;
+    border-color: var(--cursor-blob);
     border-radius: var(--nav-blob-r-hover);
   }
 
