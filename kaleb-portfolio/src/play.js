@@ -343,28 +343,6 @@ export const mountPlay = (root) => {
   let sessionReady = null
   let slotDiffEnabled = false
   let emptyLobby = false
-  let lastDebugHost = 0
-  let lastDebugClient = 0
-  let debugAte = 0
-  let debugSplit = 0
-
-  // #region agent log
-  const dbg = (hypothesisId, location, message, data) => {
-    fetch('http://127.0.0.1:7259/ingest/d65bc10e-eea4-4340-9762-0b0b13a88a0c', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7f0aff' },
-      body: JSON.stringify({
-        sessionId: '7f0aff',
-        runId: 'post-fix',
-        hypothesisId,
-        location,
-        message,
-        data,
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-  }
-  // #endregion
 
   const theme = { bg: '#fffff4', text: '#322f2f', accent: '#ee8533' }
 
@@ -953,19 +931,6 @@ export const mountPlay = (root) => {
         if (hypot(dx, dy) < reach) {
           cell.mass += pellet.mass
           food.splice(i, 1)
-          // #region agent log
-          if (isHost && Number(cell.owner) !== Number(localOwner)) {
-            debugAte += 1
-            if (debugAte <= 8) {
-              dbg('D', 'play.js:eatFood', 'host ate food for remote', {
-                owner: cell.owner,
-                mass: cell.mass,
-                x: Math.round(cell.x),
-                y: Math.round(cell.y),
-              })
-            }
-          }
-          // #endregion
           if (anyPresent()) spawnFoodOne()
           else foodDirty = true
         }
@@ -1269,60 +1234,9 @@ export const mountPlay = (root) => {
 
   const steerRemoteHumans = (dt) => {
     const seen = new Set()
-    const inputKeys = Object.keys(netInputs)
-    // #region agent log
-    if (Date.now() - lastDebugHost > 1000) {
-      lastDebugHost = Date.now()
-      const remoteOwners = []
-      for (let i = 0; i < SLOT_COUNT; i++) {
-        if (!isHumanOwner(i) || i === localOwner) continue
-        const g = ownerCells(i)
-        remoteOwners.push({
-          owner: i,
-          kind: netSlots[i]?.kind,
-          uidTail: String(netSlots[i]?.uid || '').slice(-8),
-          cells: g.length,
-          mass: Math.round(massCenter(g).mass),
-          x: Math.round(massCenter(g).x),
-          y: Math.round(massCenter(g).y),
-        })
-      }
-      dbg('A', 'play.js:steerRemoteHumans', 'host remote tick', {
-        isHost,
-        hostKnown,
-        localOwner,
-        inputCount: inputKeys.length,
-        inputSlots: inputKeys.map((k) => ({
-          uidTail: k.slice(-8),
-          slot: netInputs[k]?.slot,
-          splitSeq: netInputs[k]?.splitSeq,
-          x: Math.round(Number(netInputs[k]?.x) || 0),
-          y: Math.round(Number(netInputs[k]?.y) || 0),
-          cx: Math.round(Number(netInputs[k]?.cx) || 0),
-          cy: Math.round(Number(netInputs[k]?.cy) || 0),
-        })),
-        remoteOwners,
-        presencePlaying: Object.entries(netPresence).map(([id, p]) => ({
-          uidTail: id.slice(-8),
-          playing: !!p?.playing,
-          slot: p?.slot,
-          life: p?.life,
-        })),
-      })
-    }
-    // #endregion
     for (const [uid, input] of Object.entries(netInputs)) {
       if (!uid || !input || uid === session?.uid) continue
       const owner = resolveInputOwner(uid, input)
-      // #region agent log
-      if (owner < 0) {
-        dbg('B', 'play.js:steerRemoteHumans', 'input owner unresolved', {
-          uidTail: uid.slice(-8),
-          slot: input.slot,
-          held: slotOfUid(netSlots, uid),
-        })
-      }
-      // #endregion
       if (owner < 0 || owner === localOwner || seen.has(owner)) continue
       seen.add(owner)
       ensureHumanSeat(owner, uid)
@@ -1347,24 +1261,6 @@ export const mountPlay = (root) => {
           lastAdoptSig.set(uid, sig)
           const splitSeq = Number(input.splitSeq) || 0
           if (splitSeq) lastSplitSeq.set(uid, splitSeq)
-          // #region agent log
-          if (Date.now() - lastDebugHost < 20 || debugAte <= 12) {
-            const live = ownerCells(owner)
-            dbg('D', 'play.js:steerRemoteHumans', 'host adopted client cells', {
-              owner,
-              cells: live.length,
-              mass: Math.round(massCenter(live).mass),
-              x: Math.round(massCenter(live).x),
-              y: Math.round(massCenter(live).y),
-              splitSeq: Number(input.splitSeq) || 0,
-              mergeLeft: Array.isArray(packed)
-                ? packed.map((r) => Math.round((Number(r?.[5]) || 0) * 100) / 100)
-                : [],
-              hostTime: Math.round(time * 100) / 100,
-              runId: 'post-fix',
-            })
-          }
-          // #endregion
         }
       } else {
         const live = ownerCells(owner)
@@ -1390,30 +1286,9 @@ export const mountPlay = (root) => {
           }
           const splitSeq = Number(input.splitSeq) || 0
           if (splitSeq && splitSeq !== lastSplitSeq.get(uid)) {
-            const did = launchOwner(owner, input.x, input.y)
+            launchOwner(owner, input.x, input.y)
             lastSplitSeq.set(uid, splitSeq)
-            // #region agent log
-            debugSplit += 1
-            dbg('F', 'play.js:steerRemoteHumans', 'host applied split', {
-              owner,
-              splitSeq,
-              did,
-              cells: ownerCells(owner).length,
-              cx: hasPos ? Math.round(input.cx) : null,
-              cy: hasPos ? Math.round(input.cy) : null,
-            })
-            // #endregion
           }
-        } else {
-          // #region agent log
-          if (Date.now() - lastDebugHost < 50) {
-            dbg('C', 'play.js:steerRemoteHumans', 'remote has input but no cells', {
-              owner,
-              playing: !!netPresence[uid]?.playing,
-              kind: netSlots[owner]?.kind,
-            })
-          }
-          // #endregion
         }
       }
       const killSeq = Number(input.killSeq) || 0
@@ -1503,25 +1378,6 @@ export const mountPlay = (root) => {
         c.merging ? 1 : 0,
       ])
     }
-    // #region agent log
-    if (force || Date.now() - lastDebugClient > 1000) {
-      lastDebugClient = Date.now()
-      dbg('A', 'play.js:publishInput', 'client writing input', {
-        isHost,
-        localOwner,
-        cells: player.length,
-        mass: Math.round(center.mass),
-        x: Math.round(center.x),
-        y: Math.round(center.y),
-        aimX: Math.round(aim.x),
-        aimY: Math.round(aim.y),
-        splitSeq: pendingSplitSeq,
-        cellPack: payload.cells?.length || 0,
-        uidTail: String(session?.uid || '').slice(-8),
-        force: !!force,
-      })
-    }
-    // #endregion
     session.writeInput(payload)
   }
 
@@ -1962,14 +1818,6 @@ export const mountPlay = (root) => {
     if (!player.length) return
     const aim = shootAim(player)
     pendingSplitSeq += 1
-    // #region agent log
-    dbg('F', 'play.js:tryLaunch', 'shoot pressed', {
-      isHost,
-      localOwner,
-      cells: player.length,
-      splitSeq: pendingSplitSeq,
-    })
-    // #endregion
     if (launchOwner(localOwner, aim.x, aim.y)) launchCool = 0.42
     if (!isHost) publishInput(performance.now(), true)
   }
@@ -2207,16 +2055,6 @@ export const mountPlay = (root) => {
       if (prevLocal.length) locals = prevLocal
       else if (incomingLocal.length) locals = incomingLocal
     }
-    // #region agent log
-    if (playing && localOwner >= 0 && !prevLocal.length) {
-      dbg('C', 'play.js:applyRemoteCells', 'local cells empty', {
-        localOwner,
-        incomingLocal: incomingLocal.length,
-        bootstrapped: locals.length,
-        runId: 'post-fix',
-      })
-    }
-    // #endregion
     cells = remotes.concat(locals)
   }
 
@@ -2232,15 +2070,6 @@ export const mountPlay = (root) => {
   const ensureLocalSpawn = () => {
     if (localOwner < 0 || ownerCells(localOwner).length) return
     spawnHuman(localOwner)
-    // #region agent log
-    dbg('C', 'play.js:ensureLocalSpawn', 'spawned local human', {
-      localOwner,
-      isHost,
-      cells: ownerCells(localOwner).length,
-      mass: Math.round(massCenter(ownerCells(localOwner)).mass),
-      runId: 'post-fix',
-    })
-    // #endregion
   }
 
   const resumePlay = () => {
@@ -2325,15 +2154,6 @@ export const mountPlay = (root) => {
       onHostChange(next, meta) {
         hostKnown = true
         isHost = next
-        // #region agent log
-        dbg('E', 'play.js:onHostChange', 'host role change', {
-          next,
-          empty: !!meta?.empty,
-          localOwner,
-          playing,
-          uidTail: String(session?.uid || '').slice(-8),
-        })
-        // #endregion
         if (next) armHostTimer()
         if (next && meta?.empty) {
           emptyLobby = true

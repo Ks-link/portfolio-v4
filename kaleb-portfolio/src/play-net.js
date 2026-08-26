@@ -492,7 +492,6 @@ const connectRemote = async (handlers) => {
   let latestCells = null
   let latestFood = null
   let serverOffset = 0
-  let lastInputDebugAt = 0
   const unsubs = []
 
   const serverNow = () => Date.now() + serverOffset
@@ -709,29 +708,6 @@ const connectRemote = async (handlers) => {
     onValue(allInputsRef, (snap) => {
       if (closed) return
       latestInputs = snap.val() || {}
-      // #region agent log
-      if (hostNow && Date.now() - lastInputDebugAt > 1000) {
-        lastInputDebugAt = Date.now()
-        fetch('http://127.0.0.1:7259/ingest/d65bc10e-eea4-4340-9762-0b0b13a88a0c', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7f0aff' },
-        body: JSON.stringify({
-          sessionId: '7f0aff',
-          runId: 'post-fix',
-          hypothesisId: 'A',
-          location: 'play-net.js:allInputs',
-          message: 'host received inputs snap',
-          data: {
-            hostNow,
-            keys: Object.keys(latestInputs).map((k) => k.slice(-8)),
-            slots: Object.values(latestInputs).map((v) => v?.slot),
-            cxs: Object.values(latestInputs).map((v) => Math.round(Number(v?.cx) || 0)),
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {})
-      }
-      // #endregion
       if (hostNow) handlers.onInputs?.(latestInputs)
     }),
   )
@@ -792,48 +768,7 @@ const connectRemote = async (handlers) => {
     },
     writeInput(input) {
       if (closed) return
-      // #region agent log
-      fetch('http://127.0.0.1:7259/ingest/d65bc10e-eea4-4340-9762-0b0b13a88a0c', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7f0aff' },
-        body: JSON.stringify({
-          sessionId: '7f0aff',
-          runId: 'post-fix',
-          hypothesisId: 'A',
-          location: 'play-net.js:writeInput',
-          message: 'firebase writeInput',
-          data: {
-            uidTail: uid.slice(-8),
-            hostNow,
-            slot: input?.slot,
-            splitSeq: input?.splitSeq,
-            x: Math.round(Number(input?.x) || 0),
-            y: Math.round(Number(input?.y) || 0),
-            cx: Math.round(Number(input?.cx) || 0),
-            cy: Math.round(Number(input?.cy) || 0),
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {})
-      // #endregion
-      set(inputsRef, { ...input, at: serverTimestamp() }).catch((err) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7259/ingest/d65bc10e-eea4-4340-9762-0b0b13a88a0c', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7f0aff' },
-          body: JSON.stringify({
-            sessionId: '7f0aff',
-            runId: 'post-fix',
-            hypothesisId: 'A',
-            location: 'play-net.js:writeInput',
-            message: 'writeInput failed',
-            data: { err: String(err?.message || err) },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {})
-        // #endregion
-        warnWrite('input')(err)
-      })
+      set(inputsRef, { ...input, at: serverTimestamp() }).catch(warnWrite('input'))
     },
     writePresence(next) {
       playing = !!next.playing
