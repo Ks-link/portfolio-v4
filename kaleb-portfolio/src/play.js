@@ -16,6 +16,7 @@ import {
   humanCount,
   packCells,
   packFood,
+  slotOfUid,
   unpackCells,
   unpackFood,
 } from './play-net.js'
@@ -301,6 +302,7 @@ export const mountPlay = (root) => {
   let running = false
   let playing = false
   let rafId = 0
+  let hostTimer = 0
   let last = 0
   let time = 0
   let cells = []
@@ -333,6 +335,9 @@ export const mountPlay = (root) => {
   let hadLocalCells = false
   let playLife = 0
   let remotePlayLife = new Map()
+  let remoteDead = new Set()
+  let lastRemoteInput = new Map()
+  let lastAdoptSig = new Map()
   let playLockedUntil = 0
   let claiming = false
   let sessionReady = null
@@ -424,7 +429,7 @@ export const mountPlay = (root) => {
     moveStick(clientX, clientY)
   }
 
-  const ownerCells = (owner) => cells.filter((c) => c.owner === owner)
+  const ownerCells = (owner) => cells.filter((c) => Number(c.owner) === Number(owner))
   const isAIOwner = (owner) => netSlots[owner]?.kind === 'ai'
   const isHumanOwner = (owner) => netSlots[owner]?.kind === 'human'
   const isSpawnProtected = (owner) =>
@@ -490,8 +495,25 @@ export const mountPlay = (root) => {
     hadLocalCells = true
   }
 
+  const adoptRemoteInputSeqs = (owner) => {
+    const uid = netSlots[owner]?.uid
+    if (!uid) return
+    const input = netInputs[uid]
+    lastSplitSeq.set(uid, input?.splitSeq || 0)
+    lastKillSeq.set(uid, input?.killSeq || 0)
+  }
+
+  const ownerForRemote = (uid, presence) => {
+    const held = slotOfUid(netSlots, uid)
+    if (held >= 0) return held
+    if (presence?.slot === 0 || presence?.slot === '0') return 0
+    const slot = Number(presence?.slot)
+    if (!Number.isInteger(slot) || slot < 1 || slot >= SLOT_COUNT) return -1
+    return slot
+  }
+
   const spawnHuman = (owner, at = null) => {
-    cells = cells.filter((c) => c.owner !== owner)
+    cells = cells.filter((c) => Number(c.owner) !== Number(owner))
     const pos = at
       ? { x: clamp(at.x, 180, WORLD - 180), y: clamp(at.y, 180, WORLD - 180) }
       : clearSpot(160)
@@ -500,11 +522,13 @@ export const mountPlay = (root) => {
         x: pos.x,
         y: pos.y,
         mass: START_MASS,
-        owner,
+        owner: Number(owner),
         color: humanColor(owner),
       }),
     )
     spawnProtectUntil.set(owner, time + SPAWN_PROTECT)
+    remoteDead.delete(owner)
+    adoptRemoteInputSeqs(owner)
     if (owner === localOwner) adoptLocalSpawn(pos)
   }
 
@@ -514,7 +538,8 @@ export const mountPlay = (root) => {
   }
 
   const spawnAI = (owner) => {
-    cells = cells.filter((c) => c.owner !== owner)
+    if (owner === localOwner) return
+    cells = cells.filter((c) => Number(c.owner) !== Number(owner))
     const avoid = localOwner >= 0 ? massCenter(ownerCells(localOwner)) : null
     const pos = clearSpot(220, avoid?.mass ? avoid : null)
     cells.push(
@@ -522,7 +547,7 @@ export const mountPlay = (root) => {
         x: pos.x,
         y: pos.y,
         mass: rand(START_MASS * 0.7, START_MASS * 1.35),
-        owner,
+        owner: Number(owner),
         color: AI_COLORS[(owner - 1) % AI_COLORS.length],
       }),
     )
@@ -562,7 +587,7 @@ export const mountPlay = (root) => {
       for (let i = 0; i < FOOD_COUNT; i++) spawnFoodOne()
     }
     for (let i = 1; i <= AI_COUNT; i++) {
-      if (!isAIOwner(i)) continue
+      if (!isAIOwner(i) || i === localOwner) continue
       if (!ownerCells(i).length) spawnAI(i)
     }
   }
@@ -835,6 +860,65 @@ export const mountPlay = (root) => {
     return false
   }
 
+  const resolveMovingOwn = () => {
+    if (localOwner < 0) return false
+    for (let i = 0; i < cells.length; i++) {
+      const a = cells[i]
+      if (Number(a.owner) !== Number(localOwner)) continue
+      for (let j = 0; j < cells.length; j++) {
+        if (i === j) continue
+        const b = cells[j]
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        const dist = hypot(dx, dy) || 0.001
+        const ra = radiusOf(a.mass)
+        const rb = radiusOf(b.mass)
+
+        if (Number(a.owner) === Number(b.owner)) {
+          const mergeReady = time >= a.mergeAt && time >= b.mergeAt
+          const minDist = (ra + rb) * 0.92
+          const touching = dist <= (ra + rb) * MERGE_TOUCH
+          const finishAt = Math.max(6, (ra + rb) * MERGE_FINISH)
+          if (mergeReady && touching && (reduceMotion || dist < finishAt)) {
+            const keep = a.mass >= b.mass ? a : b
+            const drop = keep === a ? j : i
+            const total = a.mass + b.mass
+            keep.x = (a.x * a.mass + b.x * b.mass) / total
+            keep.y = (a.y * a.mass + b.y * b.mass) / total
+            keep.mass = total
+            keep.vx = (a.vx * a.mass + b.vx * b.mass) / total
+            keep.vy = (a.vy * a.mass + b.vy * b.mass) / total
+            keep.merging = false
+            cells.splice(drop, 1)
+            return true
+          }
+          if (!mergeReady && dist < minDist) {
+            const push = ((minDist - dist) / 2) * 0.65
+            const nx = dx / dist
+            const ny = dy / dist
+            a.x -= nx * push
+            a.y -= ny * push
+            b.x += nx * push
+            b.y += ny * push
+            clampCell(a)
+            clampCell(b)
+          }
+          continue
+        }
+
+        if (canEat(a, b)) {
+          absorb(a, j)
+          return true
+        }
+        if (canEat(b, a)) {
+          absorb(b, i)
+          return true
+        }
+      }
+    }
+    return false
+  }
+
   const eatFood = () => {
     for (const cell of cells) {
       const reach = radiusOf(cell.mass) * 0.92
@@ -852,6 +936,65 @@ export const mountPlay = (root) => {
         }
       }
     }
+  }
+
+  const eatFoodForOwner = (owner) => {
+    for (const cell of ownerCells(owner)) {
+      const reach = radiusOf(cell.mass) * 0.92
+      for (let i = food.length - 1; i >= 0; i--) {
+        const pellet = food[i]
+        const dx = cell.x - pellet.x
+        if (Math.abs(dx) > reach) continue
+        const dy = cell.y - pellet.y
+        if (Math.abs(dy) > reach) continue
+        if (hypot(dx, dy) < reach) {
+          cell.mass += pellet.mass
+          food.splice(i, 1)
+        }
+      }
+    }
+  }
+
+  const clearFoodUnderOwner = (owner) => {
+    let cleared = 0
+    for (const cell of ownerCells(owner)) {
+      const reach = radiusOf(cell.mass) * 0.92
+      for (let i = food.length - 1; i >= 0; i--) {
+        if (hypot(cell.x - food[i].x, cell.y - food[i].y) < reach) {
+          food.splice(i, 1)
+          cleared += 1
+          foodDirty = true
+        }
+      }
+    }
+    while (cleared > 0 && anyPresent() && food.length < FOOD_COUNT) {
+      spawnFoodOne()
+      cleared -= 1
+    }
+    return cleared
+  }
+
+  const adoptClientCells = (owner, rows) => {
+    cells = cells.filter((c) => Number(c.owner) !== Number(owner))
+    const color = humanColor(owner)
+    for (const row of rows) {
+      if (!row || row.length < 5) continue
+      const mergeLeft = Math.max(0, Number(row[5]) || 0)
+      const cell = makeCell({
+        x: Number(row[0]),
+        y: Number(row[1]),
+        vx: Number(row[2]) || 0,
+        vy: Number(row[3]) || 0,
+        mass: Math.max(1, Number(row[4]) || START_MASS),
+        owner: Number(owner),
+        color,
+        mergeAt: time + mergeLeft,
+      })
+      cell.merging = !!row[6]
+      clampCell(cell)
+      cells.push(cell)
+    }
+    clearFoodUnderOwner(owner)
   }
 
   const thinkAI = (cell) => {
@@ -992,22 +1135,44 @@ export const mountPlay = (root) => {
     }
 
     if (isHost) {
-      for (let owner = 0; owner < SLOT_COUNT; owner++) {
-        if (!isHumanOwner(owner) || owner === localOwner) continue
-        const uid = netSlots[owner]?.uid
-        const presence = uid ? netPresence[uid] : null
-        if (!presence?.playing) continue
+      for (const [uid, presence] of Object.entries(netPresence)) {
+        if (!uid || uid === session?.uid) continue
+        const owner = ownerForRemote(uid, presence)
+        if (owner < 0 || owner === localOwner) continue
+        if (!presence?.playing) {
+          remoteDead.add(owner)
+          if (ownerCells(owner).length) {
+            cells = cells.filter((c) => Number(c.owner) !== Number(owner))
+          }
+          continue
+        }
+        if (netSlots[owner]?.kind !== 'human' || netSlots[owner]?.uid !== uid) {
+          const next = { ...netSlots, [owner]: { kind: 'human', uid, at: Date.now() } }
+          netSlots = next
+          session?.writeSlots(next)
+        }
         const life = Number(presence.life) > 0 ? Number(presence.life) : 1
         const last = remotePlayLife.get(owner) ?? 0
-        if (life <= last) continue
-        remotePlayLife.set(owner, life)
-        if (!ownerCells(owner).length) spawnHuman(owner)
+        if (life > last) {
+          remotePlayLife.set(owner, life)
+          if (!ownerCells(owner).length || remoteDead.has(owner)) spawnHuman(owner)
+          else remoteDead.delete(owner)
+          continue
+        }
+        if (ownerCells(owner).length) {
+          remoteDead.delete(owner)
+          continue
+        }
+        if (remoteDead.has(owner)) {
+          spawnHuman(owner)
+          remotePlayLife.set(owner, life)
+        }
       }
     }
 
     if ((isHost || !session) && anyPresent()) {
       for (let owner = 1; owner <= AI_COUNT; owner++) {
-        if (!isAIOwner(owner)) continue
+        if (!isAIOwner(owner) || owner === localOwner) continue
         if (ownerCells(owner).length) continue
         const due = aiRespawnAt.get(owner)
         if (!due) aiRespawnAt.set(owner, time + AI_RESPAWN_WAIT)
@@ -1050,22 +1215,85 @@ export const mountPlay = (root) => {
     }
   }
 
+  const resolveInputOwner = (uid, input) => {
+    const fromInput = Number(input?.slot)
+    if (Number.isInteger(fromInput) && fromInput >= 0 && fromInput < SLOT_COUNT) return fromInput
+    const held = slotOfUid(netSlots, uid)
+    if (held >= 0) return held
+    return ownerForRemote(uid, netPresence[uid])
+  }
+
+  const ensureHumanSeat = (owner, uid) => {
+    if (owner < 0 || owner === localOwner || !uid) return
+    const row = netSlots[owner]
+    if (row?.kind === 'human' && row.uid === uid) return
+    const next = { ...netSlots, [owner]: { kind: 'human', uid, at: Date.now() } }
+    netSlots = next
+    session?.writeSlots(next)
+  }
+
   const steerRemoteHumans = (dt) => {
-    for (let owner = 0; owner < SLOT_COUNT; owner++) {
-      if (!isHumanOwner(owner) || owner === localOwner) continue
-      const uid = netSlots[owner]?.uid
-      const input = uid ? netInputs[uid] : null
-      const group = ownerCells(owner)
-      if (!input || !group.length) continue
-      for (const cell of group) steerCell(cell, input.x, input.y, dt)
-      const splitSeq = input.splitSeq || 0
-      if (splitSeq && splitSeq !== lastSplitSeq.get(uid)) {
-        launchOwner(owner, input.x, input.y)
-        lastSplitSeq.set(uid, splitSeq)
+    const seen = new Set()
+    for (const [uid, input] of Object.entries(netInputs)) {
+      if (!uid || !input || uid === session?.uid) continue
+      const owner = resolveInputOwner(uid, input)
+      if (owner < 0 || owner === localOwner || seen.has(owner)) continue
+      seen.add(owner)
+      ensureHumanSeat(owner, uid)
+      lastRemoteInput.set(uid, input)
+
+      if (!netPresence[uid]?.playing) {
+        cells = cells.filter((c) => Number(c.owner) !== Number(owner))
+        continue
       }
-      const killSeq = input.killSeq || 0
+
+      const group = ownerCells(owner)
+      if (!group.length) {
+        if (netPresence[uid]?.playing) spawnHuman(owner)
+      }
+      const packed = input.cells
+      if (Array.isArray(packed) && packed.length) {
+        const sig = `${packed.length}:${Number(input.splitSeq) || 0}:${Math.round(Number(input.cx) || 0)}:${Math.round(Number(input.cy) || 0)}:${packed
+          .map((r) => `${Math.round(Number(r?.[4]) || 0)}:${Math.round((Number(r?.[5]) || 0) * 10)}`)
+          .join('|')}`
+        if (lastAdoptSig.get(uid) !== sig) {
+          adoptClientCells(owner, packed)
+          lastAdoptSig.set(uid, sig)
+          const splitSeq = Number(input.splitSeq) || 0
+          if (splitSeq) lastSplitSeq.set(uid, splitSeq)
+        }
+      } else {
+        const live = ownerCells(owner)
+        if (live.length) {
+          const hasPos = Number.isFinite(input.cx) && Number.isFinite(input.cy)
+          if (hasPos && live.length === 1) {
+            live[0].x = input.cx
+            live[0].y = input.cy
+            if (Number.isFinite(input.vx)) live[0].vx = input.vx
+            if (Number.isFinite(input.vy)) live[0].vy = input.vy
+            clampCell(live[0])
+          } else if (hasPos) {
+            const com = massCenter(live)
+            const dx = input.cx - com.x
+            const dy = input.cy - com.y
+            for (const cell of live) {
+              cell.x += dx
+              cell.y += dy
+              clampCell(cell)
+            }
+          } else {
+            for (const cell of live) steerCell(cell, input.x, input.y, dt)
+          }
+          const splitSeq = Number(input.splitSeq) || 0
+          if (splitSeq && splitSeq !== lastSplitSeq.get(uid)) {
+            launchOwner(owner, input.x, input.y)
+            lastSplitSeq.set(uid, splitSeq)
+          }
+        }
+      }
+      const killSeq = Number(input.killSeq) || 0
       if (killSeq && killSeq !== lastKillSeq.get(uid)) {
-        cells = cells.filter((c) => c.owner !== owner)
+        cells = cells.filter((c) => Number(c.owner) !== Number(owner))
         lastKillSeq.set(uid, killSeq)
       }
     }
@@ -1120,18 +1348,37 @@ export const mountPlay = (root) => {
     }
   }
 
-  const publishInput = (now) => {
+  const publishInput = (now, force = false) => {
     if (!session || isHost || !playing || localOwner < 0) return
-    if (now - lastInputWrite < INPUT_PUB_MS) return
+    if (!force && now - lastInputWrite < INPUT_PUB_MS) return
     lastInputWrite = now
     const player = ownerCells(localOwner)
     const aim = localAim(player)
-    session.writeInput({
+    const center = massCenter(player)
+    const payload = {
       x: aim.x,
       y: aim.y,
+      slot: localOwner,
       splitSeq: pendingSplitSeq,
       killSeq: pendingKillSeq,
-    })
+    }
+    if (center.mass) {
+      payload.cx = center.x
+      payload.cy = center.y
+      payload.vx = player[0]?.vx || 0
+      payload.vy = player[0]?.vy || 0
+      payload.mass = center.mass
+      payload.cells = player.map((c) => [
+        Math.round(c.x * 10) / 10,
+        Math.round(c.y * 10) / 10,
+        Math.round(c.vx * 10) / 10,
+        Math.round(c.vy * 10) / 10,
+        Math.round(c.mass * 10) / 10,
+        Math.round(Math.max(0, (c.mergeAt || 0) - time) * 100) / 100,
+        c.merging ? 1 : 0,
+      ])
+    }
+    session.writeInput(payload)
   }
 
   const reapGoneHumans = () => {
@@ -1145,6 +1392,7 @@ export const mountPlay = (root) => {
       if (slot.uid && slot.uid === session.uid) continue
       if (owner === localOwner) continue
       if (slot.uid && netPresence[slot.uid]) continue
+      if (slot.uid && (netInputs[slot.uid] || lastRemoteInput.has(slot.uid))) continue
       next[owner] = owner === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
       changed = true
     }
@@ -1173,14 +1421,21 @@ export const mountPlay = (root) => {
         reapGoneHumans()
       }
     } else {
+      time += dt
       for (const cell of cells) {
-        if (playing && cell.owner === localOwner) continue
+        if (playing && Number(cell.owner) === Number(localOwner)) continue
         cell.x += (cell.vx || 0) * dt
         cell.y += (cell.vy || 0) * dt
         clampCell(cell)
       }
       if (playing && localOwner >= 0) {
         steerLocal(dt)
+        eatFoodForOwner(localOwner)
+        tickMergePull(dt)
+        for (let n = 0; n < 4 && resolveMovingOwn(); n++) {
+          /* local eat / merge for own cells */
+        }
+        for (const cell of ownerCells(localOwner)) tickStretch(cell, dt)
         if (hadLocalCells && !ownerCells(localOwner).length) {
           hadLocalCells = false
           handleLocalDeath()
@@ -1476,8 +1731,8 @@ export const mountPlay = (root) => {
       drawPellet(item)
     }
 
-    const others = cells.filter((c) => c.owner !== localOwner)
-    const mine = cells.filter((c) => c.owner === localOwner)
+    const others = cells.filter((c) => Number(c.owner) !== Number(localOwner))
+    const mine = cells.filter((c) => Number(c.owner) === Number(localOwner))
     others.sort((a, b) => a.mass - b.mass)
     mine.sort((a, b) => a.mass - b.mass)
     const leader = heaviestCell()
@@ -1527,6 +1782,17 @@ export const mountPlay = (root) => {
     rafId = requestAnimationFrame(tick)
   }
 
+  const armHostTimer = () => {
+    if (hostTimer) return
+    hostTimer = window.setInterval(() => {
+      if (!running || !isHost || !document.hidden) return
+      const now = performance.now()
+      const dt = Math.min(0.05, (now - last) / 1000 || 0.016)
+      last = now
+      update(dt, now)
+    }, 50)
+  }
+
   const shootAim = (player) => {
     if (!isMobileHud()) return pointer.valid ? pointer : massCenter(player)
     let nx = stick.mag > 0 ? stick.nx : stick.lastNx
@@ -1552,8 +1818,8 @@ export const mountPlay = (root) => {
     if (!player.length) return
     const aim = shootAim(player)
     pendingSplitSeq += 1
-    if (isHost && launchOwner(localOwner, aim.x, aim.y)) launchCool = 0.42
-    else if (!isHost) launchCool = 0.42
+    if (launchOwner(localOwner, aim.x, aim.y)) launchCool = 0.42
+    if (!isHost) publishInput(performance.now(), true)
   }
 
   const onPointerMove = (e) => {
@@ -1666,17 +1932,20 @@ export const mountPlay = (root) => {
   const applySlots = (next) => {
     const incoming = { ...(next || defaultSlots()) }
     const prev = netSlots
-    if (
-      localOwner >= 0 &&
-      playing &&
-      session?.uid &&
-      prev[localOwner]?.kind === 'human' &&
-      prev[localOwner]?.uid === session.uid &&
-      incoming[localOwner]?.kind !== 'human'
-    ) {
-      incoming[localOwner] = { kind: 'human', uid: session.uid, at: Date.now() }
-      if (isHost) session.writeSlots(incoming)
+    let restored = false
+    for (let owner = 0; owner < SLOT_COUNT; owner++) {
+      const before = prev[owner]
+      const after = incoming[owner]
+      if (before?.kind !== 'human' || !before.uid) continue
+      if (after?.kind === 'human') continue
+      const stillHere =
+        (owner === localOwner && session?.uid && before.uid === session.uid) ||
+        !!netPresence[before.uid]
+      if (!stillHere) continue
+      incoming[owner] = { kind: 'human', uid: before.uid, at: Date.now() }
+      restored = true
     }
+    if (restored && isHost && session) session.writeSlots(incoming)
     netSlots = incoming
     syncMapFull()
     if (!isHost || !slotDiffEnabled) return
@@ -1685,6 +1954,7 @@ export const mountPlay = (root) => {
       const after = incoming[owner] || before
       if (before.kind === after.kind && before.uid === after.uid) continue
       remotePlayLife.delete(owner)
+      remoteDead.delete(owner)
       if (after.kind === 'human' && before.kind !== 'human') {
         if (owner === localOwner && (ownerCells(owner).length || !playing)) continue
         if (before.kind === 'ai') replaceAIWithHuman(owner)
@@ -1692,8 +1962,9 @@ export const mountPlay = (root) => {
         continue
       }
       if (before.kind === 'human' && after.kind !== 'human') {
-        if (owner === localOwner && playing) continue
-        cells = cells.filter((c) => c.owner !== owner)
+        if (owner === localOwner) continue
+        if (before.uid && netPresence[before.uid]) continue
+        cells = cells.filter((c) => Number(c.owner) !== Number(owner))
         if (after.kind === 'ai' && anyPresent()) spawnAI(owner)
       }
     }
@@ -1745,34 +2016,45 @@ export const mountPlay = (root) => {
   const applyRemoteCells = (payload) => {
     if (isHost) return
     if (!payload) {
-      cells = playing && localOwner >= 0 ? cells.filter((c) => c.owner === localOwner) : []
+      cells = playing && localOwner >= 0 ? cells.filter((c) => Number(c.owner) === Number(localOwner)) : []
       return
     }
-    if (typeof payload.t === 'number') time = payload.t
+    if (typeof payload.t === 'number') {
+      const delta = payload.t - time
+      time = payload.t
+      // Keep local merge timers relative when host clock snaps.
+      if (playing && localOwner >= 0 && Math.abs(delta) > 0.01) {
+        for (const c of cells) {
+          if (Number(c.owner) === Number(localOwner)) c.mergeAt = (c.mergeAt || 0) + delta
+        }
+      }
+    }
     const incoming = unpackCells(payload.cells || payload)
     const remotes = []
     const remoteOwners = new Set()
     for (const cell of incoming) {
-      if (cell.owner !== localOwner) remoteOwners.add(cell.owner)
+      if (Number(cell.owner) !== Number(localOwner)) remoteOwners.add(Number(cell.owner))
     }
     for (const owner of remoteOwners) {
       remotes.push(
         ...blendOwnerGroup(
-          cells.filter((c) => c.owner === owner),
-          incoming.filter((c) => c.owner === owner),
+          cells.filter((c) => Number(c.owner) === Number(owner)),
+          incoming.filter((c) => Number(c.owner) === Number(owner)),
           REMOTE_SNAP_RATE,
         ),
       )
     }
 
-    const locals =
-      playing && localOwner >= 0
-        ? blendOwnerGroup(
-            cells.filter((c) => c.owner === localOwner),
-            incoming.filter((c) => c.owner === localOwner),
-            RECONCILE_RATE,
-          )
-        : []
+    // Client is authoritative for own cells; only bootstrap from host when empty.
+    const incomingLocal =
+      localOwner >= 0 ? incoming.filter((c) => Number(c.owner) === Number(localOwner)) : []
+    const prevLocal =
+      localOwner >= 0 ? cells.filter((c) => Number(c.owner) === Number(localOwner)) : []
+    let locals = []
+    if (playing && localOwner >= 0) {
+      if (prevLocal.length) locals = prevLocal
+      else if (incomingLocal.length) locals = incomingLocal
+    }
     cells = remotes.concat(locals)
   }
 
@@ -1787,15 +2069,15 @@ export const mountPlay = (root) => {
 
   const ensureLocalSpawn = () => {
     if (localOwner < 0 || ownerCells(localOwner).length) return
-    hadLocalCells = false
-    if (isHost || !session) spawnHuman(localOwner)
+    spawnHuman(localOwner)
   }
 
   const resumePlay = () => {
     playing = true
     playLife += 1
-    session?.writePresence({ playing: true, life: playLife })
+    session?.writePresence({ playing: true, life: playLife, slot: localOwner >= 0 ? localOwner : null })
     ensureLocalSpawn()
+    if (!isHost) publishInput(performance.now(), true)
     root.classList.add('is-playing')
     startMagnet.x = 0
     startMagnet.y = 0
@@ -1820,7 +2102,7 @@ export const mountPlay = (root) => {
     try {
       session = (await sessionReady) || session
       if (!running || !session) return
-      const result = await session.claimSlot()
+      const result = await session.claimSlot(localOwner)
       if (!running) return
       if (result.full) {
         setMapFull(true)
@@ -1841,7 +2123,7 @@ export const mountPlay = (root) => {
     if (!running || !playing) return
     playing = false
     hadLocalCells = false
-    if (localOwner >= 0) cells = cells.filter((c) => c.owner !== localOwner)
+    if (localOwner >= 0) cells = cells.filter((c) => Number(c.owner) !== Number(localOwner))
     session?.writePresence({ playing: false })
     root.classList.remove('is-playing')
     tap.id = null
@@ -1861,9 +2143,10 @@ export const mountPlay = (root) => {
 
   const kill = () => {
     if (!running || !playing || localOwner < 0) return
-    if (!ownerCells(localOwner).length) return
     pendingKillSeq += 1
-    if (isHost) cells = cells.filter((c) => c.owner !== localOwner)
+    cells = cells.filter((c) => Number(c.owner) !== Number(localOwner))
+    if (!isHost) publishInput(performance.now(), true)
+    handleLocalDeath()
   }
 
   const bindSession = async () => {
@@ -1871,10 +2154,14 @@ export const mountPlay = (root) => {
       onHostChange(next, meta) {
         hostKnown = true
         isHost = next
+        if (next) armHostTimer()
         if (next && meta?.empty) {
           emptyLobby = true
           slotDiffEnabled = false
           remotePlayLife = new Map()
+          remoteDead = new Set()
+          lastRemoteInput = new Map()
+          lastAdoptSig = new Map()
           clearArena()
           lastCellPub = 0
           lastFoodPub = 0
@@ -1923,6 +2210,9 @@ export const mountPlay = (root) => {
     hadLocalCells = false
     playLife = 0
     remotePlayLife = new Map()
+    remoteDead = new Set()
+    lastRemoteInput = new Map()
+    lastAdoptSig = new Map()
     playLockedUntil = 0
     setMapFull(false)
     root.classList.remove('is-playing')
@@ -1953,6 +2243,10 @@ export const mountPlay = (root) => {
     playing = false
     root.classList.remove('is-playing')
     cancelAnimationFrame(rafId)
+    if (hostTimer) {
+      window.clearInterval(hostTimer)
+      hostTimer = 0
+    }
     observer.disconnect()
     window.removeEventListener('pointermove', onPointerMove)
     window.removeEventListener('pointerdown', onPointerDown)
