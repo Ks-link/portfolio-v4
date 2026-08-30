@@ -193,7 +193,7 @@ const makeCell = ({ x, y, mass, owner, color, vx = 0, vy = 0, mergeAt = 0 }) => 
 })
 
 export const mountPlay = (root) => {
-  if (!root) return { start() {}, stop() {}, pause() {}, kill() {} }
+  if (!root) return { start() {}, stop() {}, kill() {} }
 
   const canvas = document.createElement('canvas')
   canvas.className = 'play-canvas'
@@ -2306,5 +2306,5 @@ export const mountPlay = (root) => {
     tryLaunch()
   })
 
-  return { start, stop, pause, kill }
+  return { start, stop, kill }
 }
