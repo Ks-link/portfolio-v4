@@ -2029,29 +2029,28 @@ body {
 }
 
 .contact-form__submit {
-  align-self: flex-start;
+  width: 100%;
   margin-top: 0.35rem;
-  padding: 0.65rem 0;
+  padding: 0.75rem 1.25rem;
   border: none;
-  border-bottom: 1px solid var(--accent);
-  border-radius: 0;
-  background: transparent;
-  color: var(--text);
+  border-radius: 0.25rem;
+  background: var(--text);
+  color: var(--bg);
   font-family: var(--sans);
   font-weight: 500;
   font-size: 0.95rem;
   letter-spacing: 0.08em;
+  text-align: left;
   text-transform: uppercase;
   cursor: pointer;
   transition:
-    color 0.2s ease,
-    border-color 0.2s ease,
+    background-color 0.2s ease,
     opacity 0.2s ease;
 }
 
 .contact-form__submit:hover,
 .contact-form__submit:focus-visible {
-  color: var(--accent);
+  background: var(--accent);
 }
 
 .contact-form__submit:focus-visible {

@@ -356,7 +356,7 @@ app.innerHTML = `
       <div class="screen-inner contact-layout">
         <h2 id="contact-heading" class="screen-title">Get In Touch</h2>
         <p class="about-bio">Fill out the form below to get in touch.</p>
-        <form class="contact-form" novalidate>
+        <form class="contact-form">
           <input type="checkbox" name="botcheck" class="contact-form__honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
           <input type="hidden" name="subject" value="Portfolio contact" />
           <div class="contact-form__field">
@@ -365,7 +365,7 @@ app.innerHTML = `
           </div>
           <div class="contact-form__field">
             <label for="contact-email">Email</label>
-            <input id="contact-email" name="email" type="email" required autocomplete="email" />
+            <input id="contact-email" name="email" type="email" required autocomplete="email" inputmode="email" />
           </div>
           <div class="contact-form__field">
             <label for="contact-message">How can I help</label>
@@ -2663,6 +2663,11 @@ const setContactStatus = (message, type = '') => {
 
 contactForm?.addEventListener('submit', async (e) => {
   e.preventDefault()
+  if (!contactForm.checkValidity()) {
+    contactForm.reportValidity()
+    return
+  }
+
   const accessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY
   if (!accessKey) {
     setContactStatus('Contact form is not configured yet.', 'error')
@@ -2680,8 +2685,13 @@ contactForm?.addEventListener('submit', async (e) => {
     subject: String(formData.get('subject') || 'Portfolio contact'),
   }
 
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)
   if (!payload.name || !payload.email || !payload.message) {
     setContactStatus('Please fill out all fields.', 'error')
+    return
+  }
+  if (!emailOk) {
+    setContactStatus('Please enter a valid email address.', 'error')
     return
   }
 
@@ -2702,9 +2712,9 @@ contactForm?.addEventListener('submit', async (e) => {
       throw new Error(data.message || 'Request failed')
     }
     contactForm.reset()
-    setContactStatus('Thanks — your message is on its way.', 'success')
+    setContactStatus('Thanks, your message is on the way.', 'success')
   } catch {
-    setContactStatus('Something went wrong. Please try again or email contact@kaleblink.com.', 'error')
+    setContactStatus('Something went wrong. Please try again or email me at contact@kaleblink.com.', 'error')
   } finally {
     contactSubmit.disabled = false
   }
