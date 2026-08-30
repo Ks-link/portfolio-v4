@@ -1952,11 +1952,12 @@ body {
 }
 
 .contact-layout {
-  max-width: 28rem;
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
 }
 
 .contact-form {
-  margin-top: 1.75rem;
   display: flex;
   flex-direction: column;
   gap: 1.35rem;
@@ -1983,7 +1984,7 @@ body {
 .contact-form__field label {
   font-family: var(--sans);
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--text);
@@ -1993,10 +1994,9 @@ body {
 .contact-form__field textarea {
   width: 100%;
   margin: 0;
-  padding: 0.55rem 0;
-  border: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--text) 28%, transparent);
-  border-radius: 0;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--text) 28%, transparent);
+  border-radius: 0.25rem;
   background: transparent;
   color: var(--text);
   font-family: var(--sans);
@@ -2013,13 +2013,13 @@ body {
 
 .contact-form__field input:hover,
 .contact-form__field textarea:hover {
-  border-bottom-color: color-mix(in srgb, var(--text) 55%, transparent);
+  border-color: color-mix(in srgb, var(--text) 55%, transparent);
 }
 
 .contact-form__field input:focus,
 .contact-form__field textarea:focus {
   outline: none;
-  border-bottom-color: var(--accent);
+  border-color: var(--accent);
 }
 
 .contact-form__field input:focus-visible,
