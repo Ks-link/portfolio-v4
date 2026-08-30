@@ -1060,7 +1060,9 @@ body {
 }
 
 #app[data-cookie-banner="open"]:not([data-screen="play"]) .nav-blob--bottom {
-  bottom: calc(0.85rem + var(--cookie-banner-h, 2.75rem) + 0.1rem);
+  bottom: calc(
+    var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem)
+  );
 }
 
 .nav-blob--bottom .nav-blob-shape {
@@ -1191,9 +1193,10 @@ body {
 }
 
 #app[data-cookie-banner="open"]:not([data-screen="play"]) .swipe-hints {
+  /* Banner height already includes bottom safe-area padding — don't stack it again.
+     Gap grows when the banner wraps (set via --cookie-banner-gap in JS). */
   bottom: calc(
-    max(1rem, env(safe-area-inset-bottom)) + var(--cookie-banner-h, 2.75rem) +
-      0.35rem
+    var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem)
   );
 }
 

@@ -19,7 +19,7 @@
     }
   }
 
-  const hasAnalyticsConsent = () => getConsent() === 'accepted'
+  const hasAnalyticsConsent = () => getConsent() !== 'declined'
 
   const isConsentDecided = () => {
     const value = getConsent()
@@ -28,8 +28,7 @@
 
   let enabled = false
 
-  const enableAnalytics = () => {
-    setConsent('accepted')
+  const loadGtag = () => {
     if (enabled || document.querySelector(`script[${SCRIPT_ATTR}]`)) {
       enabled = true
       return
@@ -51,6 +50,11 @@
     script.setAttribute(SCRIPT_ATTR, '1')
     document.head.appendChild(script)
     enabled = true
+  }
+
+  const enableAnalytics = () => {
+    setConsent('accepted')
+    loadGtag()
   }
 
   const clearGaCookies = () => {
@@ -186,11 +190,29 @@ html[data-theme="dark"] .cookie-consent {
     if (!root?.dataset) return
     delete root.dataset.cookieBanner
     root.style.removeProperty('--cookie-banner-h')
+    root.style.removeProperty('--cookie-banner-gap')
   }
 
   const dismissBanner = (el, root) => {
+    el?._cookieBannerRo?.disconnect()
     el?.remove()
     clearBannerState(root)
+  }
+
+  const isBannerStacked = (el) => {
+    const copy = el.querySelector('.cookie-consent__copy')
+    const actions = el.querySelector('.cookie-consent__actions')
+    if (!copy || !actions) return false
+    return Math.abs(copy.getBoundingClientRect().top - actions.getBoundingClientRect().top) > 2
+  }
+
+  const syncBannerLayout = (el, root) => {
+    if (!root?.dataset || !el.isConnected) return
+    root.style.setProperty('--cookie-banner-h', `${el.offsetHeight}px`)
+    root.style.setProperty(
+      '--cookie-banner-gap',
+      isBannerStacked(el) ? '0.55rem' : '0.15rem',
+    )
   }
 
   const mountBanner = (root = document.body, options = {}) => {
@@ -230,13 +252,20 @@ html[data-theme="dark"] .cookie-consent {
     root.appendChild(el)
     if (root?.dataset) {
       root.dataset.cookieBanner = 'open'
-      root.style.setProperty('--cookie-banner-h', `${el.offsetHeight}px`)
+      const sync = () => syncBannerLayout(el, root)
+      sync()
+      requestAnimationFrame(sync)
+      if (typeof ResizeObserver === 'function') {
+        const ro = new ResizeObserver(sync)
+        ro.observe(el)
+        el._cookieBannerRo = ro
+      }
     }
     return el
   }
 
   const initFromStorage = () => {
-    if (hasAnalyticsConsent()) enableAnalytics()
+    if (hasAnalyticsConsent()) loadGtag()
   }
 
   global.AnalyticsConsent = {
