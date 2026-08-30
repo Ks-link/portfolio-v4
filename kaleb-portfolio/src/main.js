@@ -222,11 +222,15 @@ app.innerHTML = `
     </div>
     <div class="swipe-hints__set swipe-hints__set--about">
       ${swipeDir('up', 'home', 'home')}
+      ${swipeDir('down', 'contact', 'contact')}
       ${swipeDir('right', 'experience', 'experience')}
     </div>
     <div class="swipe-hints__set swipe-hints__set--experience">
       ${swipeDir('left', 'about', 'about')}
       ${swipeDir('up', 'work', 'work')}
+    </div>
+    <div class="swipe-hints__set swipe-hints__set--contact">
+      ${swipeDir('up', 'about', 'about')}
     </div>
   </nav>
   <div class="stage">
@@ -348,6 +352,30 @@ app.innerHTML = `
           </div>
         </div>
     </section>
+    <section class="screen screen--contact" aria-labelledby="contact-heading">
+      <div class="screen-inner contact-layout">
+        <h2 id="contact-heading" class="screen-title">Get In Touch</h2>
+        <p class="about-bio">Fill out the form below to get in touch.</p>
+        <form class="contact-form" novalidate>
+          <input type="checkbox" name="botcheck" class="contact-form__honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          <input type="hidden" name="subject" value="Portfolio contact" />
+          <div class="contact-form__field">
+            <label for="contact-name">Name</label>
+            <input id="contact-name" name="name" type="text" required autocomplete="name" />
+          </div>
+          <div class="contact-form__field">
+            <label for="contact-email">Email</label>
+            <input id="contact-email" name="email" type="email" required autocomplete="email" />
+          </div>
+          <div class="contact-form__field">
+            <label for="contact-message">How can I help</label>
+            <textarea id="contact-message" name="message" rows="5" required></textarea>
+          </div>
+          <button type="submit" class="contact-form__submit">Send message</button>
+          <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
+        </form>
+      </div>
+    </section>
     <section class="screen screen--experience" aria-labelledby="experience-heading">
       <div class="screen-inner">
         <h2 id="experience-heading" class="screen-title">Experience</h2>
@@ -432,7 +460,7 @@ blobsToggle.addEventListener('click', () => {
   applyBlobs(app.dataset.blobs === 'off' ? 'on' : 'off')
 })
 
-const screens = new Set(['play', 'home', 'work', 'about', 'experience'])
+const screens = new Set(['play', 'home', 'work', 'about', 'experience', 'contact'])
 const hoverPreviewMq = window.matchMedia('(hover: hover)')
 
 const workScreen = document.querySelector('.screen--work')
@@ -525,8 +553,9 @@ const edgeNav = {
   play: { right: 'home' },
   home: { left: 'play', right: 'work', bottom: 'about' },
   work: { left: 'home', bottom: 'experience' },
-  about: { top: 'home', right: 'experience' },
+  about: { top: 'home', right: 'experience', bottom: 'contact' },
   experience: { left: 'about', top: 'work' },
+  contact: { top: 'about' },
 }
 
 const ariaForDest = (dest) => {
@@ -535,6 +564,7 @@ const ariaForDest = (dest) => {
   if (dest === 'work') return 'View work'
   if (dest === 'about') return 'About'
   if (dest === 'experience') return 'Experience'
+  if (dest === 'contact') return 'Get In Touch'
   return dest
 }
 
@@ -834,11 +864,17 @@ const swipeMap = {
   },
   about: {
     x: { dir: -1, to: 'experience' },
-    y: { dir: 1, to: 'home', needTop: true },
+    y: [
+      { dir: 1, to: 'home', needTop: true },
+      { dir: -1, to: 'contact' },
+    ],
   },
   experience: {
     x: { dir: 1, to: 'about' },
     y: { dir: 1, to: 'work', needTop: true },
+  },
+  contact: {
+    y: { dir: 1, to: 'about', needTop: true },
   },
 }
 
@@ -846,13 +882,14 @@ const screenEls = {
   work: workScreen,
   about: document.querySelector('.screen--about'),
   experience: document.querySelector('.screen--experience'),
+  contact: document.querySelector('.screen--contact'),
 }
 
 let swipeStart = null
 let swipeClaimedClick = false
 
 const isInteractiveTarget = (el) =>
-  Boolean(el.closest?.('button, .profile-blob-shape, .play-root'))
+  Boolean(el.closest?.('button, a, input, textarea, select, label, .profile-blob-shape, .play-root'))
 
 const scrolledToTop = (el) => !el || el.scrollTop <= 1
 
@@ -872,11 +909,12 @@ const syncScrollEdges = () => {
   screenEls.work?.classList.toggle('is-at-bottom', scrolledToBottom(workScroller))
   screenEls.about?.classList.toggle('is-at-top', scrolledToTop(screenEls.about))
   screenEls.experience?.classList.toggle('is-at-top', scrolledToTop(screenEls.experience))
+  screenEls.contact?.classList.toggle('is-at-top', scrolledToTop(screenEls.contact))
 }
 
 routeEffects.syncScroll = syncScrollEdges
 syncScrollEdges()
-  ;[workListEl, workDetailEl, screenEls.about, screenEls.experience].forEach((el) => {
+  ;[workListEl, workDetailEl, screenEls.about, screenEls.experience, screenEls.contact].forEach((el) => {
     el?.addEventListener('scroll', syncScrollEdges, { passive: true })
   })
 
@@ -953,13 +991,16 @@ const moveSwipe = (id, x, y, preventDefault) => {
 
   const screen = app.dataset.screen || 'home'
   const el = currentScrollEl()
-  const yRoute = swipeMap[screen]?.y
-  if (swipeStart.axis === 'y' && el && yRoute) {
-    if (yRoute.needTop && swipeStart.atTop && dy < 0) {
+  const yRoutes = swipeMap[screen]?.y
+  const yList = Array.isArray(yRoutes) ? yRoutes : yRoutes ? [yRoutes] : []
+  if (swipeStart.axis === 'y' && el && yList.length) {
+    const hasNeedTop = yList.some((route) => route.needTop)
+    const hasNeedBottom = yList.some((route) => route.needBottom)
+    if (hasNeedTop && swipeStart.atTop && dy < 0) {
       el.scrollTop = -dy
       return
     }
-    if (yRoute.needBottom && swipeStart.atBottom && dy > 0) {
+    if (hasNeedBottom && swipeStart.atBottom && dy > 0) {
       el.scrollTop = el.scrollHeight - el.clientHeight - dy
       return
     }
@@ -2607,3 +2648,64 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
 
   document.documentElement.addEventListener('mouseleave', hideCursor)
 }
+
+const contactForm = document.querySelector('.contact-form')
+const contactStatus = document.querySelector('.contact-form__status')
+const contactSubmit = document.querySelector('.contact-form__submit')
+
+const setContactStatus = (message, type = '') => {
+  if (!contactStatus) return
+  contactStatus.hidden = !message
+  contactStatus.textContent = message
+  contactStatus.classList.toggle('is-success', type === 'success')
+  contactStatus.classList.toggle('is-error', type === 'error')
+}
+
+contactForm?.addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const accessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY
+  if (!accessKey) {
+    setContactStatus('Contact form is not configured yet.', 'error')
+    return
+  }
+
+  const formData = new FormData(contactForm)
+  if (formData.get('botcheck')) return
+
+  const payload = {
+    access_key: accessKey,
+    name: String(formData.get('name') || '').trim(),
+    email: String(formData.get('email') || '').trim(),
+    message: String(formData.get('message') || '').trim(),
+    subject: String(formData.get('subject') || 'Portfolio contact'),
+  }
+
+  if (!payload.name || !payload.email || !payload.message) {
+    setContactStatus('Please fill out all fields.', 'error')
+    return
+  }
+
+  contactSubmit.disabled = true
+  setContactStatus('Sending…')
+
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || data.success === false) {
+      throw new Error(data.message || 'Request failed')
+    }
+    contactForm.reset()
+    setContactStatus('Thanks — your message is on its way.', 'success')
+  } catch {
+    setContactStatus('Something went wrong. Please try again or email contact@kaleblink.com.', 'error')
+  } finally {
+    contactSubmit.disabled = false
+  }
+})
