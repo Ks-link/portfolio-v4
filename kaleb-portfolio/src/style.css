@@ -1056,6 +1056,13 @@ body {
   bottom: 0.85rem;
   left: 50%;
   transform: translateX(-50%) translate(var(--magnet-x), var(--magnet-y));
+  transition: bottom 0.25s ease;
+}
+
+#app[data-cookie-banner="open"]:not([data-screen="play"]) .nav-blob--bottom {
+  bottom: calc(
+    var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem)
+  );
 }
 
 .nav-blob--bottom .nav-blob-shape {
@@ -1182,6 +1189,15 @@ body {
   right: 1.25rem;
   bottom: max(1rem, env(safe-area-inset-bottom));
   pointer-events: none;
+  transition: bottom 0.25s ease;
+}
+
+#app[data-cookie-banner="open"]:not([data-screen="play"]) .swipe-hints {
+  /* Banner height already includes bottom safe-area padding — don't stack it again.
+     Gap grows when the banner wraps (set via --cookie-banner-gap in JS). */
+  bottom: calc(
+    var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem)
+  );
 }
 
 .swipe-hints__set {
@@ -1407,6 +1423,10 @@ body {
   text-transform: uppercase;
   color: var(--text);
   opacity: 0.55;
+}
+
+.work-kicker {
+  padding-left: 0.2rem;
 }
 
 .work-back {
@@ -1948,6 +1968,84 @@ body {
   66% {
     border-radius: 52% 44% 60% 40% / 40% 58% 44% 56%;
   }
+}
+
+.cookie-consent {
+  position: fixed;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: none;
+  transform: none;
+  padding: 0.65rem max(1rem, env(safe-area-inset-right))
+    max(0.65rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem 0.65rem;
+  box-sizing: border-box;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--sans);
+  border-radius: 0;
+}
+
+#app[data-screen="play"] .cookie-consent {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.cookie-consent__copy {
+  margin: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  font-weight: 300;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
+
+.cookie-consent__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cookie-consent__btn {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 400;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  padding: 0;
+  line-height: 1.35;
+  color: var(--text);
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  transition: opacity 0.2s ease;
+}
+
+.cookie-consent__btn:hover {
+  opacity: 0.7;
+}
+
+.cookie-consent__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.cookie-consent__btn--accept {
+  color: var(--accent);
 }
 
 @keyframes nav-blob-morph {

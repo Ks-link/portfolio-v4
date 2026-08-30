@@ -399,6 +399,8 @@ const applyTheme = (theme) => {
 
 applyTheme(getPreferredTheme())
 
+window.AnalyticsConsent?.mountBanner(app, { injectStyles: false })
+
 toggle.addEventListener('click', () => {
   const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
   applyTheme(next)
@@ -660,6 +662,7 @@ const applyProjectDetail = (id, { focus = false } = {}) => {
 let lastGtagPath
 
 const trackSpaPageView = () => {
+  if (!window.AnalyticsConsent?.hasAnalyticsConsent()) return
   const pagePath =
     window.location.pathname + window.location.search + window.location.hash
   if (lastGtagPath === undefined) {
