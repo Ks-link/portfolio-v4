@@ -8,7 +8,7 @@
   --cursor-blob: #ee8533;
   --blobs-opacity: 0.5;
   --cursor-blend: multiply;
-  --display: "Knewave", "Arial Rounded MT Bold", sans-serif;
+  --display: "Sarina", "Arial Rounded MT Bold", sans-serif;
   --sans: "Outfit", "Avenir Next", sans-serif;
 }
 
@@ -926,7 +926,7 @@ body {
   margin: 0;
   font-family: var(--display);
   font-weight: 400;
-  font-size: clamp(2.85rem, 8vw, 5.8rem);
+  font-size: clamp(2.49rem, 8vw, 5.8rem);
   line-height: 1.1;
   letter-spacing: 0.01em;
   color: var(--text);

@@ -74,8 +74,10 @@ const CELL_PUB_MS = 80
 const FOOD_PUB_MS = 500
 const INPUT_PUB_MS = 50
 const SNAP_DT = CELL_PUB_MS / 1000
-const RECONCILE_RATE = 8
 const REMOTE_SNAP_RATE = 14
+const INTERP_DELAY = 0.12
+const MAX_SNAP_BUFFER = 8
+const EXTRAP_LIMIT = 0.08
 
 const escapeHtml = (value) =>
   String(value)
@@ -332,6 +334,7 @@ export const mountPlay = (root) => {
   let lastCellPub = 0
   let lastFoodPub = 0
   let foodDirty = false
+  let cellSnapBuffer = []
   let hadLocalCells = false
   let playLife = 0
   let remotePlayLife = new Map()
@@ -436,6 +439,15 @@ export const mountPlay = (root) => {
     isHumanOwner(owner) && time < (spawnProtectUntil.get(owner) ?? 0)
   const humanColor = (owner) =>
     owner === EXTRA_SLOT ? theme.accent : AI_COLORS[(owner - 1 + AI_COLORS.length) % AI_COLORS.length]
+
+  const cellRowsOf = (value) => {
+    if (Array.isArray(value)) return value
+    if (!value || typeof value !== 'object') return []
+    return Object.keys(value)
+      .filter((key) => Number.isInteger(Number(key)) && Number(key) >= 0)
+      .sort((a, b) => Number(a) - Number(b))
+      .map((key) => value[key])
+  }
 
   const setMapFull = (full) => {
     welcome.classList.toggle('is-full', full)
@@ -559,6 +571,7 @@ export const mountPlay = (root) => {
     syncTheme()
     cells = []
     food = []
+    cellSnapBuffer = []
     time = 0
     launchCool = 0
     aiRespawnAt = new Map()
@@ -977,20 +990,21 @@ export const mountPlay = (root) => {
   const adoptClientCells = (owner, rows) => {
     cells = cells.filter((c) => Number(c.owner) !== Number(owner))
     const color = humanColor(owner)
-    for (const row of rows) {
-      if (!row || row.length < 5) continue
-      const mergeLeft = Math.max(0, Number(row[5]) || 0)
+    for (const row of cellRowsOf(rows)) {
+      const data = Array.isArray(row) ? row : cellRowsOf(row)
+      if (!data || data.length < 5) continue
+      const mergeLeft = Math.max(0, Number(data[5]) || 0)
       const cell = makeCell({
-        x: Number(row[0]),
-        y: Number(row[1]),
-        vx: Number(row[2]) || 0,
-        vy: Number(row[3]) || 0,
-        mass: Math.max(1, Number(row[4]) || START_MASS),
+        x: Number(data[0]),
+        y: Number(data[1]),
+        vx: Number(data[2]) || 0,
+        vy: Number(data[3]) || 0,
+        mass: Math.max(1, Number(data[4]) || START_MASS),
         owner: Number(owner),
         color,
         mergeAt: time + mergeLeft,
       })
-      cell.merging = !!row[6]
+      cell.merging = !!data[6]
       clampCell(cell)
       cells.push(cell)
     }
@@ -1180,10 +1194,13 @@ export const mountPlay = (root) => {
       }
     }
 
-    launchCool = Math.max(0, launchCool - dt)
     for (const [owner, cool] of aiLaunchCool) {
       aiLaunchCool.set(owner, Math.max(0, cool - dt))
     }
+  }
+
+  const tickLaunchCool = (dt) => {
+    launchCool = Math.max(0, launchCool - dt)
   }
 
   const localAim = (player) => {
@@ -1251,16 +1268,17 @@ export const mountPlay = (root) => {
       if (!group.length) {
         if (netPresence[uid]?.playing) spawnHuman(owner)
       }
-      const packed = input.cells
-      if (Array.isArray(packed) && packed.length) {
-        const sig = `${packed.length}:${Number(input.splitSeq) || 0}:${Math.round(Number(input.cx) || 0)}:${Math.round(Number(input.cy) || 0)}:${packed
+      const packed = cellRowsOf(input.cells)
+      const splitSeq = Number(input.splitSeq) || 0
+      const prevSplit = lastSplitSeq.get(uid) || 0
+      const prevCount = ownerCells(owner).length
+      if (packed.length) {
+        const sig = `${packed.length}:${splitSeq}:${Math.round(Number(input.cx) || 0)}:${Math.round(Number(input.cy) || 0)}:${packed
           .map((r) => `${Math.round(Number(r?.[4]) || 0)}:${Math.round((Number(r?.[5]) || 0) * 10)}`)
           .join('|')}`
         if (lastAdoptSig.get(uid) !== sig) {
           adoptClientCells(owner, packed)
           lastAdoptSig.set(uid, sig)
-          const splitSeq = Number(input.splitSeq) || 0
-          if (splitSeq) lastSplitSeq.set(uid, splitSeq)
         }
       } else {
         const live = ownerCells(owner)
@@ -1284,11 +1302,13 @@ export const mountPlay = (root) => {
           } else {
             for (const cell of live) steerCell(cell, input.x, input.y, dt)
           }
-          const splitSeq = Number(input.splitSeq) || 0
-          if (splitSeq && splitSeq !== lastSplitSeq.get(uid)) {
-            launchOwner(owner, input.x, input.y)
-            lastSplitSeq.set(uid, splitSeq)
-          }
+        }
+      }
+      if (splitSeq && splitSeq !== prevSplit) {
+        lastSplitSeq.set(uid, splitSeq)
+        // Client may publish a stale pre-split pack; ensure the host still launches.
+        if (ownerCells(owner).length <= prevCount) {
+          launchOwner(owner, input.x, input.y)
         }
       }
       const killSeq = Number(input.killSeq) || 0
@@ -1402,6 +1422,7 @@ export const mountPlay = (root) => {
   const update = (dt, now) => {
     syncTheme()
     refreshPointer()
+    tickLaunchCool(dt)
     const simulating = !session || (hostKnown && isHost)
     if (simulating) {
       time += dt
@@ -1422,12 +1443,7 @@ export const mountPlay = (root) => {
       }
     } else {
       time += dt
-      for (const cell of cells) {
-        if (playing && Number(cell.owner) === Number(localOwner)) continue
-        cell.x += (cell.vx || 0) * dt
-        cell.y += (cell.vy || 0) * dt
-        clampCell(cell)
-      }
+      syncRemoteCellsFromBuffer(dt)
       if (playing && localOwner >= 0) {
         steerLocal(dt)
         eatFoodForOwner(localOwner)
@@ -1992,30 +2008,136 @@ export const mountPlay = (root) => {
     return pairs
   }
 
-  const pullCell = (cell, incoming, rate) => {
-    cell.x = damp(cell.x, incoming.x, rate, SNAP_DT)
-    cell.y = damp(cell.y, incoming.y, rate, SNAP_DT)
-    cell.vx = incoming.vx
-    cell.vy = incoming.vy
-    cell.mass = incoming.mass
+  const cloneCell = (c) => ({ ...c })
+
+  const lerpNum = (a, b, t) => a + (b - a) * t
+
+  const lerpCell = (a, b, t) => {
+    const angleDiff = wrapAngle((b.angle || 0) - (a.angle || 0))
+    return {
+      x: lerpNum(a.x, b.x, t),
+      y: lerpNum(a.y, b.y, t),
+      vx: lerpNum(a.vx || 0, b.vx || 0, t),
+      vy: lerpNum(a.vy || 0, b.vy || 0, t),
+      mass: lerpNum(a.mass, b.mass, t),
+      owner: b.owner,
+      color: t < 0.5 ? a.color : b.color,
+      mergeAt: b.mergeAt,
+      stretch: lerpNum(a.stretch || 0, b.stretch || 0, t),
+      angle: wrapAngle((a.angle || 0) + angleDiff * t),
+      merging: t < 0.5 ? !!a.merging : !!b.merging,
+      phase: a.phase ?? 0,
+      wobble: a.wobble ?? 1,
+    }
+  }
+
+  const pullCell = (cell, incoming, rate, dt = SNAP_DT) => {
+    cell.x = damp(cell.x, incoming.x, rate, dt)
+    cell.y = damp(cell.y, incoming.y, rate, dt)
+    cell.vx = damp(cell.vx || 0, incoming.vx || 0, rate, dt)
+    cell.vy = damp(cell.vy || 0, incoming.vy || 0, rate, dt)
+    cell.mass = damp(cell.mass, incoming.mass, rate, dt)
     cell.mergeAt = incoming.mergeAt
-    cell.stretch = incoming.stretch
-    cell.angle = incoming.angle
+    cell.stretch = damp(cell.stretch || 0, incoming.stretch || 0, rate, dt)
+    cell.angle = dampAngle(cell.angle || 0, incoming.angle || 0, rate, dt)
     cell.merging = incoming.merging
     cell.color = incoming.color
     cell.owner = incoming.owner
   }
 
-  const blendOwnerGroup = (prev, next, rate) => {
+  const blendOwnerGroup = (prev, next, rate, dt = SNAP_DT) => {
     const pairs = pairByNear(prev, next)
-    if (!pairs) return next
-    for (const [cell, incoming] of pairs) pullCell(cell, incoming, rate)
+    if (!pairs) return next.map(cloneCell)
+    for (const [cell, incoming] of pairs) pullCell(cell, incoming, rate, dt)
     return pairs.map(([cell]) => cell)
+  }
+
+  const remoteOnly = (list) =>
+    localOwner >= 0 ? list.filter((c) => Number(c.owner) !== Number(localOwner)) : list.slice()
+
+  const lerpSnapCells = (fromCells, toCells, alpha) => {
+    const fromR = remoteOnly(fromCells)
+    const toR = remoteOnly(toCells)
+    const owners = new Set()
+    for (const c of fromR) owners.add(Number(c.owner))
+    for (const c of toR) owners.add(Number(c.owner))
+    const out = []
+    for (const owner of owners) {
+      const prev = fromR.filter((c) => Number(c.owner) === Number(owner))
+      const next = toR.filter((c) => Number(c.owner) === Number(owner))
+      if (!next.length) continue
+      if (!prev.length) {
+        out.push(...next.map(cloneCell))
+        continue
+      }
+      const pairs = pairByNear(prev, next)
+      if (!pairs) {
+        out.push(...next.map(cloneCell))
+        continue
+      }
+      for (const [a, b] of pairs) out.push(lerpCell(a, b, alpha))
+    }
+    return out
+  }
+
+  const sampleRemoteCells = (renderT, dt) => {
+    if (!cellSnapBuffer.length) return []
+    let older = null
+    let newer = null
+    for (let i = 0; i < cellSnapBuffer.length; i++) {
+      const snap = cellSnapBuffer[i]
+      if (snap.t <= renderT) older = snap
+      if (snap.t >= renderT) {
+        newer = snap
+        break
+      }
+    }
+    if (!older && newer) return remoteOnly(newer.cells).map(cloneCell)
+    if (older && !newer) {
+      const past = Math.min(EXTRAP_LIMIT, Math.max(0, renderT - older.t))
+      const target = remoteOnly(older.cells).map((c) => {
+        const cell = cloneCell(c)
+        cell.x += (cell.vx || 0) * past
+        cell.y += (cell.vy || 0) * past
+        return cell
+      })
+      const prevRemotes = remoteOnly(cells)
+      if (!prevRemotes.length) return target
+      const owners = new Set(target.map((c) => Number(c.owner)))
+      const out = []
+      for (const owner of owners) {
+        out.push(
+          ...blendOwnerGroup(
+            prevRemotes.filter((c) => Number(c.owner) === Number(owner)),
+            target.filter((c) => Number(c.owner) === Number(owner)),
+            REMOTE_SNAP_RATE,
+            dt,
+          ),
+        )
+      }
+      return out
+    }
+    if (!older || !newer) return []
+    if (older.t === newer.t) return remoteOnly(newer.cells).map(cloneCell)
+    const alpha = clamp((renderT - older.t) / (newer.t - older.t), 0, 1)
+    return lerpSnapCells(older.cells, newer.cells, alpha)
+  }
+
+  const syncRemoteCellsFromBuffer = (dt) => {
+    // Capture locals before sampling — extrapolation may mutate remote refs in `cells`.
+    const locals =
+      playing && localOwner >= 0
+        ? cells.filter((c) => Number(c.owner) === Number(localOwner))
+        : []
+    const remotes = sampleRemoteCells(time - INTERP_DELAY, dt)
+    for (const cell of remotes) clampCell(cell)
+    cells = remotes.concat(locals)
   }
 
   const applyRemoteCells = (payload) => {
     if (isHost) return
     if (!payload) {
+      cellSnapBuffer = []
       cells = playing && localOwner >= 0 ? cells.filter((c) => Number(c.owner) === Number(localOwner)) : []
       return
     }
@@ -2030,32 +2152,23 @@ export const mountPlay = (root) => {
       }
     }
     const incoming = unpackCells(payload.cells || payload)
-    const remotes = []
-    const remoteOwners = new Set()
-    for (const cell of incoming) {
-      if (Number(cell.owner) !== Number(localOwner)) remoteOwners.add(Number(cell.owner))
-    }
-    for (const owner of remoteOwners) {
-      remotes.push(
-        ...blendOwnerGroup(
-          cells.filter((c) => Number(c.owner) === Number(owner)),
-          incoming.filter((c) => Number(c.owner) === Number(owner)),
-          REMOTE_SNAP_RATE,
-        ),
-      )
+    const snapT = typeof payload.t === 'number' ? payload.t : time
+    const last = cellSnapBuffer[cellSnapBuffer.length - 1]
+    if (!last || snapT >= last.t) {
+      cellSnapBuffer.push({ t: snapT, cells: incoming.map((c) => ({ ...c })) })
+      while (cellSnapBuffer.length > MAX_SNAP_BUFFER) cellSnapBuffer.shift()
     }
 
     // Client is authoritative for own cells; only bootstrap from host when empty.
-    const incomingLocal =
-      localOwner >= 0 ? incoming.filter((c) => Number(c.owner) === Number(localOwner)) : []
-    const prevLocal =
-      localOwner >= 0 ? cells.filter((c) => Number(c.owner) === Number(localOwner)) : []
-    let locals = []
     if (playing && localOwner >= 0) {
-      if (prevLocal.length) locals = prevLocal
-      else if (incomingLocal.length) locals = incomingLocal
+      const prevLocal = cells.filter((c) => Number(c.owner) === Number(localOwner))
+      if (!prevLocal.length) {
+        const incomingLocal = incoming.filter((c) => Number(c.owner) === Number(localOwner))
+        if (incomingLocal.length) {
+          cells = remoteOnly(cells).concat(incomingLocal.map((c) => ({ ...c })))
+        }
+      }
     }
-    cells = remotes.concat(locals)
   }
 
   const applyRemoteFood = (payload) => {
@@ -2064,7 +2177,18 @@ export const mountPlay = (root) => {
       food = []
       return
     }
-    food = unpackFood(payload, FOOD_PALETTE)
+    const next = unpackFood(payload, FOOD_PALETTE)
+    if (food.length === next.length && food.length) {
+      for (let i = 0; i < food.length; i++) {
+        food[i].x = next[i].x
+        food[i].y = next[i].y
+        food[i].ci = next[i].ci
+        food[i].color = next[i].color
+        food[i].mass = next[i].mass
+      }
+      return
+    }
+    food = next
   }
 
   const ensureLocalSpawn = () => {
@@ -2154,7 +2278,10 @@ export const mountPlay = (root) => {
       onHostChange(next, meta) {
         hostKnown = true
         isHost = next
-        if (next) armHostTimer()
+        if (next) {
+          cellSnapBuffer = []
+          armHostTimer()
+        }
         if (next && meta?.empty) {
           emptyLobby = true
           slotDiffEnabled = false
@@ -2213,6 +2340,7 @@ export const mountPlay = (root) => {
     remoteDead = new Set()
     lastRemoteInput = new Map()
     lastAdoptSig = new Map()
+    cellSnapBuffer = []
     playLockedUntil = 0
     setMapFull(false)
     root.classList.remove('is-playing')
