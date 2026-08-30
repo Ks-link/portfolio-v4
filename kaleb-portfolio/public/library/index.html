@@ -1,14 +1,9 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3D21VS20DD"></script>
+    <script src="/analytics-consent.js"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-3D21VS20DD');
+      window.AnalyticsConsent?.initFromStorage()
     </script>
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
@@ -143,5 +138,8 @@
         are deployed here. A static HTML export of Snacklab can be added later if you generate one.
       </p>
     </main>
+    <script>
+      window.AnalyticsConsent?.mountBanner(document.body)
+    </script>
   </body>
 </html>
