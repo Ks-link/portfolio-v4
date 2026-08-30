@@ -1060,7 +1060,7 @@ body {
 }
 
 #app[data-cookie-banner="open"]:not([data-screen="play"]) .nav-blob--bottom {
-  bottom: calc(0.85rem + var(--cookie-banner-h, 2.75rem) + 0.35rem);
+  bottom: calc(0.85rem + var(--cookie-banner-h, 2.75rem) + 0.1rem);
 }
 
 .nav-blob--bottom .nav-blob-shape {
