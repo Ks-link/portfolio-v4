@@ -23,13 +23,6 @@ const homeIcon = `
   </svg>
 `
 
-const pauseIcon = `
-  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path fill="currentColor"
-      d="M7.25 5.5A1.25 1.25 0 0 0 6 6.75v10.5A1.25 1.25 0 0 0 7.25 18.5h2A1.25 1.25 0 0 0 10.5 17.25V6.75A1.25 1.25 0 0 0 9.25 5.5zM14.75 5.5A1.25 1.25 0 0 0 13.5 6.75v10.5a1.25 1.25 0 0 0 1.25 1.25h2a1.25 1.25 0 0 0 1.25-1.25V6.75A1.25 1.25 0 0 0 16.75 5.5z"/>
-  </svg>
-`
-
 const killIcon = `
   <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="currentColor"
@@ -188,9 +181,6 @@ app.innerHTML = `
   <div class="corner-cluster">
     <button type="button" class="corner-btn home-toggle" aria-label="Home">
       ${homeIcon}
-    </button>
-    <button type="button" class="corner-btn pause-toggle" aria-label="Pause">
-      ${pauseIcon}
     </button>
     <button type="button" class="corner-btn kill-toggle" aria-label="Die">
       ${killIcon}
@@ -416,7 +406,6 @@ toggle.addEventListener('click', () => {
 
 const blobsToggle = document.querySelector('.blobs-toggle')
 const homeToggle = document.querySelector('.home-toggle')
-const pauseToggle = document.querySelector('.pause-toggle')
 const killToggle = document.querySelector('.kill-toggle')
 
 const getPreferredBlobs = () => {
@@ -764,10 +753,6 @@ setRoute(initialScreen, initialProject)
 
 homeToggle.addEventListener('click', () => {
   setScreen('home', { push: true })
-})
-
-pauseToggle?.addEventListener('click', () => {
-  play.pause()
 })
 
 killToggle?.addEventListener('click', () => {
