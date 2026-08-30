@@ -996,13 +996,17 @@ const moveSwipe = (id, x, y, preventDefault) => {
   if (swipeStart.axis === 'y' && el && yList.length) {
     const hasNeedTop = yList.some((route) => route.needTop)
     const hasNeedBottom = yList.some((route) => route.needBottom)
-    if (hasNeedTop && swipeStart.atTop && dy < 0) {
-      el.scrollTop = -dy
-      return
-    }
-    if (hasNeedBottom && swipeStart.atBottom && dy > 0) {
-      el.scrollTop = el.scrollHeight - el.clientHeight - dy
-      return
+    const navRoute = matchSwipeRoute(yList, dy, swipeStart.atTop, swipeStart.atBottom)
+    // Don't rubber-band when this gesture already matches a page transition
+    if (!navRoute) {
+      if (hasNeedTop && swipeStart.atTop && dy < 0) {
+        el.scrollTop = -dy
+        return
+      }
+      if (hasNeedBottom && swipeStart.atBottom && dy > 0) {
+        el.scrollTop = el.scrollHeight - el.clientHeight - dy
+        return
+      }
     }
   }
 
