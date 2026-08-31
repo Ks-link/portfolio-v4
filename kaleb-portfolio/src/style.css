@@ -2334,6 +2334,10 @@ body {
 
 @media (max-width: 48rem) {
   .profile-blob-shape {
+    width: 150px;
+    height: 150px;
+    max-width: 150px;
+    max-height: 150px;
     padding: 0.2rem;
   }
 
