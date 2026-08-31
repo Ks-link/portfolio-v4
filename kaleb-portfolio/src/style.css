@@ -2237,7 +2237,8 @@ body {
   max-width: none;
   transform: none;
   padding: 0.65rem max(1rem, env(safe-area-inset-right))
-    max(0.65rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    max(0.65rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -2442,6 +2443,12 @@ body {
 
   .screen--home {
     padding-bottom: 1.5rem;
+  }
+
+  .title,
+  .hero-cta,
+  .hero-meta-sep {
+    font-size: 0.72rem;
   }
 
   .screen--work {
