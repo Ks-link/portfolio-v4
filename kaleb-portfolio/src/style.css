@@ -950,7 +950,7 @@ body {
 .name::after {
   content: "";
   display: block;
-  width: 2.5rem;
+  width: 3.25rem;
   height: 2px;
   margin: 0.45rem auto 0;
   background: var(--accent);
@@ -1383,7 +1383,7 @@ body {
 .screen-title::after {
   content: "";
   display: block;
-  width: 2.5rem;
+  width: 3.25rem;
   height: 2px;
   margin: 0.7rem 0 0;
   background: var(--accent);
