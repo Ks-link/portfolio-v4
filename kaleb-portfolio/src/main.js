@@ -350,9 +350,27 @@ app.innerHTML = `
       <div class="screen-inner contact-layout">
         <h2 id="contact-heading" class="screen-title">Get In Touch</h2>
         <ul class="contact-list">
-          <li><a target="_blank" rel="noopener noreferrer" href="https://github.com/Ks-link">GitHub${projectArrow}</a></li>
-          <li><a target="_blank" rel="noopener noreferrer" href="https://www.linkedin.com/in/kaleblink/">LinkedIn${projectArrow}</a></li>
-          <li><a href="mailto:contact@kaleblink.com">contact@kaleblink.com${projectArrow}</a></li>
+          <li>
+            <a href="mailto:contact@kaleblink.com">
+              <span class="contact-list__label">Email</span>
+              <span class="contact-list__detail">contact@kaleblink.com</span>
+              ${projectArrow}
+            </a>
+          </li>
+          <li>
+            <a target="_blank" rel="noopener noreferrer" href="https://github.com/Ks-link">
+              <span class="contact-list__label">GitHub</span>
+              <span class="contact-list__detail">Ks-link</span>
+              ${projectArrow}
+            </a>
+          </li>
+          <li>
+            <a target="_blank" rel="noopener noreferrer" href="https://www.linkedin.com/in/kaleblink/">
+              <span class="contact-list__label">LinkedIn</span>
+              <span class="contact-list__detail">kaleblink</span>
+              ${projectArrow}
+            </a>
+          </li>
         </ul>
         <form class="contact-form">
           <input type="checkbox" name="botcheck" class="contact-form__honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
@@ -369,7 +387,7 @@ app.innerHTML = `
             <label for="contact-message">How can I help</label>
             <textarea id="contact-message" name="message" rows="5" required maxlength="2000"></textarea>
           </div>
-          <div class="contact-form__captcha h-captcha" data-captcha="true"></div>
+          <div class="contact-form__captcha h-captcha" data-captcha="true" data-size="compact"></div>
           <button type="submit" class="contact-form__submit">Send message</button>
           <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
         </form>
