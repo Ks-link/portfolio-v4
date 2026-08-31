@@ -240,7 +240,14 @@ app.innerHTML = `
     <section class="screen screen--home" aria-label="Home">
       <main class="hero">
         <h1 class="name">Kaleb Link</h1>
-        <p class="title">web developer</p>
+        <div class="hero-meta">
+          <p class="title">web developer</p>
+          <span class="hero-meta-sep" aria-hidden="true">|</span>
+          <a href="#/contact" class="hero-cta">
+            get in touch
+            ${projectArrow}
+          </a>
+        </div>
       </main>
     </section>
     <section class="screen screen--work" aria-labelledby="work-heading">
@@ -805,6 +812,11 @@ setRoute(initialScreen, initialProject)
 
 homeToggle.addEventListener('click', () => {
   setScreen('home', { push: true })
+})
+
+document.querySelector('.hero-cta')?.addEventListener('click', (e) => {
+  e.preventDefault()
+  setScreen('contact', { push: true })
 })
 
 killToggle?.addEventListener('click', () => {
