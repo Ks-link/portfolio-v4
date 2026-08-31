@@ -14,6 +14,9 @@ service cloud.firestore {
     //
     // Public global leaderboard. No auth. Client-reported scores.
     // Create-only; no updates or deletes.
+    // Shape checks below limit junk writes; they do not prove score integrity.
+    // Next hardening step: Firebase App Check on creates (requires console setup
+    // + client token). Do not enable request.app != null until App Check ships.
     //
     // ===============================================================
     // Helper Functions
