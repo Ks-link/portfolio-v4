@@ -2014,12 +2014,9 @@ body {
   border: 0;
 }
 
-.contact-form__captcha:empty {
-  display: none;
-}
-
-.contact-form__captcha:not(:empty) {
+.contact-form__captcha {
   margin-top: 0.15rem;
+  min-height: 0;
 }
 
 .contact-form__field {
