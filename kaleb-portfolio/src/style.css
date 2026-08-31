@@ -2014,11 +2014,6 @@ body {
   border: 0;
 }
 
-.contact-form__captcha {
-  margin-top: 0.15rem;
-  min-height: 0;
-}
-
 .contact-form__field {
   display: flex;
   flex-direction: column;

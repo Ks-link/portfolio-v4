@@ -387,7 +387,6 @@ app.innerHTML = `
             <label for="contact-message">How can I help</label>
             <textarea id="contact-message" name="message" rows="5" required maxlength="2000"></textarea>
           </div>
-          <div class="contact-form__captcha" id="contact-hcaptcha"></div>
           <button type="submit" class="contact-form__submit">Send message</button>
           <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
         </form>
@@ -589,7 +588,6 @@ const navBlobs = [...document.querySelectorAll('.nav-blob')]
 const routeEffects = {
   syncScroll: () => { },
   syncCursor: () => { },
-  ensureContactCaptcha: () => { },
 }
 document.querySelector('.play-root')?.addEventListener('playchange', () => {
   routeEffects.syncCursor()
@@ -746,7 +744,6 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
   syncNavLabels(screen, project)
   if (screen === 'play') play.start()
   else play.stop()
-  if (screen === 'contact') routeEffects.ensureContactCaptcha()
   routeEffects.syncCursor()
 
   if (opening && workDetailEl) {
@@ -2678,14 +2675,10 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
 const contactForm = document.querySelector('.contact-form')
 const contactStatus = document.querySelector('.contact-form__status')
 const contactSubmit = document.querySelector('.contact-form__submit')
-const contactCaptchaEl = document.querySelector('#contact-hcaptcha')
 
 const CONTACT_LIMITS = { name: 100, email: 254, message: 2000 }
 const CONTACT_COOLDOWN_MS = 30_000
-const HCAPTCHA_SITEKEY = '50b2fe65-b00b-4b9e-ad62-3ba471098be2'
 let lastContactSubmitAt = 0
-let contactCaptchaId = null
-let contactCaptchaLoading = null
 
 const setContactStatus = (message, type = '') => {
   if (!contactStatus) return
@@ -2694,83 +2687,6 @@ const setContactStatus = (message, type = '') => {
   contactStatus.classList.toggle('is-success', type === 'success')
   contactStatus.classList.toggle('is-error', type === 'error')
 }
-
-const contactCaptchaTheme = () =>
-  document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
-
-const renderContactCaptcha = () => {
-  if (!contactCaptchaEl || !window.hcaptcha || contactCaptchaId !== null) return
-  try {
-    contactCaptchaId = window.hcaptcha.render(contactCaptchaEl, {
-      sitekey: HCAPTCHA_SITEKEY,
-      size: 'compact',
-      theme: contactCaptchaTheme(),
-    })
-  } catch {
-    contactCaptchaId = null
-  }
-}
-
-const loadContactCaptcha = () => {
-  if (contactCaptchaId !== null) return Promise.resolve()
-  if (window.hcaptcha) {
-    renderContactCaptcha()
-    return Promise.resolve()
-  }
-  if (contactCaptchaLoading) return contactCaptchaLoading
-
-  contactCaptchaLoading = new Promise((resolve) => {
-    const existing = document.querySelector('script[data-contact-hcaptcha]')
-    if (existing) {
-      existing.addEventListener('load', () => {
-        renderContactCaptcha()
-        resolve()
-      }, { once: true })
-      return
-    }
-
-    window.__onContactHCaptchaLoad = () => {
-      renderContactCaptcha()
-      resolve()
-    }
-    const script = document.createElement('script')
-    script.src =
-      'https://js.hcaptcha.com/1/api.js?onload=__onContactHCaptchaLoad&render=explicit'
-    script.async = true
-    script.defer = true
-    script.dataset.contactHcaptcha = '1'
-    script.addEventListener('error', () => resolve(), { once: true })
-    document.head.appendChild(script)
-  })
-
-  return contactCaptchaLoading
-}
-
-const resetContactCaptcha = () => {
-  try {
-    if (contactCaptchaId !== null) window.hcaptcha?.reset(contactCaptchaId)
-  } catch {
-    /* ignore */
-  }
-}
-
-const getContactCaptchaToken = () => {
-  try {
-    if (contactCaptchaId !== null) {
-      return window.hcaptcha?.getResponse(contactCaptchaId)?.trim() || ''
-    }
-  } catch {
-    /* ignore */
-  }
-  return contactForm?.querySelector('[name="h-captcha-response"]')?.value?.trim() || ''
-}
-
-const ensureContactCaptcha = () => {
-  loadContactCaptcha().catch(() => { })
-}
-
-routeEffects.ensureContactCaptcha = ensureContactCaptcha
-ensureContactCaptcha()
 
 contactForm?.addEventListener('submit', async (e) => {
   e.preventDefault()
@@ -2798,8 +2714,6 @@ contactForm?.addEventListener('submit', async (e) => {
   const name = String(formData.get('name') || '').trim()
   const email = String(formData.get('email') || '').trim()
   const message = String(formData.get('message') || '').trim()
-  await loadContactCaptcha()
-  const captchaToken = getContactCaptchaToken()
 
   if (!name || !email || !message) {
     setContactStatus('Please fill out all fields.', 'error')
@@ -2813,10 +2727,6 @@ contactForm?.addEventListener('submit', async (e) => {
     setContactStatus('Please enter a valid email address.', 'error')
     return
   }
-  if (!captchaToken) {
-    setContactStatus('Please complete the captcha.', 'error')
-    return
-  }
 
   const payload = new FormData()
   payload.append('access_key', accessKey)
@@ -2824,7 +2734,7 @@ contactForm?.addEventListener('submit', async (e) => {
   payload.append('email', email)
   payload.append('message', message)
   payload.append('subject', 'Portfolio contact')
-  payload.append('h-captcha-response', captchaToken)
+  payload.append('botcheck', '')
 
   contactSubmit.disabled = true
   setContactStatus('Sending…')
@@ -2839,11 +2749,9 @@ contactForm?.addEventListener('submit', async (e) => {
       throw new Error(data.message || 'Request failed')
     }
     contactForm.reset()
-    resetContactCaptcha()
     lastContactSubmitAt = Date.now()
     setContactStatus('Thanks, your message is on the way.', 'success')
   } catch {
-    resetContactCaptcha()
     setContactStatus('Something went wrong. Please try again or email me at contact@kaleblink.com.', 'error')
   } finally {
     contactSubmit.disabled = false
