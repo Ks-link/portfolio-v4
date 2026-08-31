@@ -309,12 +309,6 @@ app.innerHTML = `
             Hey there, I'm Kaleb  👋  
             <br>I'm a web developer based in Abbotsford, BC.
           </p>
-          <h3 class="contact-heading">Contact</h3>
-          <ul class="contact-list">
-            <li><a href="mailto:contact@kaleblink.com">contact@kaleblink.com</a></li>
-            <li><a target="_blank" rel="noopener noreferrer" href="https://github.com/Ks-link">GitHub</a></li>
-            <li><a target="_blank" rel="noopener noreferrer" href="https://www.linkedin.com/in/kaleblink/">LinkedIn</a></li>
-          </ul>
           <div class="profile-blob">
             <span class="profile-blob-shape" role="button" tabindex="0" aria-label="Split portrait">
               <img
@@ -355,22 +349,27 @@ app.innerHTML = `
     <section class="screen screen--contact" aria-labelledby="contact-heading">
       <div class="screen-inner contact-layout">
         <h2 id="contact-heading" class="screen-title">Get In Touch</h2>
-        <p class="about-bio">Fill out the form below to get in touch.</p>
+        <ul class="contact-list">
+          <li><a target="_blank" rel="noopener noreferrer" href="https://github.com/Ks-link">GitHub${projectArrow}</a></li>
+          <li><a target="_blank" rel="noopener noreferrer" href="https://www.linkedin.com/in/kaleblink/">LinkedIn${projectArrow}</a></li>
+          <li><a href="mailto:contact@kaleblink.com">contact@kaleblink.com${projectArrow}</a></li>
+        </ul>
         <form class="contact-form">
           <input type="checkbox" name="botcheck" class="contact-form__honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
           <input type="hidden" name="subject" value="Portfolio contact" />
           <div class="contact-form__field">
             <label for="contact-name">Name</label>
-            <input id="contact-name" name="name" type="text" required autocomplete="name" />
+            <input id="contact-name" name="name" type="text" required maxlength="100" autocomplete="name" />
           </div>
           <div class="contact-form__field">
             <label for="contact-email">Email</label>
-            <input id="contact-email" name="email" type="email" required autocomplete="email" inputmode="email" />
+            <input id="contact-email" name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" />
           </div>
           <div class="contact-form__field">
             <label for="contact-message">How can I help</label>
-            <textarea id="contact-message" name="message" rows="5" required></textarea>
+            <textarea id="contact-message" name="message" rows="5" required maxlength="2000"></textarea>
           </div>
+          <div class="contact-form__captcha h-captcha" data-captcha="true"></div>
           <button type="submit" class="contact-form__submit">Send message</button>
           <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
         </form>
