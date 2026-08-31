@@ -222,11 +222,15 @@ app.innerHTML = `
     </div>
     <div class="swipe-hints__set swipe-hints__set--about">
       ${swipeDir('up', 'home', 'home')}
+      ${swipeDir('down', 'contact', 'contact')}
       ${swipeDir('right', 'experience', 'experience')}
     </div>
     <div class="swipe-hints__set swipe-hints__set--experience">
       ${swipeDir('left', 'about', 'about')}
       ${swipeDir('up', 'work', 'work')}
+    </div>
+    <div class="swipe-hints__set swipe-hints__set--contact">
+      ${swipeDir('up', 'about', 'about')}
     </div>
   </nav>
   <div class="stage">
@@ -305,12 +309,6 @@ app.innerHTML = `
             Hey there, I'm Kaleb  👋  
             <br>I'm a web developer based in Abbotsford, BC.
           </p>
-          <h3 class="contact-heading">Contact</h3>
-          <ul class="contact-list">
-            <li><a href="mailto:contact@kaleblink.com">contact@kaleblink.com</a></li>
-            <li><a target="_blank" rel="noopener noreferrer" href="https://github.com/Ks-link">GitHub</a></li>
-            <li><a target="_blank" rel="noopener noreferrer" href="https://www.linkedin.com/in/kaleblink/">LinkedIn</a></li>
-          </ul>
           <div class="profile-blob">
             <span class="profile-blob-shape" role="button" tabindex="0" aria-label="Split portrait">
               <img
@@ -348,27 +346,74 @@ app.innerHTML = `
           </div>
         </div>
     </section>
+    <section class="screen screen--contact" aria-labelledby="contact-heading">
+      <div class="screen-inner contact-layout">
+        <h2 id="contact-heading" class="screen-title">Get In Touch</h2>
+        <ul class="contact-list">
+          <li>
+            <a href="mailto:contact@kaleblink.com">
+              <span class="contact-list__label">Email</span>
+              <span class="contact-list__detail">contact@kaleblink.com</span>
+              ${projectArrow}
+            </a>
+          </li>
+          <li>
+            <a target="_blank" rel="noopener noreferrer" href="https://github.com/Ks-link">
+              <span class="contact-list__label">GitHub</span>
+              <span class="contact-list__detail">Ks-link</span>
+              ${projectArrow}
+            </a>
+          </li>
+          <li>
+            <a target="_blank" rel="noopener noreferrer" href="https://www.linkedin.com/in/kaleblink/">
+              <span class="contact-list__label">LinkedIn</span>
+              <span class="contact-list__detail">kaleblink</span>
+              ${projectArrow}
+            </a>
+          </li>
+        </ul>
+        <form class="contact-form">
+          <input type="checkbox" name="botcheck" class="contact-form__honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          <input type="hidden" name="subject" value="Portfolio contact" />
+          <div class="contact-form__field">
+            <label for="contact-name">Name</label>
+            <input id="contact-name" name="name" type="text" required maxlength="100" autocomplete="name" />
+          </div>
+          <div class="contact-form__field">
+            <label for="contact-email">Email</label>
+            <input id="contact-email" name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" />
+          </div>
+          <div class="contact-form__field">
+            <label for="contact-message">How can I help</label>
+            <textarea id="contact-message" name="message" rows="5" required maxlength="2000"></textarea>
+          </div>
+          <div class="contact-form__captcha h-captcha" data-captcha="true" data-size="compact"></div>
+          <button type="submit" class="contact-form__submit">Send message</button>
+          <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
+        </form>
+      </div>
+    </section>
     <section class="screen screen--experience" aria-labelledby="experience-heading">
       <div class="screen-inner">
         <h2 id="experience-heading" class="screen-title">Experience</h2>
         <ul class="experience-list">
           <li class="experience-card">
             <h3 class="experience-role">Lead Web Developer</h3>
-            <p class="experience-meta">Stoney Hill Marketing · 2026 — Present</p>
+            <p class="experience-meta">Stoney Hill Marketing · 2026 - Present</p>
             <p class="experience-desc">
               Building high-yield sites with practical technologies and helping businesses grow online.
             </p>
           </li>
           <li class="experience-card">
             <h3 class="experience-role">Web Developer</h3>
-            <p class="experience-meta">JM Web Design · 2025 — 2026</p>
+            <p class="experience-meta">JM Web Design · 2025 - 2026</p>
             <p class="experience-desc">
               Custom websites, SEO, and branding for Vancouver Island clients.
             </p>
           </li>
           <li class="experience-card">
             <h3 class="experience-role">Freelance Web Developer</h3>
-            <p class="experience-meta">Link Web Design · 2024 — 2025</p>
+            <p class="experience-meta">Link Web Design · 2024 - 2025</p>
             <p class="experience-desc">
               Focused on user friendly design, SEO, and measurable results.
             </p>
@@ -432,7 +477,7 @@ blobsToggle.addEventListener('click', () => {
   applyBlobs(app.dataset.blobs === 'off' ? 'on' : 'off')
 })
 
-const screens = new Set(['play', 'home', 'work', 'about', 'experience'])
+const screens = new Set(['play', 'home', 'work', 'about', 'experience', 'contact'])
 const hoverPreviewMq = window.matchMedia('(hover: hover)')
 
 const workScreen = document.querySelector('.screen--work')
@@ -525,8 +570,9 @@ const edgeNav = {
   play: { right: 'home' },
   home: { left: 'play', right: 'work', bottom: 'about' },
   work: { left: 'home', bottom: 'experience' },
-  about: { top: 'home', right: 'experience' },
+  about: { top: 'home', right: 'experience', bottom: 'contact' },
   experience: { left: 'about', top: 'work' },
+  contact: { top: 'about' },
 }
 
 const ariaForDest = (dest) => {
@@ -535,6 +581,7 @@ const ariaForDest = (dest) => {
   if (dest === 'work') return 'View work'
   if (dest === 'about') return 'About'
   if (dest === 'experience') return 'Experience'
+  if (dest === 'contact') return 'Get In Touch'
   return dest
 }
 
@@ -834,11 +881,17 @@ const swipeMap = {
   },
   about: {
     x: { dir: -1, to: 'experience' },
-    y: { dir: 1, to: 'home', needTop: true },
+    y: [
+      { dir: 1, to: 'home', needTop: true },
+      { dir: -1, to: 'contact' },
+    ],
   },
   experience: {
     x: { dir: 1, to: 'about' },
     y: { dir: 1, to: 'work', needTop: true },
+  },
+  contact: {
+    y: { dir: 1, to: 'about', needTop: true },
   },
 }
 
@@ -846,13 +899,14 @@ const screenEls = {
   work: workScreen,
   about: document.querySelector('.screen--about'),
   experience: document.querySelector('.screen--experience'),
+  contact: document.querySelector('.screen--contact'),
 }
 
 let swipeStart = null
 let swipeClaimedClick = false
 
 const isInteractiveTarget = (el) =>
-  Boolean(el.closest?.('button, .profile-blob-shape, .play-root'))
+  Boolean(el.closest?.('button, a, input, textarea, select, label, .profile-blob-shape, .play-root'))
 
 const scrolledToTop = (el) => !el || el.scrollTop <= 1
 
@@ -872,11 +926,12 @@ const syncScrollEdges = () => {
   screenEls.work?.classList.toggle('is-at-bottom', scrolledToBottom(workScroller))
   screenEls.about?.classList.toggle('is-at-top', scrolledToTop(screenEls.about))
   screenEls.experience?.classList.toggle('is-at-top', scrolledToTop(screenEls.experience))
+  screenEls.contact?.classList.toggle('is-at-top', scrolledToTop(screenEls.contact))
 }
 
 routeEffects.syncScroll = syncScrollEdges
 syncScrollEdges()
-  ;[workListEl, workDetailEl, screenEls.about, screenEls.experience].forEach((el) => {
+  ;[workListEl, workDetailEl, screenEls.about, screenEls.experience, screenEls.contact].forEach((el) => {
     el?.addEventListener('scroll', syncScrollEdges, { passive: true })
   })
 
@@ -953,15 +1008,22 @@ const moveSwipe = (id, x, y, preventDefault) => {
 
   const screen = app.dataset.screen || 'home'
   const el = currentScrollEl()
-  const yRoute = swipeMap[screen]?.y
-  if (swipeStart.axis === 'y' && el && yRoute) {
-    if (yRoute.needTop && swipeStart.atTop && dy < 0) {
-      el.scrollTop = -dy
-      return
-    }
-    if (yRoute.needBottom && swipeStart.atBottom && dy > 0) {
-      el.scrollTop = el.scrollHeight - el.clientHeight - dy
-      return
+  const yRoutes = swipeMap[screen]?.y
+  const yList = Array.isArray(yRoutes) ? yRoutes : yRoutes ? [yRoutes] : []
+  if (swipeStart.axis === 'y' && el && yList.length) {
+    const hasNeedTop = yList.some((route) => route.needTop)
+    const hasNeedBottom = yList.some((route) => route.needBottom)
+    const navRoute = matchSwipeRoute(yList, dy, swipeStart.atTop, swipeStart.atBottom)
+    // Don't rubber-band when this gesture already matches a page transition
+    if (!navRoute) {
+      if (hasNeedTop && swipeStart.atTop && dy < 0) {
+        el.scrollTop = -dy
+        return
+      }
+      if (hasNeedBottom && swipeStart.atBottom && dy > 0) {
+        el.scrollTop = el.scrollHeight - el.clientHeight - dy
+        return
+      }
     }
   }
 
@@ -2607,3 +2669,107 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
 
   document.documentElement.addEventListener('mouseleave', hideCursor)
 }
+
+const contactForm = document.querySelector('.contact-form')
+const contactStatus = document.querySelector('.contact-form__status')
+const contactSubmit = document.querySelector('.contact-form__submit')
+
+const CONTACT_LIMITS = { name: 100, email: 254, message: 2000 }
+const CONTACT_COOLDOWN_MS = 30_000
+let lastContactSubmitAt = 0
+
+const setContactStatus = (message, type = '') => {
+  if (!contactStatus) return
+  contactStatus.hidden = !message
+  contactStatus.textContent = message
+  contactStatus.classList.toggle('is-success', type === 'success')
+  contactStatus.classList.toggle('is-error', type === 'error')
+}
+
+const resetContactCaptcha = () => {
+  try {
+    window.hcaptcha?.reset()
+  } catch {
+    /* ignore */
+  }
+}
+
+const getContactCaptchaToken = () =>
+  contactForm?.querySelector('[name="h-captcha-response"]')?.value?.trim() || ''
+
+contactForm?.addEventListener('submit', async (e) => {
+  e.preventDefault()
+  if (!contactForm.checkValidity()) {
+    contactForm.reportValidity()
+    return
+  }
+
+  const cooldownLeft = lastContactSubmitAt + CONTACT_COOLDOWN_MS - Date.now()
+  if (cooldownLeft > 0) {
+    const seconds = Math.ceil(cooldownLeft / 1000)
+    setContactStatus(`Please wait ${seconds}s before sending another message.`, 'error')
+    return
+  }
+
+  const accessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY
+  if (!accessKey) {
+    setContactStatus('Contact form is not configured yet.', 'error')
+    return
+  }
+
+  const formData = new FormData(contactForm)
+  if (formData.get('botcheck')) return
+
+  const name = String(formData.get('name') || '').trim()
+  const email = String(formData.get('email') || '').trim()
+  const message = String(formData.get('message') || '').trim()
+  const captchaToken = getContactCaptchaToken()
+
+  if (!name || !email || !message) {
+    setContactStatus('Please fill out all fields.', 'error')
+    return
+  }
+  if (name.length > CONTACT_LIMITS.name || email.length > CONTACT_LIMITS.email || message.length > CONTACT_LIMITS.message) {
+    setContactStatus('One or more fields are too long.', 'error')
+    return
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setContactStatus('Please enter a valid email address.', 'error')
+    return
+  }
+  if (!captchaToken) {
+    setContactStatus('Please complete the captcha.', 'error')
+    return
+  }
+
+  const payload = new FormData()
+  payload.append('access_key', accessKey)
+  payload.append('name', name)
+  payload.append('email', email)
+  payload.append('message', message)
+  payload.append('subject', 'Portfolio contact')
+  payload.append('h-captcha-response', captchaToken)
+
+  contactSubmit.disabled = true
+  setContactStatus('Sending…')
+
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      body: payload,
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || data.success === false) {
+      throw new Error(data.message || 'Request failed')
+    }
+    contactForm.reset()
+    resetContactCaptcha()
+    lastContactSubmitAt = Date.now()
+    setContactStatus('Thanks, your message is on the way.', 'success')
+  } catch {
+    resetContactCaptcha()
+    setContactStatus('Something went wrong. Please try again or email me at contact@kaleblink.com.', 'error')
+  } finally {
+    contactSubmit.disabled = false
+  }
+})
