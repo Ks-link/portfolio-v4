@@ -275,6 +275,7 @@ app.innerHTML = `
                   title=""
                   loading="lazy"
                   referrerpolicy="no-referrer"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
                 ></iframe>
               </div>
               <button type="button" class="work-detail-live-arm" hidden>

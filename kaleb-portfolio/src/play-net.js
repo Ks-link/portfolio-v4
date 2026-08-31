@@ -591,9 +591,10 @@ const connectRemote = async (handlers) => {
     const slots = latestSlots ? { ...latestSlots } : defaultSlots()
     const row = slots[claimedSlot]
     if (row?.kind === 'human' && row.uid === uid) return
-    slots[claimedSlot] = { kind: 'human', uid, at: Date.now() }
+    const seat = { kind: 'human', uid, at: Date.now() }
+    slots[claimedSlot] = seat
     latestSlots = slots
-    set(slotsRef, slots).catch(warnWrite('slotsRestore'))
+    set(ref(rtdb, `${ROOT}/slots/${claimedSlot}`), seat).catch(warnWrite('slotsRestore'))
     handlers.onSlots?.(slots)
   }
 
@@ -610,6 +611,25 @@ const connectRemote = async (handlers) => {
     set(slotsRef, latestSlots).catch(warnWrite('slotsReset'))
     set(cellsRef, null).catch(warnWrite('snapCellsReset'))
     set(foodRef, null).catch(warnWrite('snapFoodReset'))
+  }
+
+  const normalizeSlots = (next) => {
+    const slots = { ...defaultSlots(), ...(next || {}) }
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const row = slots[i]
+      if (!row || typeof row !== 'object') {
+        slots[i] = i === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+        continue
+      }
+      if (row.kind === 'human' && row.uid) {
+        slots[i] = { kind: 'human', uid: row.uid, at: Number(row.at) || Date.now() }
+      } else if (row.kind === 'empty') {
+        slots[i] = { kind: 'empty' }
+      } else {
+        slots[i] = { kind: 'ai' }
+      }
+    }
+    return slots
   }
 
   const setHostState = (next) => {
@@ -683,7 +703,7 @@ const connectRemote = async (handlers) => {
   unsubs.push(
     onValue(slotsRef, (snap) => {
       if (closed) return
-      latestSlots = snap.val() || defaultSlots()
+      latestSlots = { ...defaultSlots(), ...(snap.val() || {}) }
       handlers.onSlots?.(latestSlots)
     }),
   )
@@ -734,33 +754,58 @@ const connectRemote = async (handlers) => {
     isHost: () => hostNow,
     getSlots: () => latestSlots,
     async claimSlot(preferredSlot = -1) {
-      let slot = -1
-      let full = false
-      await runTransaction(slotsRef, (current) => {
-        const result = pickClaimSlot(current, uid, preferredSlot)
-        if (result.full) {
-          full = true
-          return current || defaultSlots()
+      const existing = slotOfUid(latestSlots, uid)
+      if (existing >= 0) {
+        claimedSlot = existing
+        await clearSlotDisconnect(existing)
+        await set(presenceRef, presencePayload())
+        return { slot: existing }
+      }
+
+      const tryOrder = []
+      const preferred = Number(preferredSlot)
+      if (Number.isInteger(preferred) && preferred >= 0 && preferred < SLOT_COUNT) {
+        tryOrder.push(preferred)
+      }
+      if (!tryOrder.includes(EXTRA_SLOT)) tryOrder.push(EXTRA_SLOT)
+      for (let i = 1; i <= AI_COUNT; i++) {
+        if (!tryOrder.includes(i)) tryOrder.push(i)
+      }
+
+      for (const candidate of tryOrder) {
+        if (latestSlots?.[candidate]?.kind === 'human' && latestSlots[candidate].uid !== uid) {
+          continue
         }
-        slot = result.slot
-        return result.slots
-      })
-      if (full || slot < 0) return { full: true }
-      if (claimedSlot >= 0 && claimedSlot !== slot) await clearSlotDisconnect(claimedSlot)
-      claimedSlot = slot
-      await clearSlotDisconnect(slot)
-      await set(presenceRef, presencePayload())
-      return { slot }
+        try {
+          const { committed, snapshot } = await runTransaction(
+            ref(rtdb, `${ROOT}/slots/${candidate}`),
+            (seat) => {
+              if (seat?.kind === 'human' && seat.uid && seat.uid !== uid) return
+              if (seat?.kind === 'human' && seat.uid === uid) return seat
+              return { kind: 'human', uid, at: Date.now() }
+            },
+          )
+          const next = snapshot?.val()
+          if (!committed || next?.kind !== 'human' || next.uid !== uid) continue
+          if (claimedSlot >= 0 && claimedSlot !== candidate) await clearSlotDisconnect(claimedSlot)
+          claimedSlot = candidate
+          await clearSlotDisconnect(candidate)
+          await set(presenceRef, presencePayload())
+          return { slot: candidate }
+        } catch (err) {
+          warnWrite('claimSlot')(err)
+        }
+      }
+      return { full: true }
     },
     async releaseSlot() {
       if (claimedSlot < 0) return
       const slot = claimedSlot
       await clearSlotDisconnect(slot)
-      await runTransaction(slotsRef, (current) => {
-        const slots = current ? { ...current } : defaultSlots()
-        if (slots[slot]?.uid !== uid) return slots
-        slots[slot] = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
-        return slots
+      const vacant = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+      await runTransaction(ref(rtdb, `${ROOT}/slots/${slot}`), (current) => {
+        if (current?.kind === 'human' && current.uid && current.uid !== uid) return
+        return vacant
       })
       claimedSlot = -1
       playing = false
@@ -788,8 +833,8 @@ const connectRemote = async (handlers) => {
     },
     writeSlots(next) {
       if (!hostNow || closed) return
-      latestSlots = next
-      set(slotsRef, next).catch(warnWrite('slots'))
+      latestSlots = normalizeSlots(next)
+      set(slotsRef, latestSlots).catch(warnWrite('slots'))
     },
     disconnect() {
       if (closed) return
@@ -807,11 +852,10 @@ const connectRemote = async (handlers) => {
       set(inputsRef, null).catch(warnWrite('inputClear'))
       if (wipe) clearSharedWorld()
       else if (slot >= 0) {
-        runTransaction(slotsRef, (current) => {
-          const slots = current ? { ...current } : defaultSlots()
-          if (slots[slot]?.uid !== uid) return slots
-          slots[slot] = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
-          return slots
+        const vacant = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+        runTransaction(ref(rtdb, `${ROOT}/slots/${slot}`), (current) => {
+          if (current?.kind === 'human' && current.uid && current.uid !== uid) return
+          return vacant
         }).catch(warnWrite('slotRelease'))
       }
       if (hostNow) set(hostRef, null).catch(warnWrite('hostClear'))

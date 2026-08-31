@@ -567,8 +567,8 @@ function endGame(player) {
     const playAgainBtn = createElem('button', 'play-again-btn');
     gameElems.gameScrn.appendChild(whoWonMessage);
     gameElems.gameScrn.appendChild(playAgainBtn);
-    whoWonMessage.innerHTML = `${player.username} wins`;
-    playAgainBtn.innerHTML = `Play Agan?`;
+    whoWonMessage.textContent = `${player.username} wins`;
+    playAgainBtn.textContent = `Play Agan?`;
 
     playAgainBtn.addEventListener('click', resetGame);
     playAgainBtn.addEventListener('click', startGame);
