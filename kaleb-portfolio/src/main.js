@@ -2656,6 +2656,10 @@ const contactForm = document.querySelector('.contact-form')
 const contactStatus = document.querySelector('.contact-form__status')
 const contactSubmit = document.querySelector('.contact-form__submit')
 
+const CONTACT_LIMITS = { name: 100, email: 254, message: 2000 }
+const CONTACT_COOLDOWN_MS = 30_000
+let lastContactSubmitAt = 0
+
 const setContactStatus = (message, type = '') => {
   if (!contactStatus) return
   contactStatus.hidden = !message
@@ -2664,10 +2668,28 @@ const setContactStatus = (message, type = '') => {
   contactStatus.classList.toggle('is-error', type === 'error')
 }
 
+const resetContactCaptcha = () => {
+  try {
+    window.hcaptcha?.reset()
+  } catch {
+    /* ignore */
+  }
+}
+
+const getContactCaptchaToken = () =>
+  contactForm?.querySelector('[name="h-captcha-response"]')?.value?.trim() || ''
+
 contactForm?.addEventListener('submit', async (e) => {
   e.preventDefault()
   if (!contactForm.checkValidity()) {
     contactForm.reportValidity()
+    return
+  }
+
+  const cooldownLeft = lastContactSubmitAt + CONTACT_COOLDOWN_MS - Date.now()
+  if (cooldownLeft > 0) {
+    const seconds = Math.ceil(cooldownLeft / 1000)
+    setContactStatus(`Please wait ${seconds}s before sending another message.`, 'error')
     return
   }
 
@@ -2680,23 +2702,35 @@ contactForm?.addEventListener('submit', async (e) => {
   const formData = new FormData(contactForm)
   if (formData.get('botcheck')) return
 
-  const payload = {
-    access_key: accessKey,
-    name: String(formData.get('name') || '').trim(),
-    email: String(formData.get('email') || '').trim(),
-    message: String(formData.get('message') || '').trim(),
-    subject: String(formData.get('subject') || 'Portfolio contact'),
-  }
+  const name = String(formData.get('name') || '').trim()
+  const email = String(formData.get('email') || '').trim()
+  const message = String(formData.get('message') || '').trim()
+  const captchaToken = getContactCaptchaToken()
 
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)
-  if (!payload.name || !payload.email || !payload.message) {
+  if (!name || !email || !message) {
     setContactStatus('Please fill out all fields.', 'error')
     return
   }
-  if (!emailOk) {
+  if (name.length > CONTACT_LIMITS.name || email.length > CONTACT_LIMITS.email || message.length > CONTACT_LIMITS.message) {
+    setContactStatus('One or more fields are too long.', 'error')
+    return
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     setContactStatus('Please enter a valid email address.', 'error')
     return
   }
+  if (!captchaToken) {
+    setContactStatus('Please complete the captcha.', 'error')
+    return
+  }
+
+  const payload = new FormData()
+  payload.append('access_key', accessKey)
+  payload.append('name', name)
+  payload.append('email', email)
+  payload.append('message', message)
+  payload.append('subject', 'Portfolio contact')
+  payload.append('h-captcha-response', captchaToken)
 
   contactSubmit.disabled = true
   setContactStatus('Sending…')
@@ -2704,19 +2738,18 @@ contactForm?.addEventListener('submit', async (e) => {
   try {
     const res = await fetch('https://api.web3forms.com/submit', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify(payload),
+      body: payload,
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok || data.success === false) {
       throw new Error(data.message || 'Request failed')
     }
     contactForm.reset()
+    resetContactCaptcha()
+    lastContactSubmitAt = Date.now()
     setContactStatus('Thanks, your message is on the way.', 'success')
   } catch {
+    resetContactCaptcha()
     setContactStatus('Something went wrong. Please try again or email me at contact@kaleblink.com.', 'error')
   } finally {
     contactSubmit.disabled = false

@@ -1987,6 +1987,10 @@ body {
   border: 0;
 }
 
+.contact-form__captcha {
+  min-height: 4.875rem;
+}
+
 .contact-form__field {
   display: flex;
   flex-direction: column;
