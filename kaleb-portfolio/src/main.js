@@ -1421,6 +1421,8 @@ const spawnEnabled = () => app.dataset.blobs !== 'off' && app.dataset.screen !==
 
 const PROFILE_BLOB_SIZES = [0.88, 0.42, 0.38]
 const PROFILE_BLOB_SIZES_MOBILE = [0.92, 0.54, 0.5]
+/** Matches `.profile-blob-shape` max size at `(max-width: 48rem)` in style.css */
+const PROFILE_BLOB_MAX_MOBILE = 150
 const PROFILE_BLOB_STARTS = [
   { progress: 0.5, lane: 0.5 },
   { progress: 0.18, lane: 0.22 },
@@ -1615,7 +1617,8 @@ const profileFamilies = profileBlobs.map((blob) => {
 
 const profileSizePx = (blob, cw, ch) => {
   const sizes = swipeMq.matches ? PROFILE_BLOB_SIZES_MOBILE : PROFILE_BLOB_SIZES
-  const base = Math.min(cw, ch) * (sizes[blob.sizeIndex] ?? blob.size)
+  let base = Math.min(cw, ch) * (sizes[blob.sizeIndex] ?? blob.size)
+  if (swipeMq.matches) base = Math.min(base, PROFILE_BLOB_MAX_MOBILE)
   return base * (blob.sizeScale ?? 1)
 }
 
@@ -1990,7 +1993,7 @@ const explodeFamily = (family, instant) => {
   if (hideProfileMoons() && !family.host) return
 
   const origin = family.origin
-  const n = family.host ? randInt(3, 6) : randInt(2, 4)
+  const n = family.host ? randInt(4, 8) : randInt(2, 4)
   const cw = profileWrap.clientWidth
   const ch = profileWrap.clientHeight
   const ox = origin.x || family.anchor.x
