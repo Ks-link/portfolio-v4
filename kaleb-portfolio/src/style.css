@@ -38,6 +38,7 @@ body {
   max-height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 body {
