@@ -207,6 +207,9 @@ app.innerHTML = `
     ${navArrow}
   </button>
   <nav class="swipe-hints">
+    <div class="swipe-hints__set swipe-hints__set--play">
+      ${swipeDir('right', 'home', 'home')}
+    </div>
     <div class="swipe-hints__set swipe-hints__set--home">
       ${swipeDir('left', 'play', 'play')}
       ${swipeDir('down', 'about', 'about')}
@@ -242,11 +245,6 @@ app.innerHTML = `
         <h1 class="name">Kaleb Link</h1>
         <div class="hero-meta">
           <p class="title">web developer</p>
-          <span class="hero-meta-sep" aria-hidden="true">|</span>
-          <a href="#/contact" class="hero-cta">
-            get in touch
-            ${projectArrow}
-          </a>
         </div>
       </main>
     </section>
@@ -392,7 +390,7 @@ app.innerHTML = `
               <label for="contact-email">Email</label>
               <input id="contact-email" name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" />
             </div>
-            <div class="contact-form__field">
+            <div class="contact-form__field contact-form__field--message">
               <label for="contact-message">How can I help</label>
               <textarea id="contact-message" name="message" rows="5" required maxlength="2000"></textarea>
             </div>
@@ -924,12 +922,22 @@ const screenEls = {
 
 const contactForm = document.querySelector('.contact-form')
 const contactFormWrap = document.querySelector('.contact-form-wrap')
+const contactMessage = document.querySelector('#contact-message')
 
 let swipeStart = null
 let swipeClaimedClick = false
 
-const isInteractiveTarget = (el) =>
-  Boolean(el.closest?.('button, a, input, textarea, select, label, .profile-blob-shape, .play-root'))
+const isInteractiveTarget = (el) => {
+  if (!el?.closest) return false
+  if (el.closest('.profile-blob-shape')) return true
+  // Gameplay captures gestures; welcome screen allows swipe-back to home
+  if (el.closest('.play-root.is-playing')) return true
+  // Contact form fills the screen — allow edge swipes from fields/buttons
+  if (app.dataset.screen === 'contact' && el.closest('.contact-form, .contact-form-wrap')) {
+    return false
+  }
+  return Boolean(el.closest('button, a, input, textarea, select, label'))
+}
 
 const scrolledToTop = (el) => !el || el.scrollTop <= 1
 
@@ -938,11 +946,22 @@ const scrolledToBottom = (el) => {
   return el.scrollTop + el.clientHeight >= el.scrollHeight - 1
 }
 
+const contactAtTop = () => {
+  if (!scrolledToTop(contactForm)) return false
+  if (contactMessage && contactMessage.scrollTop > 1) return false
+  return true
+}
+
 const syncContactFormChevron = () => {
   if (!contactFormWrap || !contactForm) return
-  const scrollable = contactForm.scrollHeight > contactForm.clientHeight + 1
+  const formScrollable = contactForm.scrollHeight > contactForm.clientHeight + 1
+  const messageScrollable =
+    Boolean(contactMessage) && contactMessage.scrollHeight > contactMessage.clientHeight + 1
+  const scrollable = formScrollable || messageScrollable
+  const scrolled =
+    contactForm.scrollTop > 1 || (contactMessage != null && contactMessage.scrollTop > 1)
   contactFormWrap.classList.toggle('is-scrollable', scrollable)
-  contactFormWrap.classList.toggle('is-scrolled', contactForm.scrollTop > 1)
+  contactFormWrap.classList.toggle('is-scrolled', scrolled)
 }
 
 const currentScrollEl = () => {
@@ -957,20 +976,22 @@ const syncScrollEdges = () => {
   screenEls.work?.classList.toggle('is-at-bottom', scrolledToBottom(workScroller))
   screenEls.about?.classList.toggle('is-at-top', scrolledToTop(screenEls.about))
   screenEls.experience?.classList.toggle('is-at-top', scrolledToTop(screenEls.experience))
-  screenEls.contact?.classList.toggle('is-at-top', scrolledToTop(contactForm))
+  screenEls.contact?.classList.toggle('is-at-top', contactAtTop())
   syncContactFormChevron()
 }
 
 routeEffects.syncScroll = syncScrollEdges
 syncScrollEdges()
-  ;[workListEl, workDetailEl, screenEls.about, screenEls.experience, contactForm].forEach((el) => {
-    el?.addEventListener('scroll', syncScrollEdges, { passive: true })
-  })
+  ;[workListEl, workDetailEl, screenEls.about, screenEls.experience, contactForm, contactMessage].forEach(
+    (el) => {
+      el?.addEventListener('scroll', syncScrollEdges, { passive: true })
+    },
+  )
 
 if (contactForm && typeof ResizeObserver !== 'undefined') {
   const contactFormResizeObserver = new ResizeObserver(syncContactFormChevron)
   contactFormResizeObserver.observe(contactForm)
-  contactForm.querySelectorAll('textarea').forEach((el) => contactFormResizeObserver.observe(el))
+  if (contactMessage) contactFormResizeObserver.observe(contactMessage)
 }
 contactForm?.addEventListener('input', syncContactFormChevron)
 window.addEventListener('resize', syncContactFormChevron)
@@ -1008,6 +1029,7 @@ const beginSwipe = (id, x, y, target) => {
   if (!swipeMq.matches || swipeStart) return
   if (isInteractiveTarget(target)) return
   const el = currentScrollEl()
+  const screen = app.dataset.screen || 'home'
   swipeStart = {
     id,
     x,
@@ -1015,7 +1037,7 @@ const beginSwipe = (id, x, y, target) => {
     lastX: x,
     lastY: y,
     axis: null,
-    atTop: scrolledToTop(el),
+    atTop: screen === 'contact' ? contactAtTop() : scrolledToTop(el),
     atBottom: scrolledToBottom(el),
     claimed: false,
     closeProject: false,
@@ -1057,7 +1079,13 @@ const moveSwipe = (id, x, y, preventDefault) => {
     // Don't rubber-band when this gesture already matches a page transition
     if (!navRoute) {
       if (hasNeedTop && swipeStart.atTop && dy < 0) {
-        el.scrollTop = -dy
+        const nested =
+          screen === 'contact' &&
+          contactMessage &&
+          contactMessage.scrollHeight > contactMessage.clientHeight + 1
+            ? contactMessage
+            : el
+        nested.scrollTop = -dy
         return
       }
       if (hasNeedBottom && swipeStart.atBottom && dy > 0) {
@@ -1072,6 +1100,9 @@ const moveSwipe = (id, x, y, preventDefault) => {
 
   swipeStart.claimed = true
   swipeStart.closeProject = Boolean(closeProject)
+  if (document.activeElement?.closest?.('.contact-form')) {
+    document.activeElement.blur()
+  }
   preventDefault?.()
   app.classList.add('is-swiping')
   if (closeProject) {
@@ -1658,10 +1689,11 @@ const setProfileZ = (blob) => {
 }
 
 const bounceProfile = (blob, t, atBottom) => {
+  const mobile = swipeMq.matches
   blob.progress = atBottom ? 1 : 0
   blob.dir = atBottom ? -1 : 1
-  blob.targetLane = rand(0.22, 0.78)
-  blob.speed = rand(0.008, 0.024)
+  blob.targetLane = mobile ? rand(0.04, 0.96) : rand(0.22, 0.78)
+  blob.speed = mobile ? rand(0.014, 0.038) : rand(0.008, 0.024)
   blob.targetAccel = atBottom ? rand(-0.02, 0.01) : rand(-0.01, 0.022)
   blob.accelChangeAt = t + rand(0.5, 2)
 }
@@ -1725,9 +1757,10 @@ const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
   const ch = wrap.clientHeight
   if (cw < 2 || ch < 2) return
 
+  const mobile = swipeMq.matches
   const s = profileSizePx(blob, cw, ch)
   blob.s = s
-  const speedScale = window.innerHeight / ch * 0.55
+  const speedScale = window.innerHeight / ch * (mobile ? 0.85 : 0.55)
 
   if (t >= blob.accelChangeAt) {
     const surge = Math.random()
@@ -1739,22 +1772,27 @@ const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
 
   blob.accel = damp(blob.accel, blob.targetAccel, 1.8, dt)
   blob.speed += blob.accel * dt
-  blob.speed = Math.min(0.052, Math.max(0.004, blob.speed))
+  blob.speed = Math.min(mobile ? 0.085 : 0.052, Math.max(0.004, blob.speed))
   blob.progress += blob.dir * blob.speed * speedScale * dt
 
   if (blob.progress >= 1) bounceProfile(blob, t, true)
   else if (blob.progress <= 0) bounceProfile(blob, t, false)
 
-  blob.lane = damp(blob.lane, blob.targetLane, 0.55, dt)
+  blob.lane = damp(blob.lane, blob.targetLane, mobile ? 0.85 : 0.55, dt)
 
   const travelX = Math.max(0, cw - s)
   const travelY = Math.max(0, ch - s)
+  const swayAmp = blob.sway * (mobile ? 2.6 : 1)
   const swayX =
-    Math.sin(t * (0.18 + blob.wobble * 0.12) + blob.phase) * blob.sway * cw +
-    Math.sin(t * 0.09 + blob.phase * 1.7) * blob.sway * 0.35 * cw
+    Math.sin(t * (0.18 + blob.wobble * 0.12) + blob.phase) * swayAmp * cw +
+    Math.sin(t * 0.09 + blob.phase * 1.7) * swayAmp * 0.35 * cw
+  const swayY = mobile
+    ? Math.sin(t * 0.15 + blob.phase * 1.3) * swayAmp * 0.55 * ch +
+      Math.sin(t * 0.07 + blob.phase * 0.8) * swayAmp * 0.2 * ch
+    : 0
 
   const localX = Math.min(travelX, Math.max(0, blob.lane * travelX + swayX))
-  const localY = Math.min(travelY, Math.max(0, blob.progress * travelY))
+  const localY = Math.min(travelY, Math.max(0, blob.progress * travelY + swayY))
   blob.x = localX + s / 2
   blob.y = localY + s / 2
 

@@ -370,7 +370,7 @@ body {
   }
 
   .play-leaderboard {
-    max-height: calc(1.55em * 5);
+    max-height: calc(1.55em * 5.5);
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
@@ -968,6 +968,10 @@ body {
   animation: fade-rise 1.1s ease-out 0.15s both;
 }
 
+.hero .title {
+  font-size: clamp(0.85rem, 2.5vw, 0.9rem);
+}
+
 .hero-meta-sep {
   font-family: var(--sans);
   font-weight: 500;
@@ -975,16 +979,6 @@ body {
   letter-spacing: 0.22em;
   color: var(--text);
   opacity: 0.45;
-}
-
-.title {
-  margin: 0;
-  font-family: var(--sans);
-  font-weight: 500;
-  font-size: 0.85rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--text);
 }
 
 .hero-cta {
@@ -1500,12 +1494,9 @@ body {
 }
 
 .work-kicker,
-.work-back {
-  position: absolute;
-  top: var(--screen-pad-top);
-  left: 0.5rem;
+.work-back,
+.title {
   margin: 0;
-  transform: translateY(calc(-100% - 0.35rem));
   font-family: var(--sans);
   font-weight: 500;
   font-size: 0.85rem;
@@ -1513,6 +1504,14 @@ body {
   text-transform: uppercase;
   color: var(--text);
   opacity: 0.55;
+}
+
+.work-kicker,
+.work-back {
+  position: absolute;
+  top: var(--screen-pad-top);
+  left: 0.5rem;
+  transform: translateY(calc(-100% - 0.35rem));
 }
 
 .work-kicker {
@@ -2069,9 +2068,10 @@ body {
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto auto 1fr;
-  gap: 1.5rem;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 1.25rem;
   align-items: stretch;
+  padding-bottom: 1rem;
 }
 
 .contact-form-wrap {
@@ -2079,15 +2079,19 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  height: 100%;
   padding-bottom: 0.85rem;
 }
 
 .contact-form {
+  --contact-control-min-block: calc(0.9rem + 1.575rem);
+  --contact-message-max-block: calc(3 * var(--contact-control-min-block));
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   gap: 0.85rem;
   min-height: 0;
+  height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -2137,6 +2141,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  flex: 0 0 auto;
+}
+
+.contact-form__field--message {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-rows: auto minmax(var(--contact-control-min-block), var(--contact-message-max-block));
 }
 
 .contact-form__field label {
@@ -2165,8 +2176,24 @@ body {
   transition: border-color 0.2s ease;
 }
 
-.contact-form__field textarea {
-  min-height: 7rem;
+.contact-form__field input {
+  min-height: var(--contact-control-min-block);
+}
+
+.contact-form__field--message textarea {
+  min-height: var(--contact-control-min-block);
+  max-height: var(--contact-message-max-block);
+  height: var(--contact-message-max-block);
+  resize: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.contact-form__field--message textarea::-webkit-scrollbar {
+  display: none;
 }
 
 .contact-form__field input:hover,
@@ -2189,6 +2216,7 @@ body {
 .contact-form__submit {
   width: 100%;
   margin-top: 0.15rem;
+  flex: 0 0 auto;
   padding: 0.75rem 1.25rem;
   border: none;
   border-radius: 0.25rem;
@@ -2223,6 +2251,7 @@ body {
 
 .contact-form__status {
   margin: 0;
+  flex: 0 0 auto;
   font-weight: 300;
   font-size: 0.95rem;
   line-height: 1.5;
@@ -2469,6 +2498,7 @@ body {
     --swipe-track: 0.12em;
   }
 
+  #app[data-screen="play"]:not(:has(.play-root.is-playing)) .swipe-hints__set--play,
   #app[data-screen="home"] .swipe-hints__set--home,
   #app[data-screen="work"]:not([data-project]) .swipe-hints__set--work,
   #app[data-screen="work"][data-project] .swipe-hints__set--work-detail,
@@ -2490,7 +2520,6 @@ body {
     padding-bottom: 1.5rem;
   }
 
-  .title,
   .hero-cta,
   .hero-meta-sep {
     font-size: 0.72rem;
@@ -2517,12 +2546,18 @@ body {
     padding-bottom: 1rem;
   }
 
+  .screen--contact .contact-layout {
+    padding-bottom: 0.35rem;
+    gap: 1rem;
+  }
+
   .screen--play,
   .screen--home,
   .screen--about.is-at-top,
   .screen--experience.is-at-top,
   .screen--contact.is-at-top,
   .screen--contact.is-at-top .contact-form,
+  .screen--contact.is-at-top .contact-form__field--message textarea,
   .screen--work.is-at-bottom .work-pane {
     touch-action: none;
   }
@@ -2534,7 +2569,8 @@ body {
     touch-action: pan-y;
   }
 
-  .contact-form {
+  .contact-form,
+  .contact-form__field--message textarea {
     touch-action: pan-y;
   }
 
