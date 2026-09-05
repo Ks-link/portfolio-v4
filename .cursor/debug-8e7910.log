@@ -1,0 +1,3 @@
+{"sessionId":"8e7910","location":"probe","message":"ingest-probe","data":{},"timestamp":123}
+{"sessionId":"8e7910","location":"cors-probe","message":"from-origin","timestamp":1}
+{"sessionId":"8e7910","runId":"pre-fix","hypothesisId":"A","location":"main.js:csp","message":"csp-listener-armed","data":{"href":"http://localhost:5173/#/","ua":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like "},"timestamp":1788624819451}
