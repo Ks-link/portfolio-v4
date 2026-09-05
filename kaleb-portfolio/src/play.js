@@ -2223,6 +2223,7 @@ export const mountPlay = (root) => {
       return
     }
     claiming = true
+    startBtn?.classList.add('is-busy')
     try {
       session = (await sessionReady) || session
       if (!running || !session) return
@@ -2240,6 +2241,7 @@ export const mountPlay = (root) => {
       setMapFull(true)
     } finally {
       claiming = false
+      startBtn?.classList.remove('is-busy')
     }
   }
 
@@ -2401,7 +2403,11 @@ export const mountPlay = (root) => {
   }
 
   boardEl?.addEventListener('scroll', syncBoardChevron, { passive: true })
-  startBtn?.addEventListener('click', beginPlay)
+  // pointerup is more reliable than click when page-swipe touch handlers are active
+  startBtn?.addEventListener('pointerup', (e) => {
+    if (e.button !== 0) return
+    beginPlay()
+  })
   nameInput?.addEventListener('input', () => {
     const caret = nameInput.selectionStart
     const next = sanitizeName(nameInput.value)

@@ -747,7 +747,8 @@ const connectRemote = async (handlers) => {
   }
   document.addEventListener('visibilitychange', onVisible)
 
-  await becomeHost()
+  // Don't block session readiness on host election — play can claim a seat either way.
+  becomeHost().catch(warnWrite('becomeHost'))
 
   return {
     uid,

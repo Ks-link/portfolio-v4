@@ -927,16 +927,34 @@ const contactMessage = document.querySelector('#contact-message')
 let swipeStart = null
 let swipeClaimedClick = false
 
+const PLAY_START_SWIPE_PAD = 56
+
 const isInteractiveTarget = (el) => {
   if (!el?.closest) return false
   if (el.closest('.profile-blob-shape')) return true
   // Gameplay captures gestures; welcome screen allows swipe-back to home
   if (el.closest('.play-root.is-playing')) return true
+  // Keep play CTA / naming / leaderboard from starting page swipes
+  if (el.closest('.play-start, .play-name-prompt, .play-leaderboard-wrap')) return true
   // Contact form fills the screen — allow edge swipes from fields/buttons
   if (app.dataset.screen === 'contact' && el.closest('.contact-form, .contact-form-wrap')) {
     return false
   }
   return Boolean(el.closest('button, a, input, textarea, select, label'))
+}
+
+const inPlayStartSafeZone = (x, y) => {
+  if (app.dataset.screen !== 'play') return false
+  if (document.querySelector('.play-root.is-playing')) return false
+  const btn = document.querySelector('.play-start')
+  if (!btn) return false
+  const r = btn.getBoundingClientRect()
+  return (
+    x >= r.left - PLAY_START_SWIPE_PAD &&
+    x <= r.right + PLAY_START_SWIPE_PAD &&
+    y >= r.top - PLAY_START_SWIPE_PAD &&
+    y <= r.bottom + PLAY_START_SWIPE_PAD
+  )
 }
 
 const scrolledToTop = (el) => !el || el.scrollTop <= 1
@@ -1028,6 +1046,8 @@ const matchSwipeRoute = (routes, delta, atTop, atBottom) => {
 const beginSwipe = (id, x, y, target) => {
   if (!swipeMq.matches || swipeStart) return
   if (isInteractiveTarget(target)) return
+  // Near-miss taps on the play blob should start the game, not a page swipe
+  if (inPlayStartSafeZone(x, y)) return
   const el = currentScrollEl()
   const screen = app.dataset.screen || 'home'
   swipeStart = {
