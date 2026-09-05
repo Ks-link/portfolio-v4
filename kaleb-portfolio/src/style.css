@@ -2081,6 +2081,7 @@ body {
 
 .contact-form {
   --contact-control-min-block: calc(0.9rem + 1.575rem);
+  --contact-message-max-block: calc(3 * var(--contact-control-min-block));
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -2140,11 +2141,9 @@ body {
 }
 
 .contact-form__field--message {
-  /* Grow into free space, but never shrink — short viewports scroll the form */
-  flex: 1 0 auto;
-  min-height: calc(0.7rem + 0.4rem + var(--contact-control-min-block));
+  flex: 0 0 auto;
   display: grid;
-  grid-template-rows: auto minmax(var(--contact-control-min-block), 1fr);
+  grid-template-rows: auto minmax(var(--contact-control-min-block), var(--contact-message-max-block));
 }
 
 .contact-form__field label {
@@ -2179,7 +2178,8 @@ body {
 
 .contact-form__field--message textarea {
   min-height: var(--contact-control-min-block);
-  height: 100%;
+  max-height: var(--contact-message-max-block);
+  height: var(--contact-message-max-block);
   resize: none;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -2542,7 +2542,6 @@ body {
   }
 
   .screen--contact .contact-layout {
-    --screen-pad-top: 7dvh;
     padding-bottom: 0.35rem;
     gap: 1rem;
   }
