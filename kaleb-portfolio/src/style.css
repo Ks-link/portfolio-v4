@@ -370,7 +370,7 @@ body {
   }
 
   .play-leaderboard {
-    max-height: calc(1.55em * 5);
+    max-height: calc(1.55em * 5.5);
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
