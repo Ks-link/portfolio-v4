@@ -968,6 +968,10 @@ body {
   animation: fade-rise 1.1s ease-out 0.15s both;
 }
 
+.hero .title {
+  font-size: clamp(0.85rem, 2.5vw, 0.9rem);
+}
+
 .hero-meta-sep {
   font-family: var(--sans);
   font-weight: 500;
