@@ -380,24 +380,29 @@ app.innerHTML = `
             </a>
           </li>
         </ul>
-        <form class="contact-form">
-          <input type="checkbox" name="botcheck" class="contact-form__honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
-          <input type="hidden" name="subject" value="Portfolio contact" />
-          <div class="contact-form__field">
-            <label for="contact-name">Name</label>
-            <input id="contact-name" name="name" type="text" required maxlength="100" autocomplete="name" />
-          </div>
-          <div class="contact-form__field">
-            <label for="contact-email">Email</label>
-            <input id="contact-email" name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" />
-          </div>
-          <div class="contact-form__field">
-            <label for="contact-message">How can I help</label>
-            <textarea id="contact-message" name="message" rows="5" required maxlength="2000"></textarea>
-          </div>
-          <button type="submit" class="contact-form__submit">Send message</button>
-          <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
-        </form>
+        <div class="contact-form-wrap">
+          <form class="contact-form">
+            <input type="checkbox" name="botcheck" class="contact-form__honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+            <input type="hidden" name="subject" value="Portfolio contact" />
+            <div class="contact-form__field">
+              <label for="contact-name">Name</label>
+              <input id="contact-name" name="name" type="text" required maxlength="100" autocomplete="name" />
+            </div>
+            <div class="contact-form__field">
+              <label for="contact-email">Email</label>
+              <input id="contact-email" name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" />
+            </div>
+            <div class="contact-form__field">
+              <label for="contact-message">How can I help</label>
+              <textarea id="contact-message" name="message" rows="5" required maxlength="2000"></textarea>
+            </div>
+            <button type="submit" class="contact-form__submit">Send message</button>
+            <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
+          </form>
+          <svg class="contact-form-chevron" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M10 5l7 7-7 7"/>
+          </svg>
+        </div>
       </div>
     </section>
     <section class="screen screen--experience" aria-labelledby="experience-heading">
@@ -917,6 +922,9 @@ const screenEls = {
   contact: document.querySelector('.screen--contact'),
 }
 
+const contactForm = document.querySelector('.contact-form')
+const contactFormWrap = document.querySelector('.contact-form-wrap')
+
 let swipeStart = null
 let swipeClaimedClick = false
 
@@ -930,9 +938,17 @@ const scrolledToBottom = (el) => {
   return el.scrollTop + el.clientHeight >= el.scrollHeight - 1
 }
 
+const syncContactFormChevron = () => {
+  if (!contactFormWrap || !contactForm) return
+  const scrollable = contactForm.scrollHeight > contactForm.clientHeight + 1
+  contactFormWrap.classList.toggle('is-scrollable', scrollable)
+  contactFormWrap.classList.toggle('is-scrolled', contactForm.scrollTop > 1)
+}
+
 const currentScrollEl = () => {
   const screen = app.dataset.screen
   if (screen === 'work') return app.dataset.project ? workDetailEl : workListEl
+  if (screen === 'contact') return contactForm
   return screenEls[screen]
 }
 
@@ -941,14 +957,23 @@ const syncScrollEdges = () => {
   screenEls.work?.classList.toggle('is-at-bottom', scrolledToBottom(workScroller))
   screenEls.about?.classList.toggle('is-at-top', scrolledToTop(screenEls.about))
   screenEls.experience?.classList.toggle('is-at-top', scrolledToTop(screenEls.experience))
-  screenEls.contact?.classList.toggle('is-at-top', scrolledToTop(screenEls.contact))
+  screenEls.contact?.classList.toggle('is-at-top', scrolledToTop(contactForm))
+  syncContactFormChevron()
 }
 
 routeEffects.syncScroll = syncScrollEdges
 syncScrollEdges()
-  ;[workListEl, workDetailEl, screenEls.about, screenEls.experience, screenEls.contact].forEach((el) => {
+  ;[workListEl, workDetailEl, screenEls.about, screenEls.experience, contactForm].forEach((el) => {
     el?.addEventListener('scroll', syncScrollEdges, { passive: true })
   })
+
+if (contactForm && typeof ResizeObserver !== 'undefined') {
+  const contactFormResizeObserver = new ResizeObserver(syncContactFormChevron)
+  contactFormResizeObserver.observe(contactForm)
+  contactForm.querySelectorAll('textarea').forEach((el) => contactFormResizeObserver.observe(el))
+}
+contactForm?.addEventListener('input', syncContactFormChevron)
+window.addEventListener('resize', syncContactFormChevron)
 
 const setSwipeOffset = (x, y) => {
   app.style.setProperty('--swipe-x', `${x}px`)
@@ -2688,7 +2713,6 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
   document.documentElement.addEventListener('mouseleave', hideCursor)
 }
 
-const contactForm = document.querySelector('.contact-form')
 const contactStatus = document.querySelector('.contact-form__status')
 const contactSubmit = document.querySelector('.contact-form__submit')
 
@@ -2702,6 +2726,7 @@ const setContactStatus = (message, type = '') => {
   contactStatus.textContent = message
   contactStatus.classList.toggle('is-success', type === 'success')
   contactStatus.classList.toggle('is-error', type === 'error')
+  syncContactFormChevron()
 }
 
 contactForm?.addEventListener('submit', async (e) => {
