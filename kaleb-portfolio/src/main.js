@@ -267,15 +267,7 @@ app.innerHTML = `
             <p class="work-detail-desc"></p>
             <a class="work-detail-link" hidden target="_blank" rel="noopener noreferrer">Visit site</a>
             <div class="work-detail-frame">
-              <div class="work-detail-live" hidden>
-                <iframe
-                  class="work-detail-live-frame"
-                  title=""
-                  loading="lazy"
-                  referrerpolicy="no-referrer"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-                ></iframe>
-              </div>
+              <div class="work-detail-live" hidden></div>
               <button type="button" class="work-detail-live-arm" hidden>
                 <span class="work-detail-live-arm-blob">
                   <span class="work-detail-live-arm-shape">
@@ -501,10 +493,33 @@ const PREVIEW_WIDTH = 1280
 const projectLive = {
   wrap: document.querySelector('.work-detail-frame'),
   live: document.querySelector('.work-detail-live'),
-  iframe: document.querySelector('.work-detail-live-frame'),
+  iframe: null,
   arm: document.querySelector('.work-detail-live-arm'),
   blob: document.querySelector('.work-detail-live-arm-blob'),
   magnet: { x: 0, y: 0 },
+}
+
+const LIVE_IFRAME_SANDBOX =
+  'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox'
+
+const ensureLiveIframe = () => {
+  if (projectLive.iframe || !projectLive.live) return projectLive.iframe
+  const iframe = document.createElement('iframe')
+  iframe.className = 'work-detail-live-frame'
+  iframe.title = ''
+  iframe.loading = 'lazy'
+  iframe.referrerPolicy = 'no-referrer'
+  iframe.setAttribute('sandbox', LIVE_IFRAME_SANDBOX)
+  projectLive.live.appendChild(iframe)
+  projectLive.iframe = iframe
+  return iframe
+}
+
+const destroyLiveIframe = () => {
+  if (!projectLive.iframe) return
+  projectLive.iframe.removeAttribute('src')
+  projectLive.iframe.remove()
+  projectLive.iframe = null
 }
 
 const syncPreviewScale = () => {
@@ -531,20 +546,17 @@ const teardownLivePreview = () => {
   projectLive.magnet.y = 0
   projectLive.blob?.style.setProperty('--magnet-x', '0px')
   projectLive.blob?.style.setProperty('--magnet-y', '0px')
-  if (projectLive.iframe) {
-    projectLive.iframe.removeAttribute('title')
-    projectLive.iframe.src = 'about:blank'
-  }
+  destroyLiveIframe()
 }
 
 const setupLivePreview = (project) => {
-  if (
-    !project?.url ||
-    project.livePreview === false ||
-    !projectLive.live ||
-    !projectLive.iframe ||
-    !projectLive.arm
-  ) {
+  if (!project?.url || project.livePreview === false || !projectLive.live || !projectLive.arm) {
+    teardownLivePreview()
+    return
+  }
+
+  const iframe = ensureLiveIframe()
+  if (!iframe) {
     teardownLivePreview()
     return
   }
@@ -553,9 +565,9 @@ const setupLivePreview = (project) => {
   projectLive.wrap?.classList.remove('is-armed')
   projectLive.live.hidden = false
   projectLive.arm.hidden = false
-  projectLive.iframe.title = `Live preview of ${project.name}`
-  if (projectLive.iframe.getAttribute('src') !== project.url) {
-    projectLive.iframe.src = project.url
+  iframe.title = `Live preview of ${project.name}`
+  if (iframe.getAttribute('src') !== project.url) {
+    iframe.src = project.url
   }
   syncPreviewScale()
 }
@@ -927,16 +939,34 @@ const contactMessage = document.querySelector('#contact-message')
 let swipeStart = null
 let swipeClaimedClick = false
 
+const PLAY_START_SWIPE_PAD = 56
+
 const isInteractiveTarget = (el) => {
   if (!el?.closest) return false
   if (el.closest('.profile-blob-shape')) return true
   // Gameplay captures gestures; welcome screen allows swipe-back to home
   if (el.closest('.play-root.is-playing')) return true
+  // Keep play CTA / naming / leaderboard from starting page swipes
+  if (el.closest('.play-start, .play-name-prompt, .play-leaderboard-wrap')) return true
   // Contact form fills the screen — allow edge swipes from fields/buttons
   if (app.dataset.screen === 'contact' && el.closest('.contact-form, .contact-form-wrap')) {
     return false
   }
   return Boolean(el.closest('button, a, input, textarea, select, label'))
+}
+
+const inPlayStartSafeZone = (x, y) => {
+  if (app.dataset.screen !== 'play') return false
+  if (document.querySelector('.play-root.is-playing')) return false
+  const btn = document.querySelector('.play-start')
+  if (!btn) return false
+  const r = btn.getBoundingClientRect()
+  return (
+    x >= r.left - PLAY_START_SWIPE_PAD &&
+    x <= r.right + PLAY_START_SWIPE_PAD &&
+    y >= r.top - PLAY_START_SWIPE_PAD &&
+    y <= r.bottom + PLAY_START_SWIPE_PAD
+  )
 }
 
 const scrolledToTop = (el) => !el || el.scrollTop <= 1
@@ -1028,6 +1058,8 @@ const matchSwipeRoute = (routes, delta, atTop, atBottom) => {
 const beginSwipe = (id, x, y, target) => {
   if (!swipeMq.matches || swipeStart) return
   if (isInteractiveTarget(target)) return
+  // Near-miss taps on the play blob should start the game, not a page swipe
+  if (inPlayStartSafeZone(x, y)) return
   const el = currentScrollEl()
   const screen = app.dataset.screen || 'home'
   swipeStart = {

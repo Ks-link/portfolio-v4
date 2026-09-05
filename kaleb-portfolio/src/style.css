@@ -530,6 +530,14 @@ body {
   outline-offset: 3px;
 }
 
+.play-start.is-busy {
+  pointer-events: none;
+}
+
+.play-start.is-busy .play-start-shape {
+  opacity: 0.7;
+}
+
 .play-hud {
   display: none;
   position: absolute;

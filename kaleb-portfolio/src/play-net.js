@@ -548,15 +548,22 @@ const connectRemote = async (handlers) => {
     if (latestFood) handlers.onFood?.(latestFood)
   }
 
+  const vacantFor = (slot) => (slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' })
+
   const clearSlotDisconnect = async (slot) => {
     if (slot < 0) return
     await onDisconnect(ref(rtdb, `${ROOT}/slots/${slot}`)).cancel()
   }
 
+  const armSlotDisconnect = async (slot) => {
+    if (slot < 0) return
+    await onDisconnect(ref(rtdb, `${ROOT}/slots/${slot}`)).set(vacantFor(slot))
+  }
+
   const armDisconnects = async () => {
     await onDisconnect(presenceRef).remove()
     await onDisconnect(inputsRef).remove()
-    if (claimedSlot >= 0) await clearSlotDisconnect(claimedSlot)
+    if (claimedSlot >= 0) await armSlotDisconnect(claimedSlot)
     if (hostNow) await onDisconnect(hostRef).remove()
     else await onDisconnect(hostRef).cancel()
   }
@@ -571,19 +578,17 @@ const connectRemote = async (handlers) => {
     return Object.keys(live).filter((id) => id !== uid)
   }
 
-  const otherHumanSeats = (slots = latestSlots) => {
-    let n = 0
-    for (let i = 0; i < SLOT_COUNT; i++) {
-      if (slots[i]?.kind === 'human' && slots[i].uid && slots[i].uid !== uid) n += 1
-    }
-    return n
-  }
-
   const worldInUse = () => {
+    // Stale human seats without live presence do not count — those are abandoned.
     if (claimedSlot >= 0) return true
     if (otherLive().length) return true
-    if (otherHumanSeats()) return true
     return false
+  }
+
+  const seatHeldByLiveHuman = (seat) => {
+    if (seat?.kind !== 'human' || !seat.uid) return false
+    if (seat.uid === uid) return true
+    return presenceIsLive(latestPresence[seat.uid])
   }
 
   const restoreClaimedSeat = () => {
@@ -747,7 +752,8 @@ const connectRemote = async (handlers) => {
   }
   document.addEventListener('visibilitychange', onVisible)
 
-  await becomeHost()
+  // Don't block session readiness on host election — play can claim a seat either way.
+  becomeHost().catch(warnWrite('becomeHost'))
 
   return {
     uid,
@@ -757,7 +763,7 @@ const connectRemote = async (handlers) => {
       const existing = slotOfUid(latestSlots, uid)
       if (existing >= 0) {
         claimedSlot = existing
-        await clearSlotDisconnect(existing)
+        await armSlotDisconnect(existing)
         await set(presenceRef, presencePayload())
         return { slot: existing }
       }
@@ -773,14 +779,17 @@ const connectRemote = async (handlers) => {
       }
 
       for (const candidate of tryOrder) {
-        if (latestSlots?.[candidate]?.kind === 'human' && latestSlots[candidate].uid !== uid) {
+        const held = latestSlots?.[candidate]
+        if (held?.kind === 'human' && held.uid !== uid && seatHeldByLiveHuman(held)) {
           continue
         }
         try {
           const { committed, snapshot } = await runTransaction(
             ref(rtdb, `${ROOT}/slots/${candidate}`),
             (seat) => {
-              if (seat?.kind === 'human' && seat.uid && seat.uid !== uid) return
+              if (seat?.kind === 'human' && seat.uid && seat.uid !== uid) {
+                if (presenceIsLive(latestPresence[seat.uid])) return
+              }
               if (seat?.kind === 'human' && seat.uid === uid) return seat
               return { kind: 'human', uid, at: Date.now() }
             },
@@ -789,7 +798,7 @@ const connectRemote = async (handlers) => {
           if (!committed || next?.kind !== 'human' || next.uid !== uid) continue
           if (claimedSlot >= 0 && claimedSlot !== candidate) await clearSlotDisconnect(claimedSlot)
           claimedSlot = candidate
-          await clearSlotDisconnect(candidate)
+          await armSlotDisconnect(candidate)
           await set(presenceRef, presencePayload())
           return { slot: candidate }
         } catch (err) {
@@ -802,7 +811,7 @@ const connectRemote = async (handlers) => {
       if (claimedSlot < 0) return
       const slot = claimedSlot
       await clearSlotDisconnect(slot)
-      const vacant = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+      const vacant = vacantFor(slot)
       await runTransaction(ref(rtdb, `${ROOT}/slots/${slot}`), (current) => {
         if (current?.kind === 'human' && current.uid && current.uid !== uid) return
         return vacant
@@ -843,7 +852,8 @@ const connectRemote = async (handlers) => {
       document.removeEventListener('visibilitychange', onVisible)
       for (const unsub of unsubs) unsub()
       const slot = claimedSlot
-      const wipe = hostNow && !otherLive().length && !otherHumanSeats()
+      // Stale seats without live presence should not block a full world wipe.
+      const wipe = hostNow && !otherLive().length
       claimedSlot = -1
       playing = false
       if (slot >= 0) clearSlotDisconnect(slot).catch(warnWrite('slotDisconnectCancel'))
@@ -852,7 +862,7 @@ const connectRemote = async (handlers) => {
       set(inputsRef, null).catch(warnWrite('inputClear'))
       if (wipe) clearSharedWorld()
       else if (slot >= 0) {
-        const vacant = slot === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+        const vacant = vacantFor(slot)
         runTransaction(ref(rtdb, `${ROOT}/slots/${slot}`), (current) => {
           if (current?.kind === 'human' && current.uid && current.uid !== uid) return
           return vacant
