@@ -207,6 +207,9 @@ app.innerHTML = `
     ${navArrow}
   </button>
   <nav class="swipe-hints">
+    <div class="swipe-hints__set swipe-hints__set--play">
+      ${swipeDir('right', 'home', 'home')}
+    </div>
     <div class="swipe-hints__set swipe-hints__set--home">
       ${swipeDir('left', 'play', 'play')}
       ${swipeDir('down', 'about', 'about')}
@@ -926,7 +929,9 @@ let swipeClaimedClick = false
 
 const isInteractiveTarget = (el) => {
   if (!el?.closest) return false
-  if (el.closest('.profile-blob-shape, .play-root')) return true
+  if (el.closest('.profile-blob-shape')) return true
+  // Gameplay captures gestures; welcome screen allows swipe-back to home
+  if (el.closest('.play-root.is-playing')) return true
   // Contact form fills the screen — allow edge swipes from fields/buttons
   if (app.dataset.screen === 'contact' && el.closest('.contact-form, .contact-form-wrap')) {
     return false

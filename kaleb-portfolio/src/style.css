@@ -2498,6 +2498,7 @@ body {
     --swipe-track: 0.12em;
   }
 
+  #app[data-screen="play"]:not(:has(.play-root.is-playing)) .swipe-hints__set--play,
   #app[data-screen="home"] .swipe-hints__set--home,
   #app[data-screen="work"]:not([data-project]) .swipe-hints__set--work,
   #app[data-screen="work"][data-project] .swipe-hints__set--work-detail,
