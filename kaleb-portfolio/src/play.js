@@ -13,7 +13,6 @@ import {
   SLOT_COUNT,
   connectPlaySession,
   defaultSlots,
-  humanCount,
   packCells,
   packFood,
   slotOfUid,
@@ -451,7 +450,20 @@ export const mountPlay = (root) => {
 
   const setMapFull = (full) => {
     welcome.classList.toggle('is-full', full)
-    if (fullError) fullError.hidden = !full
+    if (!fullError) return
+    if (full) {
+      fullError.textContent = 'the map is full — 12 players max'
+      fullError.hidden = false
+    } else {
+      fullError.hidden = true
+    }
+  }
+
+  const setPlayError = (message) => {
+    welcome.classList.add('is-full')
+    if (!fullError) return
+    fullError.textContent = message
+    fullError.hidden = false
   }
 
   const syncMapFull = () => {
@@ -1403,7 +1415,7 @@ export const mountPlay = (root) => {
 
   const reapGoneHumans = () => {
     if (!isHost || !session) return
-    if (!Object.keys(netPresence).length) return
+    const presenceEmpty = !Object.keys(netPresence).length
     let changed = false
     const next = { ...netSlots }
     for (let owner = 0; owner < SLOT_COUNT; owner++) {
@@ -1411,8 +1423,10 @@ export const mountPlay = (root) => {
       if (slot?.kind !== 'human') continue
       if (slot.uid && slot.uid === session.uid) continue
       if (owner === localOwner) continue
-      if (slot.uid && netPresence[slot.uid]) continue
-      if (slot.uid && (netInputs[slot.uid] || lastRemoteInput.has(slot.uid))) continue
+      if (!presenceEmpty) {
+        if (slot.uid && netPresence[slot.uid]) continue
+        if (slot.uid && (netInputs[slot.uid] || lastRemoteInput.has(slot.uid))) continue
+      }
       next[owner] = owner === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
       changed = true
     }
@@ -2196,6 +2210,16 @@ export const mountPlay = (root) => {
     spawnHuman(localOwner)
   }
 
+  const PLAY_CLAIM_MS = 15000
+
+  const withTimeout = (promise, ms, label) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        window.setTimeout(() => reject(new Error(label)), ms)
+      }),
+    ])
+
   const resumePlay = () => {
     playing = true
     playLife += 1
@@ -2225,9 +2249,12 @@ export const mountPlay = (root) => {
     claiming = true
     startBtn?.classList.add('is-busy')
     try {
-      session = (await sessionReady) || session
-      if (!running || !session) return
-      const result = await session.claimSlot(localOwner)
+      session = (await withTimeout(sessionReady, PLAY_CLAIM_MS, 'session timeout')) || session
+      if (!running || !session) {
+        setPlayError("couldn't connect — try again")
+        return
+      }
+      const result = await withTimeout(session.claimSlot(localOwner), PLAY_CLAIM_MS, 'claim timeout')
       if (!running) return
       if (result.full) {
         setMapFull(true)
@@ -2238,7 +2265,7 @@ export const mountPlay = (root) => {
       hadLocalCells = ownerCells(localOwner).length > 0
       resumePlay()
     } catch {
-      setMapFull(true)
+      setPlayError("couldn't join — try again")
     } finally {
       claiming = false
       startBtn?.classList.remove('is-busy')
@@ -2313,8 +2340,8 @@ export const mountPlay = (root) => {
       },
     })
     if (emptyLobby) {
-      const seats = session.getSlots?.() || netSlots
-      if (humanCount(seats) === 0) session.writeSlots(defaultSlots())
+      // Wipe abandoned human seats left behind when nobody is live.
+      session.writeSlots(defaultSlots())
       slotDiffEnabled = true
       emptyLobby = false
     } else {
