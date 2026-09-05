@@ -977,16 +977,6 @@ body {
   opacity: 0.45;
 }
 
-.title {
-  margin: 0;
-  font-family: var(--sans);
-  font-weight: 500;
-  font-size: 0.85rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-
 .hero-cta {
   display: inline-flex;
   align-items: center;
@@ -1500,12 +1490,9 @@ body {
 }
 
 .work-kicker,
-.work-back {
-  position: absolute;
-  top: var(--screen-pad-top);
-  left: 0.5rem;
+.work-back,
+.title {
   margin: 0;
-  transform: translateY(calc(-100% - 0.35rem));
   font-family: var(--sans);
   font-weight: 500;
   font-size: 0.85rem;
@@ -1513,6 +1500,14 @@ body {
   text-transform: uppercase;
   color: var(--text);
   opacity: 0.55;
+}
+
+.work-kicker,
+.work-back {
+  position: absolute;
+  top: var(--screen-pad-top);
+  left: 0.5rem;
+  transform: translateY(calc(-100% - 0.35rem));
 }
 
 .work-kicker {
@@ -2520,7 +2515,6 @@ body {
     padding-bottom: 1.5rem;
   }
 
-  .title,
   .hero-cta,
   .hero-meta-sep {
     font-size: 0.72rem;

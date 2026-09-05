@@ -242,11 +242,6 @@ app.innerHTML = `
         <h1 class="name">Kaleb Link</h1>
         <div class="hero-meta">
           <p class="title">web developer</p>
-          <span class="hero-meta-sep" aria-hidden="true">|</span>
-          <a href="#/contact" class="hero-cta">
-            get in touch
-            ${projectArrow}
-          </a>
         </div>
       </main>
     </section>
