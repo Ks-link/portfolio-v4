@@ -497,10 +497,18 @@ const projectLive = {
   arm: document.querySelector('.work-detail-live-arm'),
   blob: document.querySelector('.work-detail-live-arm-blob'),
   magnet: { x: 0, y: 0 },
+  previewUrl: '',
+  hasLoaded: false,
+  resetting: false,
 }
 
-const LIVE_IFRAME_SANDBOX =
-  'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox'
+const LIVE_IFRAME_SANDBOX = 'allow-scripts allow-same-origin'
+
+const resetLivePreviewNavState = () => {
+  projectLive.previewUrl = ''
+  projectLive.hasLoaded = false
+  projectLive.resetting = false
+}
 
 const ensureLiveIframe = () => {
   if (projectLive.iframe || !projectLive.live) return projectLive.iframe
@@ -510,6 +518,21 @@ const ensureLiveIframe = () => {
   iframe.loading = 'lazy'
   iframe.referrerPolicy = 'no-referrer'
   iframe.setAttribute('sandbox', LIVE_IFRAME_SANDBOX)
+  iframe.addEventListener('load', () => {
+    if (projectLive.resetting) {
+      projectLive.resetting = false
+      projectLive.hasLoaded = true
+      return
+    }
+    if (!projectLive.hasLoaded) {
+      projectLive.hasLoaded = true
+      return
+    }
+    const url = projectLive.previewUrl
+    if (!url || !projectLive.iframe) return
+    projectLive.resetting = true
+    projectLive.iframe.src = url
+  })
   projectLive.live.appendChild(iframe)
   projectLive.iframe = iframe
   return iframe
@@ -520,6 +543,7 @@ const destroyLiveIframe = () => {
   projectLive.iframe.removeAttribute('src')
   projectLive.iframe.remove()
   projectLive.iframe = null
+  resetLivePreviewNavState()
 }
 
 const syncPreviewScale = () => {
@@ -566,7 +590,10 @@ const setupLivePreview = (project) => {
   projectLive.live.hidden = false
   projectLive.arm.hidden = false
   iframe.title = `Live preview of ${project.name}`
+  projectLive.previewUrl = project.url
   if (iframe.getAttribute('src') !== project.url) {
+    projectLive.hasLoaded = false
+    projectLive.resetting = false
     iframe.src = project.url
   }
   syncPreviewScale()
