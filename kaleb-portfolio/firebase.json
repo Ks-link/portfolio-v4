@@ -27,6 +27,7 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "trailingSlash": true,
     "headers": [
       {
         "source": "**",
