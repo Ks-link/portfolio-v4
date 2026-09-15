@@ -244,7 +244,7 @@ app.innerHTML = `
       <main class="hero">
         <h1 class="name">Kaleb Link</h1>
         <div class="hero-meta">
-          <p class="title">web developer</p>
+          <a class="hero-cta" href="/contact/">get in touch${projectArrow}</a>
         </div>
       </main>
     </section>
