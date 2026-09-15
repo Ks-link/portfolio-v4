@@ -286,6 +286,11 @@ export const mountPlay = (root) => {
   const statsKills = stats.querySelector('.play-stats-kills')
   const statsActive = stats.querySelector('.play-stats-active')
 
+  const resetStatsDisplay = (score = 0, killCount = 0) => {
+    statsScore.textContent = `score ${Math.round(score)}`
+    statsKills.textContent = `kills ${killCount}`
+  }
+
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const hoverNone = window.matchMedia('(hover: none)')
   const isMobileHud = () => hoverNone.matches
@@ -517,6 +522,7 @@ export const mountPlay = (root) => {
     kills = 0
     peakScore = Math.round(START_MASS)
     hadLocalCells = true
+    resetStatsDisplay(START_MASS, 0)
   }
 
   const adoptRemoteInputSeqs = (owner) => {
@@ -2180,6 +2186,7 @@ export const mountPlay = (root) => {
         const incomingLocal = incoming.filter((c) => Number(c.owner) === Number(localOwner))
         if (incomingLocal.length) {
           cells = remoteOnly(cells).concat(incomingLocal.map((c) => ({ ...c })))
+          adoptLocalSpawn(massCenter(incomingLocal))
         }
       }
     }
@@ -2206,7 +2213,7 @@ export const mountPlay = (root) => {
   }
 
   const ensureLocalSpawn = () => {
-    if (localOwner < 0 || ownerCells(localOwner).length) return
+    if (localOwner < 0) return
     spawnHuman(localOwner)
   }
 
@@ -2277,6 +2284,7 @@ export const mountPlay = (root) => {
     playing = false
     hadLocalCells = false
     if (localOwner >= 0) cells = cells.filter((c) => Number(c.owner) !== Number(localOwner))
+    resetStatsDisplay(0, 0)
     session?.writePresence({ playing: false })
     root.classList.remove('is-playing')
     tap.id = null
