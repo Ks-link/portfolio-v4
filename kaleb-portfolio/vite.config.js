@@ -30,13 +30,45 @@ const rewriteLibrary = (req, _res, next) => {
   next()
 }
 
+const spaFallback = (req, _res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    next()
+    return
+  }
+
+  const [path, query = ''] = (req.url ?? '').split('?')
+  const qs = query ? `?${query}` : ''
+
+  if (
+    path.startsWith('/library') ||
+    path.startsWith('/@') ||
+    path.startsWith('/node_modules') ||
+    path.startsWith('/src') ||
+    path.includes('.')
+  ) {
+    next()
+    return
+  }
+
+  const exact = publicFile(path)
+  if (existsSync(exact) && statSync(exact).isFile()) {
+    next()
+    return
+  }
+
+  req.url = '/index.html' + qs
+  next()
+}
+
 const libraryStaticSites = () => ({
   name: 'library-static-sites',
   configureServer(server) {
     server.middlewares.use(rewriteLibrary)
+    server.middlewares.use(spaFallback)
   },
   configurePreviewServer(server) {
     server.middlewares.use(rewriteLibrary)
+    server.middlewares.use(spaFallback)
   },
 })
 

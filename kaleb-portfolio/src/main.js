@@ -110,7 +110,7 @@ const projectCardsHtml = projects
   .map(
     (project) => `
           <li class="project-card">
-            <a class="project-link" href="#/work/${project.id}" data-project="${project.id}">
+            <a class="project-link" href="/work/${project.id}/" data-project="${project.id}">
               <h3 class="project-name">${project.name}</h3>
               <p class="project-desc">
                 <span class="project-desc-row">
@@ -599,8 +599,8 @@ const setupLivePreview = (project) => {
   syncPreviewScale()
 }
 
-const parseHash = () => {
-  const path = window.location.hash.replace(/^#\/?/, '').replace(/\/$/, '')
+const parseRouteParts = (rawPath) => {
+  const path = rawPath.replace(/^\/?/, '').replace(/\/$/, '')
   if (!path) return { screen: 'home', project: '' }
   const [screenPart, projectPart] = path.split('/')
   const screen = screens.has(screenPart) ? screenPart : 'home'
@@ -609,10 +609,21 @@ const parseHash = () => {
   return { screen, project }
 }
 
-const hashForRoute = (screen, project = '') => {
-  if (screen === 'home') return '#/'
-  if (screen === 'work' && project) return `#/work/${project}`
-  return `#/${screen}`
+const parsePath = () => parseRouteParts(window.location.pathname)
+
+const pathForRoute = (screen, project = '') => {
+  if (screen === 'home') return '/'
+  if (screen === 'work' && project) return `/work/${project}/`
+  return `/${screen}/`
+}
+
+const migrateLegacyHashRoute = () => {
+  const hash = window.location.hash
+  if (!hash.startsWith('#/')) return null
+  const route = parseRouteParts(hash.replace(/^#\/?/, ''))
+  const nextPath = pathForRoute(route.screen, route.project)
+  history.replaceState(route, '', nextPath + window.location.search)
+  return route
 }
 
 const edgeNav = {
@@ -762,8 +773,7 @@ let lastGtagPath
 
 const trackSpaPageView = () => {
   if (!window.AnalyticsConsent?.hasAnalyticsConsent()) return
-  const pagePath =
-    window.location.pathname + window.location.search + window.location.hash
+  const pagePath = window.location.pathname + window.location.search
   if (lastGtagPath === undefined) {
     lastGtagPath = pagePath
     return
@@ -814,11 +824,11 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
 
   routeEffects.syncScroll()
 
-  const nextHash = hashForRoute(screen, project)
+  const nextPath = pathForRoute(screen, project)
   const state = { screen, project }
-  if (window.location.hash !== nextHash) {
-    if (push) history.pushState(state, '', nextHash)
-    else history.replaceState(state, '', nextHash)
+  if (window.location.pathname !== nextPath) {
+    if (push) history.pushState(state, '', nextPath)
+    else history.replaceState(state, '', nextPath)
   }
 
   trackSpaPageView()
@@ -846,12 +856,12 @@ document.querySelectorAll('.swipe-hints__dir').forEach((btn) => {
 })
 
 window.addEventListener('popstate', () => {
-  const { screen, project } = parseHash()
+  const { screen, project } = parsePath()
   setRoute(screen, project, { push: false, focus: true })
 })
 
-const { screen: initialScreen, project: initialProject } = parseHash()
-setRoute(initialScreen, initialProject)
+const initialRoute = migrateLegacyHashRoute() ?? parsePath()
+setRoute(initialRoute.screen, initialRoute.project)
 
 homeToggle.addEventListener('click', () => {
   setScreen('home', { push: true })
