@@ -21,7 +21,10 @@ export const PRESENCE_STALE_MS = 30000
 const ROOT = 'play/global'
 const CLIENT_KEY = 'kaleb-play-client'
 
-const randomId = () => Math.random().toString(36).slice(2, 10)
+const randomId = () =>
+  Array.from(crypto.getRandomValues(new Uint32Array(2)), (n) => n.toString(36))
+    .join('')
+    .slice(0, 8)
 
 export const playClientId = (authUid) => {
   const prefix = authUid ? `${authUid}_` : 'local-'
