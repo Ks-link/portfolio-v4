@@ -768,7 +768,7 @@ const flashStageMapTravel = (screen) => {
     if (stageMap && !stageMap.matches(':hover') && !stageMap.contains(document.activeElement)) {
       stageMap.classList.remove('is-expanded')
     }
-  }, 1100)
+  }, 700)
 }
 
 stageMap?.addEventListener('mouseleave', () => {

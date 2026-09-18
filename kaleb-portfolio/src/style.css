@@ -936,8 +936,8 @@ body {
   transition:
     bottom 0.25s ease,
     opacity 0.3s ease,
-    width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 #app[data-cookie-banner="open"]:not([data-screen="play"]) .stage-map {
@@ -959,7 +959,7 @@ body {
   height: 5.5rem;
   transform: scale(0.46);
   transform-origin: bottom left;
-  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .stage-map:hover,
@@ -1016,8 +1016,8 @@ body {
   display: block;
   background: var(--stage-map-idle);
   opacity: 0.85;
-  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
-  animation: blob-morph 6.5s ease-in-out infinite;
+  border-radius: 50%;
+  animation: stage-map-blob-morph 6.5s ease-in-out infinite;
 }
 
 .stage-map__path--h {
@@ -1075,8 +1075,8 @@ body {
   margin: auto;
   background: var(--stage-map-idle);
   opacity: 0.4;
-  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
-  animation: blob-morph 6.5s ease-in-out infinite;
+  border-radius: 50%;
+  animation: stage-map-blob-morph 6.5s ease-in-out infinite;
   animation-delay: -2.1s;
   transform-origin: center;
 }
@@ -1092,13 +1092,13 @@ body {
   margin: auto;
   background: var(--stage-map-idle);
   opacity: 1;
-  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
-  animation: blob-morph 6.5s ease-in-out infinite;
+  border-radius: 50%;
+  animation: stage-map-blob-morph 6.5s ease-in-out infinite;
   transform-origin: center;
   transition:
-    background 0.3s ease,
-    width 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-    height 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    background 0.2s ease,
+    width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .stage-map__blob[data-to="play"] {
@@ -2630,6 +2630,19 @@ body {
   }
 }
 
+@keyframes stage-map-blob-morph {
+  0%,
+  100% {
+    border-radius: 50%;
+  }
+  33% {
+    border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%;
+  }
+  66% {
+    border-radius: 52% 48% 50% 50% / 48% 52% 48% 52%;
+  }
+}
+
 .cookie-consent {
   position: fixed;
   z-index: 20;
@@ -2753,7 +2766,7 @@ body {
   .stage-map__void,
   .stage-map__path {
     animation: none;
-    border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+    border-radius: 50%;
   }
 
   .stage-map,
