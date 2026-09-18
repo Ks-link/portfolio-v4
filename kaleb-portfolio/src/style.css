@@ -126,7 +126,10 @@ body {
 
 .screen--play {
   grid-column: 1;
-  grid-row: 1;
+  grid-row: 1 / span 2;
+  height: auto;
+  max-height: none;
+  min-height: 0;
   padding: 0;
 }
 
@@ -744,9 +747,19 @@ body {
 }
 
 .screen--contact {
-  grid-column: 2;
+  grid-column: 2 / span 2;
   grid-row: 3;
+  width: auto;
+  max-width: none;
   overflow: hidden;
+}
+
+.screen--contact > .screen-inner,
+.screen--contact .contact-layout {
+  width: min(100%, 100vw);
+  max-width: 40rem;
+  margin-inline: 0 auto;
+  box-sizing: border-box;
 }
 
 .screen-inner {
@@ -920,6 +933,206 @@ body {
 
 .corner-btn.is-off:hover {
   opacity: 0.7;
+}
+
+.stage-map {
+  display: none;
+  position: fixed;
+  z-index: 10;
+  left: max(1.25rem, env(safe-area-inset-left));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  width: 5.25rem;
+  height: 5.25rem;
+  overflow: visible;
+  pointer-events: none;
+  --stage-map-idle: color-mix(in srgb, var(--text) 38%, var(--nav-blob));
+  transition:
+    bottom 0.25s ease,
+    opacity 0.3s ease;
+}
+
+#app[data-cookie-banner="open"]:not([data-screen="play"]) .stage-map {
+  bottom: calc(
+    var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) + 0.65rem
+  );
+}
+
+#app[data-screen="play"]:has(.play-root.is-playing) .stage-map {
+  opacity: 0.55;
+}
+
+.stage-map__goo,
+.stage-map__grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 0;
+  padding: 0.35rem;
+}
+
+.stage-map__goo {
+  filter: url("#stage-map-goo");
+  pointer-events: none;
+}
+
+.stage-map__grid {
+  pointer-events: auto;
+}
+
+.stage-map__void {
+  display: block;
+  width: 0.72rem;
+  height: 0.72rem;
+  margin: auto;
+  background: var(--stage-map-idle);
+  opacity: 0.55;
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  animation: blob-morph 6.5s ease-in-out infinite;
+  animation-delay: -2.1s;
+  transform-origin: center;
+}
+
+.stage-map__slot {
+  display: block;
+}
+
+.stage-map__blob {
+  display: block;
+  width: 0.88rem;
+  height: 0.88rem;
+  margin: auto;
+  background: var(--stage-map-idle);
+  opacity: 1;
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  animation: blob-morph 6.5s ease-in-out infinite;
+  transform-origin: center;
+  transition:
+    background 0.3s ease,
+    width 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stage-map__blob:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.stage-map__blob:nth-child(2) {
+  animation-delay: -1.2s;
+}
+
+.stage-map__blob:nth-child(3) {
+  animation-delay: -2.4s;
+}
+
+.stage-map__blob:nth-child(4) {
+  animation-delay: -0.9s;
+}
+
+.stage-map__blob:nth-child(5) {
+  animation-delay: -0.6s;
+}
+
+.stage-map__blob:nth-child(6) {
+  animation-delay: -1.8s;
+}
+
+.stage-map__blob:nth-child(8) {
+  animation-delay: -3s;
+}
+
+.stage-map__blob:nth-child(9) {
+  animation-delay: -2.7s;
+}
+
+.stage-map__blob.is-here {
+  width: 1.4rem;
+  height: 1.4rem;
+  background: var(--cursor-blob);
+}
+
+.stage-map__blob.is-traveling {
+  width: 1.6rem;
+  height: 1.6rem;
+  animation-duration: 3.2s;
+}
+
+.stage-map__cell {
+  position: relative;
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.stage-map__label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.2rem);
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.stage-map__cell:hover .stage-map__label,
+.stage-map__cell:focus-visible .stage-map__label {
+  opacity: 0.9;
+}
+
+.stage-map__cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 50%;
+}
+
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:hover) .stage-map__blob.is-here,
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:focus-visible) .stage-map__blob.is-here {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="play"]:hover) .stage-map__blob[data-to="play"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="home"]:hover) .stage-map__blob[data-to="home"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="work"]:hover) .stage-map__blob[data-to="work"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="about"]:hover) .stage-map__blob[data-to="about"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="experience"]:hover) .stage-map__blob[data-to="experience"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="contact"]:hover) .stage-map__blob[data-to="contact"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="play"]:focus-visible) .stage-map__blob[data-to="play"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="home"]:focus-visible) .stage-map__blob[data-to="home"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="work"]:focus-visible) .stage-map__blob[data-to="work"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="about"]:focus-visible) .stage-map__blob[data-to="about"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="experience"]:focus-visible) .stage-map__blob[data-to="experience"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="contact"]:focus-visible) .stage-map__blob[data-to="contact"]:not(.is-here) {
+  width: 1.05rem;
+  height: 1.05rem;
+  background: color-mix(in srgb, var(--stage-map-idle) 65%, var(--cursor-blob));
+}
+
+@media (min-width: 48rem) {
+  .stage-map {
+    display: block;
+  }
 }
 
 .home-toggle .theme-icon,
@@ -1210,10 +1423,12 @@ body {
 #app[data-screen="work"] .nav-blob--left,
 #app[data-screen="work"] .nav-blob--bottom,
 #app[data-screen="about"] .nav-blob--top,
+#app[data-screen="about"] .nav-blob--left,
 #app[data-screen="about"] .nav-blob--right,
 #app[data-screen="about"] .nav-blob--bottom,
 #app[data-screen="experience"] .nav-blob--left,
 #app[data-screen="experience"] .nav-blob--top,
+#app[data-screen="experience"] .nav-blob--bottom,
 #app[data-screen="contact"] .nav-blob--top {
   opacity: 1;
   visibility: visible;
@@ -2421,6 +2636,22 @@ body {
   .nav-blob-shape {
     animation: none;
     border-radius: var(--nav-blob-r0);
+  }
+
+  .stage-map__blob,
+  .stage-map__void {
+    animation: none;
+    border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  }
+
+  .stage-map__blob,
+  .stage-map__label {
+    transition: none;
+  }
+
+  .stage-map__blob.is-traveling {
+    width: 1.4rem;
+    height: 1.4rem;
   }
 
   .project-preview-shape,

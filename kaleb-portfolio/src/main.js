@@ -166,6 +166,19 @@ app.innerHTML = `
           result="goo"
         />
       </filter>
+      <filter id="stage-map-goo" color-interpolation-filters="sRGB">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur" />
+        <feColorMatrix
+          in="blur"
+          mode="matrix"
+          values="
+            1 0 0 0 0
+            0 1 0 0 0
+            0 0 1 0 0
+            0 0 0 14 -6"
+          result="goo"
+        />
+      </filter>
     </defs>
   </svg>
   <div class="blob-cursor" aria-hidden="true">
@@ -194,6 +207,46 @@ app.innerHTML = `
       ${moonIcon}
     </button>
   </div>
+  <nav class="stage-map" aria-label="Site map">
+    <div class="stage-map__goo" aria-hidden="true">
+      <span class="stage-map__blob" data-to="play"></span>
+      <span class="stage-map__blob" data-to="home"></span>
+      <span class="stage-map__blob" data-to="work"></span>
+      <span class="stage-map__blob" data-to="play"></span>
+      <span class="stage-map__blob" data-to="about"></span>
+      <span class="stage-map__blob" data-to="experience"></span>
+      <span class="stage-map__void"></span>
+      <span class="stage-map__blob" data-to="contact"></span>
+      <span class="stage-map__blob" data-to="contact"></span>
+    </div>
+    <div class="stage-map__grid">
+      <button type="button" class="stage-map__cell" data-to="play" aria-label="Play">
+        <span class="stage-map__label">play</span>
+      </button>
+      <button type="button" class="stage-map__cell" data-to="home" aria-label="Home">
+        <span class="stage-map__label">home</span>
+      </button>
+      <button type="button" class="stage-map__cell" data-to="work" aria-label="View work">
+        <span class="stage-map__label">work</span>
+      </button>
+      <button type="button" class="stage-map__cell" data-to="play" aria-label="Play">
+        <span class="stage-map__label">play</span>
+      </button>
+      <button type="button" class="stage-map__cell" data-to="about" aria-label="About">
+        <span class="stage-map__label">about</span>
+      </button>
+      <button type="button" class="stage-map__cell" data-to="experience" aria-label="Experience">
+        <span class="stage-map__label">experience</span>
+      </button>
+      <span class="stage-map__slot" aria-hidden="true"></span>
+      <button type="button" class="stage-map__cell" data-to="contact" aria-label="Get In Touch">
+        <span class="stage-map__label">contact</span>
+      </button>
+      <button type="button" class="stage-map__cell" data-to="contact" aria-label="Get In Touch">
+        <span class="stage-map__label">contact</span>
+      </button>
+    </div>
+  </nav>
   <button type="button" class="nav-blob nav-blob--right" data-edge="right" aria-label="View work">
     ${navArrow}
   </button>
@@ -225,12 +278,14 @@ app.innerHTML = `
     </div>
     <div class="swipe-hints__set swipe-hints__set--about">
       ${swipeDir('up', 'home', 'home')}
+      ${swipeDir('left', 'play', 'play')}
       ${swipeDir('down', 'contact', 'contact')}
       ${swipeDir('right', 'experience', 'experience')}
     </div>
     <div class="swipe-hints__set swipe-hints__set--experience">
       ${swipeDir('left', 'about', 'about')}
       ${swipeDir('up', 'work', 'work')}
+      ${swipeDir('down', 'contact', 'contact')}
     </div>
     <div class="swipe-hints__set swipe-hints__set--contact">
       ${swipeDir('up', 'about', 'about')}
@@ -630,8 +685,8 @@ const edgeNav = {
   play: { right: 'home' },
   home: { left: 'play', right: 'work', bottom: 'about' },
   work: { left: 'home', bottom: 'experience' },
-  about: { top: 'home', right: 'experience', bottom: 'contact' },
-  experience: { left: 'about', top: 'work' },
+  about: { top: 'home', left: 'play', right: 'experience', bottom: 'contact' },
+  experience: { left: 'about', top: 'work', bottom: 'contact' },
   contact: { top: 'about' },
 }
 
@@ -646,6 +701,8 @@ const ariaForDest = (dest) => {
 }
 
 const navBlobs = [...document.querySelectorAll('.nav-blob')]
+const stageMapCells = [...document.querySelectorAll('.stage-map__cell')]
+const stageMapBlobs = [...document.querySelectorAll('.stage-map__blob')]
 const routeEffects = {
   syncScroll: () => { },
   syncCursor: () => { },
@@ -667,6 +724,34 @@ const syncNavLabels = (screen, project = '') => {
     btn.setAttribute('aria-label', ariaForDest(dest))
     if (labelEl) labelEl.textContent = dest
   })
+}
+
+let stageMapTravelTimer = 0
+const syncStageMap = (screen) => {
+  stageMapCells.forEach((cell) => {
+    const here = cell.dataset.to === screen
+    cell.classList.toggle('is-here', here)
+    if (here) cell.setAttribute('aria-current', 'page')
+    else cell.removeAttribute('aria-current')
+  })
+  stageMapBlobs.forEach((blob) => {
+    blob.classList.toggle('is-here', blob.dataset.to === screen)
+  })
+}
+
+const flashStageMapTravel = (screen) => {
+  const destCells = stageMapCells.filter((cell) => cell.dataset.to === screen)
+  const destBlobs = stageMapBlobs.filter((blob) => blob.dataset.to === screen)
+  if (!destCells.length && !destBlobs.length) return
+  stageMapCells.forEach((cell) => cell.classList.remove('is-traveling'))
+  stageMapBlobs.forEach((blob) => blob.classList.remove('is-traveling'))
+  destCells.forEach((cell) => cell.classList.add('is-traveling'))
+  destBlobs.forEach((blob) => blob.classList.add('is-traveling'))
+  window.clearTimeout(stageMapTravelTimer)
+  stageMapTravelTimer = window.setTimeout(() => {
+    destCells.forEach((cell) => cell.classList.remove('is-traveling'))
+    destBlobs.forEach((blob) => blob.classList.remove('is-traveling'))
+  }, 480)
 }
 
 const hideProjectPreview = () => {
@@ -795,6 +880,7 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
   if (screen !== 'work') project = ''
   if (project && !projectById.has(project)) project = ''
 
+  const prevScreen = app.dataset.screen || ''
   const prevProject = app.dataset.project || ''
   const shouldFocus = focus && prevProject !== project
   const opening = Boolean(project) && !prevProject
@@ -802,6 +888,8 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
   app.dataset.screen = screen
   app.style.setProperty('--work-swipe', '0px')
   syncNavLabels(screen, project)
+  syncStageMap(screen)
+  if (screen !== prevScreen) flashStageMapTravel(screen)
   if (screen === 'play') play.start()
   else play.stop()
   routeEffects.syncCursor()
@@ -849,6 +937,13 @@ navBlobs.forEach((btn) => {
 })
 
 document.querySelectorAll('.swipe-hints__dir').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const dest = btn.dataset.to
+    if (dest) setScreen(dest, { push: true })
+  })
+})
+
+stageMapCells.forEach((btn) => {
   btn.addEventListener('click', () => {
     const dest = btn.dataset.to
     if (dest) setScreen(dest, { push: true })
@@ -947,7 +1042,10 @@ const swipeMap = {
     y: { dir: -1, to: 'experience', needBottom: true },
   },
   about: {
-    x: { dir: -1, to: 'experience' },
+    x: [
+      { dir: -1, to: 'experience' },
+      { dir: 1, to: 'play' },
+    ],
     y: [
       { dir: 1, to: 'home', needTop: true },
       { dir: -1, to: 'contact' },
@@ -955,7 +1053,10 @@ const swipeMap = {
   },
   experience: {
     x: { dir: 1, to: 'about' },
-    y: { dir: 1, to: 'work', needTop: true },
+    y: [
+      { dir: 1, to: 'work', needTop: true },
+      { dir: -1, to: 'contact', needBottom: true },
+    ],
   },
   contact: {
     y: { dir: 1, to: 'about', needTop: true },
