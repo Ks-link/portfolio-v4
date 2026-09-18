@@ -212,12 +212,12 @@ app.innerHTML = `
       <span class="stage-map__blob" data-to="play"></span>
       <span class="stage-map__blob" data-to="home"></span>
       <span class="stage-map__blob" data-to="work"></span>
-      <span class="stage-map__blob" data-to="play"></span>
+      <span class="stage-map__void"></span>
       <span class="stage-map__blob" data-to="about"></span>
       <span class="stage-map__blob" data-to="experience"></span>
       <span class="stage-map__void"></span>
       <span class="stage-map__blob" data-to="contact"></span>
-      <span class="stage-map__blob" data-to="contact"></span>
+      <span class="stage-map__void"></span>
     </div>
     <div class="stage-map__grid">
       <button type="button" class="stage-map__cell" data-to="play" aria-label="Play">
@@ -229,9 +229,7 @@ app.innerHTML = `
       <button type="button" class="stage-map__cell" data-to="work" aria-label="View work">
         <span class="stage-map__label">work</span>
       </button>
-      <button type="button" class="stage-map__cell" data-to="play" aria-label="Play">
-        <span class="stage-map__label">play</span>
-      </button>
+      <span class="stage-map__slot" aria-hidden="true"></span>
       <button type="button" class="stage-map__cell" data-to="about" aria-label="About">
         <span class="stage-map__label">about</span>
       </button>
@@ -242,9 +240,7 @@ app.innerHTML = `
       <button type="button" class="stage-map__cell" data-to="contact" aria-label="Get In Touch">
         <span class="stage-map__label">contact</span>
       </button>
-      <button type="button" class="stage-map__cell" data-to="contact" aria-label="Get In Touch">
-        <span class="stage-map__label">contact</span>
-      </button>
+      <span class="stage-map__slot" aria-hidden="true"></span>
     </div>
   </nav>
   <button type="button" class="nav-blob nav-blob--right" data-edge="right" aria-label="View work">
@@ -278,14 +274,12 @@ app.innerHTML = `
     </div>
     <div class="swipe-hints__set swipe-hints__set--about">
       ${swipeDir('up', 'home', 'home')}
-      ${swipeDir('left', 'play', 'play')}
       ${swipeDir('down', 'contact', 'contact')}
       ${swipeDir('right', 'experience', 'experience')}
     </div>
     <div class="swipe-hints__set swipe-hints__set--experience">
       ${swipeDir('left', 'about', 'about')}
       ${swipeDir('up', 'work', 'work')}
-      ${swipeDir('down', 'contact', 'contact')}
     </div>
     <div class="swipe-hints__set swipe-hints__set--contact">
       ${swipeDir('up', 'about', 'about')}
@@ -685,8 +679,8 @@ const edgeNav = {
   play: { right: 'home' },
   home: { left: 'play', right: 'work', bottom: 'about' },
   work: { left: 'home', bottom: 'experience' },
-  about: { top: 'home', left: 'play', right: 'experience', bottom: 'contact' },
-  experience: { left: 'about', top: 'work', bottom: 'contact' },
+  about: { top: 'home', right: 'experience', bottom: 'contact' },
+  experience: { left: 'about', top: 'work' },
   contact: { top: 'about' },
 }
 
@@ -740,17 +734,17 @@ const syncStageMap = (screen) => {
 }
 
 const flashStageMapTravel = (screen) => {
-  const destCells = stageMapCells.filter((cell) => cell.dataset.to === screen)
-  const destBlobs = stageMapBlobs.filter((blob) => blob.dataset.to === screen)
-  if (!destCells.length && !destBlobs.length) return
+  const destCell = stageMapCells.find((cell) => cell.dataset.to === screen)
+  const destBlob = stageMapBlobs.find((blob) => blob.dataset.to === screen)
+  if (!destCell && !destBlob) return
   stageMapCells.forEach((cell) => cell.classList.remove('is-traveling'))
   stageMapBlobs.forEach((blob) => blob.classList.remove('is-traveling'))
-  destCells.forEach((cell) => cell.classList.add('is-traveling'))
-  destBlobs.forEach((blob) => blob.classList.add('is-traveling'))
+  destCell?.classList.add('is-traveling')
+  destBlob?.classList.add('is-traveling')
   window.clearTimeout(stageMapTravelTimer)
   stageMapTravelTimer = window.setTimeout(() => {
-    destCells.forEach((cell) => cell.classList.remove('is-traveling'))
-    destBlobs.forEach((blob) => blob.classList.remove('is-traveling'))
+    destCell?.classList.remove('is-traveling')
+    destBlob?.classList.remove('is-traveling')
   }, 480)
 }
 
@@ -1042,10 +1036,7 @@ const swipeMap = {
     y: { dir: -1, to: 'experience', needBottom: true },
   },
   about: {
-    x: [
-      { dir: -1, to: 'experience' },
-      { dir: 1, to: 'play' },
-    ],
+    x: { dir: -1, to: 'experience' },
     y: [
       { dir: 1, to: 'home', needTop: true },
       { dir: -1, to: 'contact' },
@@ -1053,10 +1044,7 @@ const swipeMap = {
   },
   experience: {
     x: { dir: 1, to: 'about' },
-    y: [
-      { dir: 1, to: 'work', needTop: true },
-      { dir: -1, to: 'contact', needBottom: true },
-    ],
+    y: { dir: 1, to: 'work', needTop: true },
   },
   contact: {
     y: { dir: 1, to: 'about', needTop: true },

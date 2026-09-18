@@ -126,10 +126,7 @@ body {
 
 .screen--play {
   grid-column: 1;
-  grid-row: 1 / span 2;
-  height: auto;
-  max-height: none;
-  min-height: 0;
+  grid-row: 1;
   padding: 0;
 }
 
@@ -747,19 +744,9 @@ body {
 }
 
 .screen--contact {
-  grid-column: 2 / span 2;
+  grid-column: 2;
   grid-row: 3;
-  width: auto;
-  max-width: none;
   overflow: hidden;
-}
-
-.screen--contact > .screen-inner,
-.screen--contact .contact-layout {
-  width: min(100%, 100vw);
-  max-width: 40rem;
-  margin-inline: 0 auto;
-  box-sizing: border-box;
 }
 
 .screen-inner {
@@ -953,7 +940,8 @@ body {
 
 #app[data-cookie-banner="open"]:not([data-screen="play"]) .stage-map {
   bottom: calc(
-    var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) + 0.65rem
+    var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
+      0.65rem
   );
 }
 
@@ -1026,10 +1014,6 @@ body {
   animation-delay: -2.4s;
 }
 
-.stage-map__blob:nth-child(4) {
-  animation-delay: -0.9s;
-}
-
 .stage-map__blob:nth-child(5) {
   animation-delay: -0.6s;
 }
@@ -1040,10 +1024,6 @@ body {
 
 .stage-map__blob:nth-child(8) {
   animation-delay: -3s;
-}
-
-.stage-map__blob:nth-child(9) {
-  animation-delay: -2.7s;
 }
 
 .stage-map__blob.is-here {
@@ -1106,24 +1086,54 @@ body {
   border-radius: 50%;
 }
 
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:hover) .stage-map__blob.is-here,
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:focus-visible) .stage-map__blob.is-here {
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:hover)
+  .stage-map__blob.is-here,
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:focus-visible)
+  .stage-map__blob.is-here {
   width: 1.5rem;
   height: 1.5rem;
 }
 
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="play"]:hover) .stage-map__blob[data-to="play"]:not(.is-here),
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="home"]:hover) .stage-map__blob[data-to="home"]:not(.is-here),
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="work"]:hover) .stage-map__blob[data-to="work"]:not(.is-here),
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="about"]:hover) .stage-map__blob[data-to="about"]:not(.is-here),
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="experience"]:hover) .stage-map__blob[data-to="experience"]:not(.is-here),
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="contact"]:hover) .stage-map__blob[data-to="contact"]:not(.is-here),
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="play"]:focus-visible) .stage-map__blob[data-to="play"]:not(.is-here),
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="home"]:focus-visible) .stage-map__blob[data-to="home"]:not(.is-here),
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="work"]:focus-visible) .stage-map__blob[data-to="work"]:not(.is-here),
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="about"]:focus-visible) .stage-map__blob[data-to="about"]:not(.is-here),
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="experience"]:focus-visible) .stage-map__blob[data-to="experience"]:not(.is-here),
-.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="contact"]:focus-visible) .stage-map__blob[data-to="contact"]:not(.is-here) {
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="play"]:hover)
+  .stage-map__blob[data-to="play"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="home"]:hover)
+  .stage-map__blob[data-to="home"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="work"]:hover)
+  .stage-map__blob[data-to="work"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="about"]:hover)
+  .stage-map__blob[data-to="about"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="experience"]:hover
+  )
+  .stage-map__blob[data-to="experience"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="contact"]:hover
+  )
+  .stage-map__blob[data-to="contact"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="play"]:focus-visible
+  )
+  .stage-map__blob[data-to="play"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="home"]:focus-visible
+  )
+  .stage-map__blob[data-to="home"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="work"]:focus-visible
+  )
+  .stage-map__blob[data-to="work"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="about"]:focus-visible
+  )
+  .stage-map__blob[data-to="about"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="experience"]:focus-visible
+  )
+  .stage-map__blob[data-to="experience"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="contact"]:focus-visible
+  )
+  .stage-map__blob[data-to="contact"]:not(.is-here) {
   width: 1.05rem;
   height: 1.05rem;
   background: color-mix(in srgb, var(--stage-map-idle) 65%, var(--cursor-blob));
@@ -1423,12 +1433,10 @@ body {
 #app[data-screen="work"] .nav-blob--left,
 #app[data-screen="work"] .nav-blob--bottom,
 #app[data-screen="about"] .nav-blob--top,
-#app[data-screen="about"] .nav-blob--left,
 #app[data-screen="about"] .nav-blob--right,
 #app[data-screen="about"] .nav-blob--bottom,
 #app[data-screen="experience"] .nav-blob--left,
 #app[data-screen="experience"] .nav-blob--top,
-#app[data-screen="experience"] .nav-blob--bottom,
 #app[data-screen="contact"] .nav-blob--top {
   opacity: 1;
   visibility: visible;
@@ -2370,7 +2378,10 @@ body {
 .contact-form__field--message {
   flex: 0 0 auto;
   display: grid;
-  grid-template-rows: auto minmax(var(--contact-control-min-block), var(--contact-message-max-block));
+  grid-template-rows: auto minmax(
+      var(--contact-control-min-block),
+      var(--contact-message-max-block)
+    );
 }
 
 .contact-form__field label {
@@ -2429,7 +2440,6 @@ body {
   outline: none;
   border-color: var(--accent);
 }
-
 
 .contact-form__submit {
   width: 100%;
@@ -2732,7 +2742,8 @@ body {
     --swipe-track: 0.12em;
   }
 
-  #app[data-screen="play"]:not(:has(.play-root.is-playing)) .swipe-hints__set--play,
+  #app[data-screen="play"]:not(:has(.play-root.is-playing))
+    .swipe-hints__set--play,
   #app[data-screen="home"] .swipe-hints__set--home,
   #app[data-screen="work"]:not([data-project]) .swipe-hints__set--work,
   #app[data-screen="work"][data-project] .swipe-hints__set--work-detail,
