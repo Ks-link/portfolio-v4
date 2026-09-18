@@ -8,6 +8,9 @@
   --cursor-blob: #ee8533;
   --blobs-opacity: 0.5;
   --cursor-blend: multiply;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='grain' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.22' intercept='0.39'/%3E%3CfeFuncG type='linear' slope='0.22' intercept='0.39'/%3E%3CfeFuncB type='linear' slope='0.22' intercept='0.39'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+  --grain-opacity: 0.5;
+  --grain-blend: overlay;
   --display: "Sarina", "Arial Rounded MT Bold", sans-serif;
   --sans: "Outfit", "Avenir Next", sans-serif;
 }
@@ -21,6 +24,8 @@
   --cursor-blob: #ee8533;
   --blobs-opacity: 0.55;
   --cursor-blend: screen;
+  --grain-opacity: 0.32;
+  --grain-blend: overlay;
 }
 
 *,
@@ -774,6 +779,17 @@ body {
   transition: opacity 0.25s ease;
 }
 
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--grain);
+  background-size: 128px 128px;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: var(--grain-blend);
+}
+
 #app[data-screen="play"] .blobs {
   opacity: 0;
   visibility: hidden;
@@ -920,6 +936,388 @@ body {
 
 .corner-btn.is-off:hover {
   opacity: 0.7;
+}
+
+.stage-map {
+  display: none;
+  position: fixed;
+  z-index: 10;
+  left: max(1.25rem, env(safe-area-inset-left));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  width: 2.4rem;
+  height: 2.4rem;
+  overflow: visible;
+  pointer-events: auto;
+  --stage-map-idle: color-mix(in srgb, var(--text) 16%, var(--nav-blob));
+  --stage-map-push: 0.17rem;
+  transition:
+    bottom 0.25s ease,
+    opacity 0.3s ease,
+    width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#app[data-cookie-banner="open"]:not([data-screen="play"]) .stage-map {
+  bottom: calc(
+    var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
+      0.65rem
+  );
+}
+
+#app[data-screen="play"]:has(.play-root.is-playing) .stage-map {
+  opacity: 0.55;
+}
+
+.stage-map__scale {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 5.1rem;
+  height: 5.1rem;
+  transform: scale(0.47);
+  transform-origin: bottom left;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stage-map:hover,
+.stage-map:has(.stage-map__cell:focus-visible) {
+  width: 5.1rem;
+  height: 5.1rem;
+}
+
+.stage-map:hover .stage-map__scale,
+.stage-map:has(.stage-map__cell:focus-visible) .stage-map__scale {
+  transform: scale(1);
+}
+
+.stage-map__goo,
+.stage-map__grid {
+  position: absolute;
+  inset: 0;
+}
+
+.stage-map__goo {
+  filter: url("#stage-map-goo");
+  pointer-events: none;
+}
+
+.stage-map__blobs {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 0;
+  padding: 0.14rem;
+}
+
+.stage-map__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 0;
+  padding: 0.14rem;
+  pointer-events: auto;
+}
+
+.stage-map__void {
+  display: block;
+  width: 1.06rem;
+  height: 1.06rem;
+  margin: auto;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stage-map__slot {
+  display: block;
+}
+
+.stage-map__blob {
+  display: block;
+  width: 1.06rem;
+  height: 1.06rem;
+  margin: auto;
+  background: var(--stage-map-idle);
+  opacity: 1;
+  border-radius: 50%;
+  transform: translate(0, 0);
+  transform-origin: center;
+  transition:
+    background 0.2s ease,
+    width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stage-map__blob.is-here {
+  width: 1.7rem;
+  height: 1.7rem;
+  background: var(--cursor-blob);
+}
+
+.stage-map__blob.is-traveling {
+  width: 1.86rem;
+  height: 1.86rem;
+}
+
+/* Collapsed: keep the selected size steady — no travel grow/shrink */
+.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible)) .stage-map__blob.is-traveling {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
+.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible)) .stage-map__blob {
+  transition:
+    background 0.2s ease,
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+  .stage-map__cell.is-here:is(:hover, :focus-visible)
+) {
+  --stage-map-push: 0.24rem;
+}
+
+/* Push only while the map is expanded (hover / focus) */
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="play"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="home"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="play"].is-here)
+  .stage-map__blob[data-to="home"] {
+  transform: translateX(var(--stage-map-push));
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="play"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="home"].is-here)
+  .stage-map__blob[data-to="play"] {
+  transform: translateX(calc(var(--stage-map-push) * -1));
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="work"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="home"].is-here)
+  .stage-map__blob[data-to="work"] {
+  transform: translateX(var(--stage-map-push));
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="about"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="home"].is-here)
+  .stage-map__blob[data-to="about"] {
+  transform: translateY(var(--stage-map-push));
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="work"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="home"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="work"].is-here)
+  .stage-map__blob[data-to="home"] {
+  transform: translateX(calc(var(--stage-map-push) * -1));
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="work"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="experience"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="work"].is-here)
+  .stage-map__blob[data-to="experience"] {
+  transform: translateY(var(--stage-map-push));
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="home"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="about"].is-here)
+  .stage-map__blob[data-to="home"] {
+  transform: translateY(calc(var(--stage-map-push) * -1));
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="experience"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="about"].is-here)
+  .stage-map__blob[data-to="experience"] {
+  transform: translateX(var(--stage-map-push));
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="contact"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="about"].is-here)
+  .stage-map__blob[data-to="contact"] {
+  transform: translateY(var(--stage-map-push));
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="work"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="experience"].is-here)
+  .stage-map__blob[data-to="work"] {
+  transform: translateY(calc(var(--stage-map-push) * -1));
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="about"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="experience"].is-here)
+  .stage-map__blob[data-to="about"] {
+  transform: translateX(calc(var(--stage-map-push) * -1));
+}
+
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
+    .stage-map__cell[data-to="contact"]:is(:hover, :focus-visible)
+  )
+  .stage-map__blob[data-to="about"],
+.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell:is(:hover, :focus-visible))
+  ):has(.stage-map__cell[data-to="contact"].is-here)
+  .stage-map__blob[data-to="about"] {
+  transform: translateY(calc(var(--stage-map-push) * -1));
+}
+
+.stage-map__cell {
+  position: relative;
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.stage-map__label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.24rem);
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.18rem 0.42rem;
+  border-radius: 0.3rem;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.stage-map:hover .stage-map__cell:hover .stage-map__label,
+.stage-map:has(.stage-map__cell:focus-visible) .stage-map__cell:focus-visible .stage-map__label {
+  opacity: 0.9;
+}
+
+.stage-map__cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 50%;
+}
+
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:hover)
+  .stage-map__blob.is-here,
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:focus-visible)
+  .stage-map__blob.is-here {
+  width: 1.86rem;
+  height: 1.86rem;
+}
+
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="play"]:hover)
+  .stage-map__blob[data-to="play"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="home"]:hover)
+  .stage-map__blob[data-to="home"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="work"]:hover)
+  .stage-map__blob[data-to="work"]:not(.is-here),
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell[data-to="about"]:hover)
+  .stage-map__blob[data-to="about"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="experience"]:hover
+  )
+  .stage-map__blob[data-to="experience"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="contact"]:hover
+  )
+  .stage-map__blob[data-to="contact"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="play"]:focus-visible
+  )
+  .stage-map__blob[data-to="play"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="home"]:focus-visible
+  )
+  .stage-map__blob[data-to="home"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="work"]:focus-visible
+  )
+  .stage-map__blob[data-to="work"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="about"]:focus-visible
+  )
+  .stage-map__blob[data-to="about"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="experience"]:focus-visible
+  )
+  .stage-map__blob[data-to="experience"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="contact"]:focus-visible
+  )
+  .stage-map__blob[data-to="contact"]:not(.is-here) {
+  width: 1.7rem;
+  height: 1.7rem;
+  background: color-mix(in srgb, var(--stage-map-idle) 65%, var(--cursor-blob));
+}
+
+@media (min-width: 48rem) {
+  .stage-map {
+    display: block;
+  }
 }
 
 .home-toggle .theme-icon,
@@ -2155,7 +2553,10 @@ body {
 .contact-form__field--message {
   flex: 0 0 auto;
   display: grid;
-  grid-template-rows: auto minmax(var(--contact-control-min-block), var(--contact-message-max-block));
+  grid-template-rows: auto minmax(
+      var(--contact-control-min-block),
+      var(--contact-message-max-block)
+    );
 }
 
 .contact-form__field label {
@@ -2214,7 +2615,6 @@ body {
   outline: none;
   border-color: var(--accent);
 }
-
 
 .contact-form__submit {
   width: 100%;
@@ -2423,6 +2823,24 @@ body {
     border-radius: var(--nav-blob-r0);
   }
 
+  .stage-map__blob,
+  .stage-map__void {
+    animation: none;
+    border-radius: 50%;
+  }
+
+  .stage-map,
+  .stage-map__scale,
+  .stage-map__blob,
+  .stage-map__label {
+    transition: none;
+  }
+
+  .stage-map__blob.is-traveling {
+    width: 1.7rem;
+    height: 1.7rem;
+  }
+
   .project-preview-shape,
   .project-preview-img,
   .blob-cursor-shape {
@@ -2501,7 +2919,8 @@ body {
     --swipe-track: 0.12em;
   }
 
-  #app[data-screen="play"]:not(:has(.play-root.is-playing)) .swipe-hints__set--play,
+  #app[data-screen="play"]:not(:has(.play-root.is-playing))
+    .swipe-hints__set--play,
   #app[data-screen="home"] .swipe-hints__set--home,
   #app[data-screen="work"]:not([data-project]) .swipe-hints__set--work,
   #app[data-screen="work"][data-project] .swipe-hints__set--work-detail,
