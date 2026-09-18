@@ -208,39 +208,51 @@ app.innerHTML = `
     </button>
   </div>
   <nav class="stage-map" aria-label="Site map">
-    <div class="stage-map__goo" aria-hidden="true">
-      <span class="stage-map__blob" data-to="play"></span>
-      <span class="stage-map__blob" data-to="home"></span>
-      <span class="stage-map__blob" data-to="work"></span>
-      <span class="stage-map__void"></span>
-      <span class="stage-map__blob" data-to="about"></span>
-      <span class="stage-map__blob" data-to="experience"></span>
-      <span class="stage-map__void"></span>
-      <span class="stage-map__blob" data-to="contact"></span>
-      <span class="stage-map__void"></span>
-    </div>
-    <div class="stage-map__grid">
-      <button type="button" class="stage-map__cell" data-to="play" aria-label="Play">
-        <span class="stage-map__label">play</span>
-      </button>
-      <button type="button" class="stage-map__cell" data-to="home" aria-label="Home">
-        <span class="stage-map__label">home</span>
-      </button>
-      <button type="button" class="stage-map__cell" data-to="work" aria-label="View work">
-        <span class="stage-map__label">work</span>
-      </button>
-      <span class="stage-map__slot" aria-hidden="true"></span>
-      <button type="button" class="stage-map__cell" data-to="about" aria-label="About">
-        <span class="stage-map__label">about</span>
-      </button>
-      <button type="button" class="stage-map__cell" data-to="experience" aria-label="Experience">
-        <span class="stage-map__label">experience</span>
-      </button>
-      <span class="stage-map__slot" aria-hidden="true"></span>
-      <button type="button" class="stage-map__cell" data-to="contact" aria-label="Get In Touch">
-        <span class="stage-map__label">contact</span>
-      </button>
-      <span class="stage-map__slot" aria-hidden="true"></span>
+    <div class="stage-map__scale">
+      <div class="stage-map__goo" aria-hidden="true">
+        <div class="stage-map__paths">
+          <span class="stage-map__path stage-map__path--h stage-map__path--play-home"></span>
+          <span class="stage-map__path stage-map__path--h stage-map__path--home-work"></span>
+          <span class="stage-map__path stage-map__path--v stage-map__path--home-about"></span>
+          <span class="stage-map__path stage-map__path--v stage-map__path--work-experience"></span>
+          <span class="stage-map__path stage-map__path--h stage-map__path--about-experience"></span>
+          <span class="stage-map__path stage-map__path--v stage-map__path--about-contact"></span>
+        </div>
+        <div class="stage-map__blobs">
+          <span class="stage-map__blob" data-to="play"></span>
+          <span class="stage-map__blob" data-to="home"></span>
+          <span class="stage-map__blob" data-to="work"></span>
+          <span class="stage-map__void"></span>
+          <span class="stage-map__blob" data-to="about"></span>
+          <span class="stage-map__blob" data-to="experience"></span>
+          <span class="stage-map__void"></span>
+          <span class="stage-map__blob" data-to="contact"></span>
+          <span class="stage-map__void"></span>
+        </div>
+      </div>
+      <div class="stage-map__grid">
+        <button type="button" class="stage-map__cell" data-to="play" aria-label="Play">
+          <span class="stage-map__label">play</span>
+        </button>
+        <button type="button" class="stage-map__cell" data-to="home" aria-label="Home">
+          <span class="stage-map__label">home</span>
+        </button>
+        <button type="button" class="stage-map__cell" data-to="work" aria-label="View work">
+          <span class="stage-map__label">work</span>
+        </button>
+        <span class="stage-map__slot" aria-hidden="true"></span>
+        <button type="button" class="stage-map__cell" data-to="about" aria-label="About">
+          <span class="stage-map__label">about</span>
+        </button>
+        <button type="button" class="stage-map__cell" data-to="experience" aria-label="Experience">
+          <span class="stage-map__label">experience</span>
+        </button>
+        <span class="stage-map__slot" aria-hidden="true"></span>
+        <button type="button" class="stage-map__cell" data-to="contact" aria-label="Get In Touch">
+          <span class="stage-map__label">contact</span>
+        </button>
+        <span class="stage-map__slot" aria-hidden="true"></span>
+      </div>
     </div>
   </nav>
   <button type="button" class="nav-blob nav-blob--right" data-edge="right" aria-label="View work">
@@ -695,6 +707,7 @@ const ariaForDest = (dest) => {
 }
 
 const navBlobs = [...document.querySelectorAll('.nav-blob')]
+const stageMap = document.querySelector('.stage-map')
 const stageMapCells = [...document.querySelectorAll('.stage-map__cell')]
 const stageMapBlobs = [...document.querySelectorAll('.stage-map__blob')]
 const routeEffects = {
@@ -721,6 +734,7 @@ const syncNavLabels = (screen, project = '') => {
 }
 
 let stageMapTravelTimer = 0
+let stageMapExpandTimer = 0
 const syncStageMap = (screen) => {
   stageMapCells.forEach((cell) => {
     const here = cell.dataset.to === screen
@@ -734,19 +748,39 @@ const syncStageMap = (screen) => {
 }
 
 const flashStageMapTravel = (screen) => {
-  const destCell = stageMapCells.find((cell) => cell.dataset.to === screen)
-  const destBlob = stageMapBlobs.find((blob) => blob.dataset.to === screen)
-  if (!destCell && !destBlob) return
+  const destCells = stageMapCells.filter((cell) => cell.dataset.to === screen)
+  const destBlobs = stageMapBlobs.filter((blob) => blob.dataset.to === screen)
+  if (!destCells.length && !destBlobs.length) return
+
   stageMapCells.forEach((cell) => cell.classList.remove('is-traveling'))
   stageMapBlobs.forEach((blob) => blob.classList.remove('is-traveling'))
-  destCell?.classList.add('is-traveling')
-  destBlob?.classList.add('is-traveling')
+  destCells.forEach((cell) => cell.classList.add('is-traveling'))
+  destBlobs.forEach((blob) => blob.classList.add('is-traveling'))
+
+  stageMap?.classList.add('is-expanded')
   window.clearTimeout(stageMapTravelTimer)
+  window.clearTimeout(stageMapExpandTimer)
   stageMapTravelTimer = window.setTimeout(() => {
-    destCell?.classList.remove('is-traveling')
-    destBlob?.classList.remove('is-traveling')
+    destCells.forEach((cell) => cell.classList.remove('is-traveling'))
+    destBlobs.forEach((blob) => blob.classList.remove('is-traveling'))
   }, 480)
+  stageMapExpandTimer = window.setTimeout(() => {
+    if (stageMap && !stageMap.matches(':hover') && !stageMap.contains(document.activeElement)) {
+      stageMap.classList.remove('is-expanded')
+    }
+  }, 1100)
 }
+
+stageMap?.addEventListener('mouseleave', () => {
+  if (!stageMap.matches(':focus-within')) stageMap.classList.remove('is-expanded')
+})
+stageMap?.addEventListener('focusout', () => {
+  window.requestAnimationFrame(() => {
+    if (stageMap && !stageMap.matches(':hover') && !stageMap.contains(document.activeElement)) {
+      stageMap.classList.remove('is-expanded')
+    }
+  })
+})
 
 const hideProjectPreview = () => {
   projectPreview?.classList.remove('is-visible')
@@ -1239,8 +1273,8 @@ const moveSwipe = (id, x, y, preventDefault) => {
       if (hasNeedTop && swipeStart.atTop && dy < 0) {
         const nested =
           screen === 'contact' &&
-          contactMessage &&
-          contactMessage.scrollHeight > contactMessage.clientHeight + 1
+            contactMessage &&
+            contactMessage.scrollHeight > contactMessage.clientHeight + 1
             ? contactMessage
             : el
         nested.scrollTop = -dy
@@ -1946,7 +1980,7 @@ const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
     Math.sin(t * 0.09 + blob.phase * 1.7) * swayAmp * 0.35 * cw
   const swayY = mobile
     ? Math.sin(t * 0.15 + blob.phase * 1.3) * swayAmp * 0.55 * ch +
-      Math.sin(t * 0.07 + blob.phase * 0.8) * swayAmp * 0.2 * ch
+    Math.sin(t * 0.07 + blob.phase * 0.8) * swayAmp * 0.2 * ch
     : 0
 
   const localX = Math.min(travelX, Math.max(0, blob.lane * travelX + swayX))
