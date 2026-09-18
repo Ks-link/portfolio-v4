@@ -956,6 +956,7 @@ stageMapCells.forEach((btn) => {
   btn.addEventListener('click', () => {
     const dest = btn.dataset.to
     if (dest) setScreen(dest, { push: true })
+    btn.blur()
   })
 })
 
