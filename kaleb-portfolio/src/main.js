@@ -166,8 +166,15 @@ app.innerHTML = `
           result="goo"
         />
       </filter>
-      <filter id="stage-map-goo" color-interpolation-filters="sRGB">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur" />
+      <filter
+        id="stage-map-goo"
+        x="-40%"
+        y="-40%"
+        width="180%"
+        height="180%"
+        color-interpolation-filters="sRGB"
+      >
+        <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
         <feColorMatrix
           in="blur"
           mode="matrix"
@@ -175,7 +182,7 @@ app.innerHTML = `
             1 0 0 0 0
             0 1 0 0 0
             0 0 1 0 0
-            0 0 0 14 -6"
+            0 0 0 19 -9"
           result="goo"
         />
       </filter>
@@ -211,12 +218,12 @@ app.innerHTML = `
     <div class="stage-map__scale">
       <div class="stage-map__goo" aria-hidden="true">
         <div class="stage-map__paths">
-          <span class="stage-map__path stage-map__path--h stage-map__path--play-home"></span>
-          <span class="stage-map__path stage-map__path--h stage-map__path--home-work"></span>
-          <span class="stage-map__path stage-map__path--v stage-map__path--home-about"></span>
-          <span class="stage-map__path stage-map__path--v stage-map__path--work-experience"></span>
-          <span class="stage-map__path stage-map__path--h stage-map__path--about-experience"></span>
-          <span class="stage-map__path stage-map__path--v stage-map__path--about-contact"></span>
+          <span class="stage-map__path stage-map__path--play-home"></span>
+          <span class="stage-map__path stage-map__path--home-work"></span>
+          <span class="stage-map__path stage-map__path--home-about"></span>
+          <span class="stage-map__path stage-map__path--work-experience"></span>
+          <span class="stage-map__path stage-map__path--about-experience"></span>
+          <span class="stage-map__path stage-map__path--about-contact"></span>
         </div>
         <div class="stage-map__blobs">
           <span class="stage-map__blob" data-to="play"></span>
