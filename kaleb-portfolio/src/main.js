@@ -174,7 +174,7 @@ app.innerHTML = `
         height="180%"
         color-interpolation-filters="sRGB"
       >
-        <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+        <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
         <feColorMatrix
           in="blur"
           mode="matrix"
@@ -182,7 +182,7 @@ app.innerHTML = `
             1 0 0 0 0
             0 1 0 0 0
             0 0 1 0 0
-            0 0 0 19 -9"
+            0 0 0 16 -8"
           result="goo"
         />
       </filter>
@@ -193,6 +193,7 @@ app.innerHTML = `
       <span class="blob-cursor-shape"></span>
     </span>
   </div>
+  <div class="grain" aria-hidden="true"></div>
   <div class="blobs" aria-hidden="true">
     <span class="blob blob--endcap" data-endcap="top"></span>
     <span class="blob blob--endcap" data-endcap="bottom"></span>
@@ -217,14 +218,6 @@ app.innerHTML = `
   <nav class="stage-map" aria-label="Site map">
     <div class="stage-map__scale">
       <div class="stage-map__goo" aria-hidden="true">
-        <div class="stage-map__paths">
-          <span class="stage-map__path stage-map__path--play-home"></span>
-          <span class="stage-map__path stage-map__path--home-work"></span>
-          <span class="stage-map__path stage-map__path--home-about"></span>
-          <span class="stage-map__path stage-map__path--work-experience"></span>
-          <span class="stage-map__path stage-map__path--about-experience"></span>
-          <span class="stage-map__path stage-map__path--about-contact"></span>
-        </div>
         <div class="stage-map__blobs">
           <span class="stage-map__blob" data-to="play"></span>
           <span class="stage-map__blob" data-to="home"></span>
@@ -741,7 +734,6 @@ const syncNavLabels = (screen, project = '') => {
 }
 
 let stageMapTravelTimer = 0
-let stageMapExpandTimer = 0
 const syncStageMap = (screen) => {
   stageMapCells.forEach((cell) => {
     const here = cell.dataset.to === screen
@@ -764,30 +756,12 @@ const flashStageMapTravel = (screen) => {
   destCells.forEach((cell) => cell.classList.add('is-traveling'))
   destBlobs.forEach((blob) => blob.classList.add('is-traveling'))
 
-  stageMap?.classList.add('is-expanded')
   window.clearTimeout(stageMapTravelTimer)
-  window.clearTimeout(stageMapExpandTimer)
   stageMapTravelTimer = window.setTimeout(() => {
     destCells.forEach((cell) => cell.classList.remove('is-traveling'))
     destBlobs.forEach((blob) => blob.classList.remove('is-traveling'))
   }, 480)
-  stageMapExpandTimer = window.setTimeout(() => {
-    if (stageMap && !stageMap.matches(':hover') && !stageMap.contains(document.activeElement)) {
-      stageMap.classList.remove('is-expanded')
-    }
-  }, 700)
 }
-
-stageMap?.addEventListener('mouseleave', () => {
-  if (!stageMap.matches(':focus-within')) stageMap.classList.remove('is-expanded')
-})
-stageMap?.addEventListener('focusout', () => {
-  window.requestAnimationFrame(() => {
-    if (stageMap && !stageMap.matches(':hover') && !stageMap.contains(document.activeElement)) {
-      stageMap.classList.remove('is-expanded')
-    }
-  })
-})
 
 const hideProjectPreview = () => {
   projectPreview?.classList.remove('is-visible')
