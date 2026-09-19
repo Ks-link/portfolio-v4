@@ -49,6 +49,8 @@ const AI_FLEE_STEP = 420
 const AI_LAUNCH_NEAR = 90
 const AI_LAUNCH_FAR = 340
 const AI_LAUNCH_THREAT_PAD = 140
+const AI_REACT_MIN = 0.1
+const AI_REACT_MAX = 0.4
 const SPAWN_PROTECT = 5
 
 const AI_COLORS = [
@@ -708,6 +710,10 @@ export const mountPlay = (root) => {
       vy: ny * LAUNCH_SPEED + cell.vy,
       mergeAt: time + MERGE_DELAY,
     })
+    shot.aiMode = cell.aiMode || 'idle'
+    shot.aiHunt = cell.aiHunt || null
+    shot.aiPending = null
+    shot.aiReactAt = 0
     cells.push(shot)
     clampCell(cell)
     clampCell(shot)
@@ -1029,6 +1035,67 @@ export const mountPlay = (root) => {
     clearFoodUnderOwner(owner)
   }
 
+  const idleGoalOf = (cell) => {
+    let pellet = null
+    let pelletDist = Infinity
+    for (const item of food) {
+      const dist = hypot(item.x - cell.x, item.y - cell.y)
+      if (dist < pelletDist) {
+        pellet = item
+        pelletDist = dist
+      }
+    }
+    if (pellet) return { x: pellet.x, y: pellet.y, hunt: null, mode: 'idle' }
+    return {
+      x: cell.x + Math.cos(time * 0.2 + cell.owner) * 200,
+      y: cell.y + Math.sin(time * 0.17 + cell.owner) * 200,
+      hunt: null,
+      mode: 'idle',
+    }
+  }
+
+  const fleeGoalOf = (cell) => {
+    const myR = radiusOf(cell.mass)
+    const threats = []
+    for (const other of cells) {
+      if (other.owner === cell.owner) continue
+      const dist = hypot(other.x - cell.x, other.y - cell.y)
+      if (other.mass > cell.mass * EAT_RATIO) threats.push({ cell: other, dist })
+    }
+    let nearestThreat = null
+    let nearestThreatDist = Infinity
+    for (const item of threats) {
+      if (item.dist < nearestThreatDist) {
+        nearestThreat = item.cell
+        nearestThreatDist = item.dist
+      }
+    }
+    const fleeRange = nearestThreat ? radiusOf(nearestThreat.mass) + myR + AI_FLEE_PAD : 0
+    if (!nearestThreat || nearestThreatDist >= fleeRange) return null
+    let fx = 0
+    let fy = 0
+    for (const item of threats) {
+      const range = radiusOf(item.cell.mass) + myR + AI_FLEE_PAD
+      if (item.dist > range) continue
+      const away = hypot(cell.x - item.cell.x, cell.y - item.cell.y) || 1
+      const weight = ((range - item.dist) / range) * item.cell.mass
+      fx += ((cell.x - item.cell.x) / away) * weight
+      fy += ((cell.y - item.cell.y) / away) * weight
+    }
+    let dist = hypot(fx, fy)
+    if (dist < 0.001) {
+      fx = cell.x - nearestThreat.x
+      fy = cell.y - nearestThreat.y
+      dist = hypot(fx, fy) || 1
+    }
+    return {
+      x: cell.x + (fx / dist) * AI_FLEE_STEP,
+      y: cell.y + (fy / dist) * AI_FLEE_STEP,
+      hunt: null,
+      mode: 'flee',
+    }
+  }
+
   const thinkAI = (cell) => {
     if (!cell) return null
     const myR = radiusOf(cell.mass)
@@ -1076,49 +1143,53 @@ export const mountPlay = (root) => {
       nearestThreatDist < radiusOf(nearestThreat.mass) + myR + AI_DANGER_PAD
     const canHunt =
       prey && preyDist < AI_HUNT_RANGE && (!imminent || preyDist < nearestThreatDist)
-    if (canHunt) return { x: prey.x, y: prey.y, hunt: prey }
+    if (canHunt) return { x: prey.x, y: prey.y, hunt: prey, mode: 'hunt' }
 
-    const fleeRange = nearestThreat ? radiusOf(nearestThreat.mass) + myR + AI_FLEE_PAD : 0
-    if (nearestThreat && nearestThreatDist < fleeRange) {
-      let fx = 0
-      let fy = 0
-      for (const item of threats) {
-        const range = radiusOf(item.cell.mass) + myR + AI_FLEE_PAD
-        if (item.dist > range) continue
-        const away = hypot(cell.x - item.cell.x, cell.y - item.cell.y) || 1
-        const weight = ((range - item.dist) / range) * item.cell.mass
-        fx += ((cell.x - item.cell.x) / away) * weight
-        fy += ((cell.y - item.cell.y) / away) * weight
-      }
-      let dist = hypot(fx, fy)
-      if (dist < 0.001) {
-        fx = cell.x - nearestThreat.x
-        fy = cell.y - nearestThreat.y
-        dist = hypot(fx, fy) || 1
-      }
-      return {
-        x: cell.x + (fx / dist) * AI_FLEE_STEP,
-        y: cell.y + (fy / dist) * AI_FLEE_STEP,
-        hunt: null,
+    const flee = fleeGoalOf(cell)
+    if (flee) return flee
+
+    return idleGoalOf(cell)
+  }
+
+  const holdAIGoal = (cell) => {
+    if (cell.aiMode === 'hunt') {
+      const hunt = cell.aiHunt
+      if (hunt && cells.includes(hunt)) {
+        return { x: hunt.x, y: hunt.y, hunt, mode: 'hunt' }
       }
     }
-
-    let pellet = null
-    let pelletDist = Infinity
-    for (const item of food) {
-      const dist = hypot(item.x - cell.x, item.y - cell.y)
-      if (dist < pelletDist) {
-        pellet = item
-        pelletDist = dist
-      }
+    if (cell.aiMode === 'flee') {
+      const flee = fleeGoalOf(cell)
+      if (flee) return flee
     }
-    if (pellet) return { x: pellet.x, y: pellet.y, hunt: null }
+    return idleGoalOf(cell)
+  }
 
-    return {
-      x: cell.x + Math.cos(time * 0.2 + cell.owner) * 200,
-      y: cell.y + Math.sin(time * 0.17 + cell.owner) * 200,
-      hunt: null,
+  const resolveAIGoal = (cell) => {
+    const desired = thinkAI(cell)
+    if (!desired) return null
+    if (!cell.aiMode) cell.aiMode = 'idle'
+
+    if (desired.mode === cell.aiMode) {
+      cell.aiPending = null
+      cell.aiReactAt = 0
+      cell.aiHunt = desired.mode === 'hunt' ? desired.hunt : null
+      return desired
     }
+
+    if (cell.aiPending !== desired.mode) {
+      cell.aiPending = desired.mode
+      cell.aiReactAt = time + rand(AI_REACT_MIN, AI_REACT_MAX)
+    }
+    if (time >= (cell.aiReactAt || 0)) {
+      cell.aiMode = desired.mode
+      cell.aiPending = null
+      cell.aiReactAt = 0
+      cell.aiHunt = desired.mode === 'hunt' ? desired.hunt : null
+      return desired
+    }
+
+    return holdAIGoal(cell)
   }
 
   const splitWouldBeSafe = (cell, hunt, half) => {
@@ -1341,7 +1412,7 @@ export const mountPlay = (root) => {
     for (let owner = 1; owner <= AI_COUNT; owner++) {
       if (!isAIOwner(owner)) continue
       for (const cell of ownerCells(owner)) {
-        const goal = thinkAI(cell)
+        const goal = resolveAIGoal(cell)
         if (!goal) continue
         maybeAILaunch(cell, goal)
         steerCell(cell, goal.x, goal.y, dt)
