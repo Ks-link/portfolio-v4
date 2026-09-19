@@ -2564,6 +2564,11 @@ if (reduceMotion) {
   let heroY = 0
   let rafId = 0
   let last = performance.now()
+  let scrollImpulse = 0
+  const SCROLL_GAIN = 0.012
+  const SCROLL_DECAY = 12
+  const SCROLL_MUL_MIN = 0.15
+  const SCROLL_MUL_MAX = 7
 
   const heroMaxOffset = 8
   const heroReach = 220
@@ -2602,6 +2607,22 @@ if (reduceMotion) {
     blobs.forEach(syncBlobSize)
     layoutEndcaps()
   })
+
+  window.addEventListener(
+    'wheel',
+    (e) => {
+      if (swipeMq.matches) return
+      let dy = e.deltaY
+      if (e.deltaMode === 1) dy *= 16
+      else if (e.deltaMode === 2) dy *= window.innerHeight
+      scrollImpulse += dy * SCROLL_GAIN
+      scrollImpulse = Math.min(
+        SCROLL_MUL_MAX - 1,
+        Math.max(SCROLL_MUL_MIN - 1, scrollImpulse),
+      )
+    },
+    { passive: true },
+  )
 
   const tick = (now) => {
     const dt = Math.min(0.05, (now - last) / 1000)
@@ -2644,6 +2665,11 @@ if (reduceMotion) {
     let topAbsorb = 0
     let bottomAbsorb = 0
 
+    scrollImpulse = damp(scrollImpulse, 0, SCROLL_DECAY, dt)
+    const speedMul = swipeMq.matches
+      ? 1
+      : Math.min(SCROLL_MUL_MAX, Math.max(SCROLL_MUL_MIN, 1 + scrollImpulse))
+
     blobs.forEach((blob) => {
       if (blob.retired) {
         if (spawnOn) {
@@ -2678,7 +2704,7 @@ if (reduceMotion) {
       blob.accel = damp(blob.accel, blob.targetAccel, 1.8, dt)
       blob.speed += blob.accel * dt
       blob.speed = Math.min(0.052, Math.max(0.004, blob.speed))
-      blob.progress += blob.dir * blob.speed * dt
+      blob.progress += blob.dir * blob.speed * speedMul * dt
 
       if (blob.progress >= 1) {
         if (spawnOn) {
