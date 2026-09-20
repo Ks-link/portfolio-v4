@@ -104,11 +104,15 @@ const warnWrite = (label) => (err) => {
   console.warn(`play-net ${label}`, err)
 }
 
-const livePresenceMap = (map, now = Date.now()) => {
+export const presenceRowIsLive = (row, now = Date.now()) => {
+  if (!row || typeof row.at !== 'number') return false
+  return now - row.at < PRESENCE_STALE_MS
+}
+
+export const livePresenceMap = (map, now = Date.now()) => {
   const live = {}
   for (const [id, row] of Object.entries(map || {})) {
-    if (!row) continue
-    if (typeof row.at === 'number' && now - row.at >= PRESENCE_STALE_MS) continue
+    if (!presenceRowIsLive(row, now)) continue
     live[id] = row
   }
   return live
@@ -507,16 +511,11 @@ const connectRemote = async (handlers) => {
   })
 
   const stampIsLive = (at) => {
-    if (at == null) return false
-    if (typeof at !== 'number') return true
+    if (typeof at !== 'number') return false
     return serverNow() - at < HOST_STALE_MS
   }
 
-  const presenceIsLive = (row) => {
-    if (!row) return false
-    if (typeof row.at !== 'number') return true
-    return serverNow() - row.at < PRESENCE_STALE_MS
-  }
+  const presenceIsLive = (row) => presenceRowIsLive(row, serverNow())
 
   const hostIsLive = (host) => {
     if (!host?.uid && !host?.clientId) return false
@@ -609,16 +608,41 @@ const connectRemote = async (handlers) => {
   const inheritWorld = () => {
     if (latestCells) handlers.onCells?.(latestCells)
     if (latestFood) handlers.onFood?.(latestFood)
-    handlers.onInputs?.(latestInputs)
+    handlers.onInputs?.(liveInputs())
     restoreClaimedSeat()
     handlers.onHostChange?.(true)
   }
 
+  const slotEqual = (a, b) =>
+    (a?.kind || null) === (b?.kind || null) && (a?.uid || null) === (b?.uid || null)
+
+  const liveInputs = () => {
+    const live = livePresenceMap(latestPresence, serverNow())
+    const next = {}
+    for (const [id, input] of Object.entries(latestInputs)) {
+      if (!input) continue
+      if (id === uid || live[id]) next[id] = input
+    }
+    return next
+  }
+
+  const pruneStaleInputs = () => {
+    if (!hostNow || closed) return
+    const live = livePresenceMap(latestPresence, serverNow())
+    for (const id of Object.keys(latestInputs)) {
+      if (!id || id === uid || live[id]) continue
+      set(ref(rtdb, `${ROOT}/inputs/${id}`), null).catch(warnWrite('inputPrune'))
+    }
+  }
+
   const clearSharedWorld = () => {
     latestSlots = defaultSlots()
+    latestCells = null
+    latestFood = null
     set(slotsRef, latestSlots).catch(warnWrite('slotsReset'))
     set(cellsRef, null).catch(warnWrite('snapCellsReset'))
     set(foodRef, null).catch(warnWrite('snapFoodReset'))
+    pruneStaleInputs()
   }
 
   const normalizeSlots = (next) => {
@@ -647,10 +671,9 @@ const connectRemote = async (handlers) => {
     hostKnown = true
     setHostDisconnect(hostNow).catch(warnWrite('hostDisconnect'))
     if (next && !wasHost) {
-      if (worldInUse() || latestCells || latestFood) inheritWorld()
+      if (worldInUse()) inheritWorld()
       else {
-        latestCells = null
-        latestFood = null
+        clearSharedWorld()
         handlers.onHostChange?.(true, { empty: true })
       }
       return
@@ -674,7 +697,8 @@ const connectRemote = async (handlers) => {
     set(presenceRef, presencePayload()).catch(warnWrite('presence'))
     if (hostNow) {
       update(hostRef, hostPayload()).catch(warnWrite('host'))
-      handlers.onInputs?.(latestInputs)
+      pruneStaleInputs()
+      handlers.onInputs?.(liveInputs())
     }
     emitLivePresence()
     syncHost()
@@ -736,7 +760,10 @@ const connectRemote = async (handlers) => {
     onValue(allInputsRef, (snap) => {
       if (closed) return
       latestInputs = snap.val() || {}
-      if (hostNow) handlers.onInputs?.(latestInputs)
+      if (hostNow) {
+        pruneStaleInputs()
+        handlers.onInputs?.(liveInputs())
+      }
     }),
   )
 
@@ -845,8 +872,13 @@ const connectRemote = async (handlers) => {
     },
     writeSlots(next) {
       if (!hostNow || closed) return
-      latestSlots = normalizeSlots(next)
-      set(slotsRef, latestSlots).catch(warnWrite('slots'))
+      const slots = normalizeSlots(next)
+      const prev = normalizeSlots(latestSlots)
+      latestSlots = slots
+      for (let i = 0; i < SLOT_COUNT; i++) {
+        if (slotEqual(prev[i], slots[i])) continue
+        set(ref(rtdb, `${ROOT}/slots/${i}`), slots[i]).catch(warnWrite('slot'))
+      }
     },
     disconnect() {
       if (closed) return
