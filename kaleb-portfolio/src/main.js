@@ -54,7 +54,11 @@ const lavaLampOffIcon = `
   </svg>
 `
 
-const BLOB_COUNT = 8
+const BLOB_COUNT = 12
+const VISIBLE_MIN = 5
+const VISIBLE_MAX = 8
+const SPAWN_GAP_MIN = 0.8
+const SPAWN_GAP_MAX = 1.8
 const UNDERLINE_POINTS = 40
 
 const projects = [
@@ -1644,7 +1648,15 @@ const createBlob = (el, index) => {
   }
 }
 
-const blobs = blobEls.map((el, i) => createBlob(el, i))
+const blobs = blobEls.map((el, i) => {
+  const blob = createBlob(el, i)
+  if (i >= VISIBLE_MAX) {
+    blob.retired = true
+    blob.progress = i % 2 ? 1 : 0
+    blob.nest = 0
+  }
+  return blob
+})
 const spawnEnabled = () => app.dataset.blobs !== 'off' && app.dataset.screen !== 'play'
 
 const PROFILE_BLOB_SIZES = [0.88, 0.42, 0.38]
@@ -2465,12 +2477,33 @@ if (profileWrap) {
 const bounceBlob = (blob, t, atBottom) => {
   blob.retired = false
   blob.el.style.opacity = '1'
-  blob.progress = atBottom ? 1 : 0
+  blob.progress = atBottom ? 1 - ABSORB : ABSORB
   blob.dir = atBottom ? -1 : 1
   blob.targetLane = rand(0.22, 0.78)
-  blob.speed = rand(0.008, 0.024)
+  blob.speed = rand(0.018, 0.036)
+  blob.nest = 0.55
   blob.targetAccel = atBottom ? rand(-0.02, 0.01) : rand(-0.01, 0.022)
   blob.accelChangeAt = t + rand(0.5, 2)
+}
+
+const blobInFlight = (blob) => !blob.retired
+
+const settleParkedBlob = (blob, w, h, dt) => {
+  blob.nest = damp(blob.nest, 0, 3.2, dt)
+  blob.x = blob.lane * w
+  blob.y = progressToY(blob.progress, h)
+  blob.attractX = 0
+  blob.attractY = 0
+  if (blob.nest <= 0.02) return 0
+  return 1 - blob.nest
+}
+
+const releaseParkedBlob = (t) => {
+  const waiting = blobs.filter((blob) => blob.retired)
+  if (!waiting.length) return false
+  const blob = waiting[Math.floor(Math.random() * waiting.length)]
+  bounceBlob(blob, t, blob.progress >= 0.5)
+  return true
 }
 
 if (!spawnEnabled()) {
@@ -2562,6 +2595,7 @@ if (reduceMotion) {
   let heroY = 0
   let rafId = 0
   let last = performance.now()
+  let nextSpawnAt = 0
   let scrollImpulse = 0
   const SCROLL_GAIN = 0.016
   const SCROLL_DECAY = 12
@@ -2670,20 +2704,12 @@ if (reduceMotion) {
 
     blobs.forEach((blob) => {
       if (blob.retired) {
-        if (spawnOn) {
-          bounceBlob(blob, t, blob.progress >= 0.5)
-        } else {
-          blob.nest = damp(blob.nest, 0, 3.2, dt)
-          blob.x = blob.lane * w
-          blob.y = progressToY(blob.progress, h)
-          blob.attractX = 0
-          blob.attractY = 0
-          if (blob.nest > 0.02) {
-            if (blob.progress < 0.5) topAbsorb += 1 - blob.nest
-            else bottomAbsorb += 1 - blob.nest
-          }
-          return
+        const absorb = settleParkedBlob(blob, w, h, dt)
+        if (absorb) {
+          if (blob.progress < 0.5) topAbsorb += absorb
+          else bottomAbsorb += absorb
         }
+        return
       }
 
       if (t >= blob.accelChangeAt) {
@@ -2705,19 +2731,20 @@ if (reduceMotion) {
       blob.progress += blob.dir * blob.speed * speedMul * dt
 
       if (blob.progress >= 1) {
-        if (spawnOn) {
-          bounceBlob(blob, t, true)
-        } else {
-          blob.progress = 1
-          blob.retired = true
-        }
+        blob.progress = 1
+        blob.retired = true
       } else if (blob.progress <= 0) {
-        if (spawnOn) {
-          bounceBlob(blob, t, false)
-        } else {
-          blob.progress = 0
-          blob.retired = true
+        blob.progress = 0
+        blob.retired = true
+      }
+
+      if (blob.retired) {
+        const absorb = settleParkedBlob(blob, w, h, dt)
+        if (absorb) {
+          if (blob.progress < 0.5) topAbsorb += absorb
+          else bottomAbsorb += absorb
         }
+        return
       }
 
       const nest = nestAmount(blob.progress)
@@ -2741,6 +2768,14 @@ if (reduceMotion) {
       if (blob.progress < ABSORB) topAbsorb += 1 - nest
       if (blob.progress > 1 - ABSORB) bottomAbsorb += 1 - nest
     })
+
+    if (spawnOn) {
+      let inFlight = blobs.filter(blobInFlight).length
+      while (inFlight < VISIBLE_MIN && releaseParkedBlob(t)) inFlight += 1
+      if (inFlight < VISIBLE_MAX && t >= nextSpawnAt && releaseParkedBlob(t)) {
+        nextSpawnAt = t + rand(SPAWN_GAP_MIN, SPAWN_GAP_MAX)
+      }
+    }
 
     // Membrane reacts like blob skin when absorbing / releasing
     endcaps.top.swell = damp(endcaps.top.swell, 1 + Math.min(0.12, topAbsorb * 0.05), 2.2, dt)
