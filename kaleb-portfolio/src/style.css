@@ -897,10 +897,15 @@ body {
 }
 
 @media (max-width: 48rem) {
-  .home-toggle {
+  .home-toggle,
+  .kill-toggle {
     position: fixed;
     top: max(1.25rem, env(safe-area-inset-top));
     left: max(1.25rem, env(safe-area-inset-left));
+  }
+
+  .kill-toggle {
+    left: calc(max(1.25rem, env(safe-area-inset-left)) + 2.5rem);
   }
 }
 
