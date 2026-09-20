@@ -15,7 +15,9 @@ uniform vec2 u_view;
 uniform float u_dpr;
 uniform float u_time;
 uniform vec4 u_color;
+uniform vec4 u_accent;
 uniform vec4 u_balls[16];
+uniform vec4 u_lights[16];
 uniform float u_threshold;
 uniform float u_merge;
 
@@ -29,6 +31,7 @@ void main() {
   );
 
   float field = 0.0;
+  float hiW = 0.0;
   for (int i = 0; i < 16; i++) {
     vec4 b = u_balls[i];
     if (b.z >= 0.5 && b.w >= 0.5) {
@@ -38,12 +41,26 @@ void main() {
       float distPx = dist * rMin;
       float inner = max(1.0, rMin - 8.0);
       float outer = rMin + u_merge;
-      field += 1.0 - smoothstep(inner, outer, distPx);
+      float contrib = 1.0 - smoothstep(inner, outer, distPx);
+      field += contrib;
+
+      vec4 light = u_lights[i];
+      float size = clamp(light.z, 0.08, 1.0);
+      float bright = clamp(light.w, 0.12, 1.0);
+      vec3 n = normalize(vec3(delta, sqrt(max(0.0, 1.0 - min(dist * dist, 1.0))) + 0.002));
+      vec3 L = normalize(vec3(light.xy, 0.74));
+      vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
+      float nh = max(0.0, dot(n, H));
+      float spec = pow(nh, mix(9.0, 2.2, size));
+      float hot = pow(nh, mix(22.0, 5.5, size));
+      float hi = spec * mix(0.06, 0.2, bright) + hot * mix(0.015, 0.07, bright);
+      hiW += hi * contrib;
     }
   }
 
   float alpha = smoothstep(u_threshold - 0.12, u_threshold + 0.12, field);
-  vec3 rgb = u_color.rgb;
+  vec3 rgb = mix(u_color.rgb, u_accent.rgb, clamp(hiW / max(field, 0.001), 0.0, 1.0));
+
   float a = alpha * u_color.a;
   gl_FragColor = vec4(rgb * a, a);
 }
@@ -144,14 +161,20 @@ export const createMetaballs = (canvas) => {
   const uDpr = gl.getUniformLocation(program, 'u_dpr')
   const uTime = gl.getUniformLocation(program, 'u_time')
   const uColor = gl.getUniformLocation(program, 'u_color')
+  const uAccent = gl.getUniformLocation(program, 'u_accent')
   const uBalls = Array.from({ length: MAX_BALLS }, (_, i) =>
     gl.getUniformLocation(program, `u_balls[${i}]`),
+  )
+  const uLights = Array.from({ length: MAX_BALLS }, (_, i) =>
+    gl.getUniformLocation(program, `u_lights[${i}]`),
   )
   const uThreshold = gl.getUniformLocation(program, 'u_threshold')
   const uMerge = gl.getUniformLocation(program, 'u_merge')
 
   const packed = new Float32Array(MAX_BALLS * 4)
+  const packedLight = new Float32Array(MAX_BALLS * 4)
   const color = [0.94, 0.925, 0.886, 1]
+  const accent = [0.933, 0.522, 0.2, 1]
   let time = 0
   let dpr = 1
   let destroyed = false
@@ -185,6 +208,14 @@ export const createMetaballs = (canvas) => {
     color[3] = rgba[3] ?? 1
   }
 
+  const setAccent = (rgba) => {
+    if (!rgba) return
+    accent[0] = rgba[0]
+    accent[1] = rgba[1]
+    accent[2] = rgba[2]
+    accent[3] = rgba[3] ?? 1
+  }
+
   const setTime = (value) => {
     time = value
   }
@@ -193,6 +224,7 @@ export const createMetaballs = (canvas) => {
     if (destroyed) return
     resize()
     packed.fill(0)
+    packedLight.fill(0)
     const list = balls ?? []
     const count = Math.min(MAX_BALLS, list.length)
     for (let i = 0; i < count; i++) {
@@ -202,6 +234,10 @@ export const createMetaballs = (canvas) => {
       packed[o + 1] = ball.y
       packed[o + 2] = ball.rx
       packed[o + 3] = ball.ry
+      packedLight[o] = ball.lx ?? 0
+      packedLight[o + 1] = ball.ly ?? 0
+      packedLight[o + 2] = ball.hiSize ?? 0.55
+      packedLight[o + 3] = ball.hiBright ?? 0.7
     }
 
     gl.viewport(0, 0, canvas.width, canvas.height)
@@ -214,10 +250,20 @@ export const createMetaballs = (canvas) => {
     gl.uniform1f(uDpr, dpr)
     gl.uniform1f(uTime, time)
     gl.uniform4f(uColor, color[0], color[1], color[2], color[3])
+    gl.uniform4f(uAccent, accent[0], accent[1], accent[2], accent[3])
     for (let i = 0; i < MAX_BALLS; i++) {
       const loc = uBalls[i]
-      if (!loc) continue
-      gl.uniform4f(loc, packed[i * 4], packed[i * 4 + 1], packed[i * 4 + 2], packed[i * 4 + 3])
+      if (loc) gl.uniform4f(loc, packed[i * 4], packed[i * 4 + 1], packed[i * 4 + 2], packed[i * 4 + 3])
+      const lightLoc = uLights[i]
+      if (lightLoc) {
+        gl.uniform4f(
+          lightLoc,
+          packedLight[i * 4],
+          packedLight[i * 4 + 1],
+          packedLight[i * 4 + 2],
+          packedLight[i * 4 + 3],
+        )
+      }
     }
     gl.uniform1f(uThreshold, 0.58)
     gl.uniform1f(uMerge, 32.0)
@@ -233,5 +279,5 @@ export const createMetaballs = (canvas) => {
 
   resize()
 
-  return { ok: true, resize, setColor, setTime, draw, destroy }
+  return { ok: true, resize, setColor, setAccent, setTime, draw, destroy }
 }

@@ -500,8 +500,12 @@ let metaballsRenderer = createMetaballs(document.querySelector('.blobs-canvas'))
 const readBlobColor = () =>
   parseCssColor(getComputedStyle(root).getPropertyValue('--blob'))
 
+const readAccentColor = () =>
+  parseCssColor(getComputedStyle(root).getPropertyValue('--accent'))
+
 const syncMetaballColor = () => {
   metaballsRenderer?.setColor(readBlobColor())
+  metaballsRenderer?.setAccent(readAccentColor())
 }
 
 if (metaballsRenderer) {
@@ -1635,9 +1639,21 @@ const tickUnderlines = (t, dt, mouseX, mouseY) => {
 const ABSORB = 0.16
 const OVERSCAN = 0.2
 
+const randomBlobLight = () => {
+  const a = rand(0, Math.PI * 2)
+  const r = rand(0.1, 0.88)
+  return {
+    lx: Math.cos(a) * r,
+    ly: Math.sin(a) * r,
+    hiSize: rand(0.42, 1),
+    hiBright: rand(0.16, 0.5),
+  }
+}
+
 const createBlob = (el, index) => {
   const size = rand(0.07, 0.4)
   const lane = rand(0.18, 0.82)
+  const light = randomBlobLight()
   return {
     el,
     index,
@@ -1662,6 +1678,7 @@ const createBlob = (el, index) => {
     attractX: 0,
     attractY: 0,
     retired: false,
+    ...light,
   }
 }
 
@@ -2501,6 +2518,7 @@ const bounceBlob = (blob, t, atBottom) => {
   blob.nest = 0.55
   blob.targetAccel = atBottom ? rand(-0.02, 0.01) : rand(-0.01, 0.022)
   blob.accelChangeAt = t + rand(0.5, 2)
+  Object.assign(blob, randomBlobLight())
 }
 
 const blobInFlight = (blob) => !blob.retired
@@ -2532,8 +2550,8 @@ if (!spawnEnabled()) {
 }
 
 const endcaps = {
-  top: { el: topCapEl, swell: 1, ripple: 0, x: 0, y: 0, w: 0, h: 0 },
-  bottom: { el: bottomCapEl, swell: 1, ripple: 0, x: 0, y: 0, w: 0, h: 0 },
+  top: { el: topCapEl, swell: 1, ripple: 0, x: 0, y: 0, w: 0, h: 0, ...randomBlobLight() },
+  bottom: { el: bottomCapEl, swell: 1, ripple: 0, x: 0, y: 0, w: 0, h: 0, ...randomBlobLight() },
 }
 
 const sizePx = (blob) => Math.min(window.innerWidth, window.innerHeight) * blob.size
@@ -2591,7 +2609,18 @@ const collectMetaballs = (t = 0) => {
   const pushCap = (cap) => {
     const rx = cap.w * 0.5
     const ry = cap.h * 0.5
-    if (rx > 1 && ry > 1) balls.push({ x: cap.x, y: cap.y, rx, ry })
+    if (rx > 1 && ry > 1) {
+      balls.push({
+        x: cap.x,
+        y: cap.y,
+        rx,
+        ry,
+        lx: cap.lx,
+        ly: cap.ly,
+        hiSize: cap.hiSize,
+        hiBright: cap.hiBright,
+      })
+    }
   }
   pushCap(endcaps.top)
   pushCap(endcaps.bottom)
@@ -2612,6 +2641,10 @@ const collectMetaballs = (t = 0) => {
       y: blob.y + blob.pushY,
       rx,
       ry,
+      lx: blob.lx,
+      ly: blob.ly,
+      hiSize: blob.hiSize,
+      hiBright: blob.hiBright,
     })
   })
   return balls
