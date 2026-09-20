@@ -13,6 +13,7 @@ import {
   SLOT_COUNT,
   connectPlaySession,
   defaultSlots,
+  livePresenceMap,
   packCells,
   packFood,
   slotOfUid,
@@ -747,8 +748,9 @@ export const mountPlay = (root) => {
   }
 
   const liveUserCount = () => {
+    const live = livePresenceMap(netPresence)
     let n = 0
-    for (const row of Object.values(netPresence)) {
+    for (const row of Object.values(live)) {
       if (row) n += 1
     }
     if (!n && session) n = 1
@@ -1249,7 +1251,11 @@ export const mountPlay = (root) => {
           }
           continue
         }
-        if (netSlots[owner]?.kind !== 'human' || netSlots[owner]?.uid !== uid) {
+        const held = netSlots[owner]
+        if (held?.kind === 'human' && held.uid && held.uid !== uid && netPresence[held.uid]) {
+          continue
+        }
+        if (held?.kind !== 'human' || held?.uid !== uid) {
           const next = { ...netSlots, [owner]: { kind: 'human', uid, at: Date.now() } }
           netSlots = next
           session?.writeSlots(next)
@@ -1329,9 +1335,19 @@ export const mountPlay = (root) => {
     return ownerForRemote(uid, netPresence[uid])
   }
 
+  const forgetRemote = (uid) => {
+    if (!uid) return
+    lastRemoteInput.delete(uid)
+    lastAdoptSig.delete(uid)
+    lastSplitSeq.delete(uid)
+    lastKillSeq.delete(uid)
+  }
+
   const ensureHumanSeat = (owner, uid) => {
     if (owner < 0 || owner === localOwner || !uid) return
+    if (!netPresence[uid]?.playing) return
     const row = netSlots[owner]
+    if (row?.kind === 'human' && row.uid && row.uid !== uid && netPresence[row.uid]) return
     if (row?.kind === 'human' && row.uid === uid) return
     const next = { ...netSlots, [owner]: { kind: 'human', uid, at: Date.now() } }
     netSlots = next
@@ -1342,21 +1358,22 @@ export const mountPlay = (root) => {
     const seen = new Set()
     for (const [uid, input] of Object.entries(netInputs)) {
       if (!uid || !input || uid === session?.uid) continue
+      if (!netPresence[uid]?.playing) {
+        forgetRemote(uid)
+        const held = slotOfUid(netSlots, uid)
+        if (held >= 0 && held !== localOwner && netSlots[held]?.uid === uid) {
+          cells = cells.filter((c) => Number(c.owner) !== Number(held))
+        }
+        continue
+      }
       const owner = resolveInputOwner(uid, input)
       if (owner < 0 || owner === localOwner || seen.has(owner)) continue
       seen.add(owner)
       ensureHumanSeat(owner, uid)
       lastRemoteInput.set(uid, input)
 
-      if (!netPresence[uid]?.playing) {
-        cells = cells.filter((c) => Number(c.owner) !== Number(owner))
-        continue
-      }
-
       const group = ownerCells(owner)
-      if (!group.length) {
-        if (netPresence[uid]?.playing) spawnHuman(owner)
-      }
+      if (!group.length) spawnHuman(owner)
       const packed = cellRowsOf(input.cells)
       const splitSeq = Number(input.splitSeq) || 0
       const prevSplit = lastSplitSeq.get(uid) || 0
@@ -1492,7 +1509,6 @@ export const mountPlay = (root) => {
 
   const reapGoneHumans = () => {
     if (!isHost || !session) return
-    const presenceEmpty = !Object.keys(netPresence).length
     let changed = false
     const next = { ...netSlots }
     for (let owner = 0; owner < SLOT_COUNT; owner++) {
@@ -1500,11 +1516,11 @@ export const mountPlay = (root) => {
       if (slot?.kind !== 'human') continue
       if (slot.uid && slot.uid === session.uid) continue
       if (owner === localOwner) continue
-      if (!presenceEmpty) {
-        if (slot.uid && netPresence[slot.uid]) continue
-        if (slot.uid && (netInputs[slot.uid] || lastRemoteInput.has(slot.uid))) continue
-      }
+      if (slot.uid && netPresence[slot.uid]) continue
+      if (slot.uid) forgetRemote(slot.uid)
       next[owner] = owner === EXTRA_SLOT ? { kind: 'empty' } : { kind: 'ai' }
+      remotePlayLife.delete(owner)
+      remoteDead.delete(owner)
       changed = true
     }
     if (changed) session.writeSlots(next)
@@ -2040,19 +2056,21 @@ export const mountPlay = (root) => {
     const incoming = { ...(next || defaultSlots()) }
     const prev = netSlots
     let restored = false
-    for (let owner = 0; owner < SLOT_COUNT; owner++) {
-      const before = prev[owner]
-      const after = incoming[owner]
-      if (before?.kind !== 'human' || !before.uid) continue
-      if (after?.kind === 'human') continue
-      const stillHere =
-        (owner === localOwner && session?.uid && before.uid === session.uid) ||
-        !!netPresence[before.uid]
-      if (!stillHere) continue
-      incoming[owner] = { kind: 'human', uid: before.uid, at: Date.now() }
-      restored = true
+    if (!emptyLobby) {
+      for (let owner = 0; owner < SLOT_COUNT; owner++) {
+        const before = prev[owner]
+        const after = incoming[owner]
+        if (before?.kind !== 'human' || !before.uid) continue
+        if (after?.kind === 'human') continue
+        const stillHere =
+          (owner === localOwner && session?.uid && before.uid === session.uid) ||
+          !!netPresence[before.uid]
+        if (!stillHere) continue
+        incoming[owner] = { kind: 'human', uid: before.uid, at: Date.now() }
+        restored = true
+      }
+      if (restored && isHost && session) session.writeSlots(incoming)
     }
-    if (restored && isHost && session) session.writeSlots(incoming)
     netSlots = incoming
     syncMapFull()
     if (!isHost || !slotDiffEnabled) return
