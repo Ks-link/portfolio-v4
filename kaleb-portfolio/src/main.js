@@ -2563,7 +2563,7 @@ if (reduceMotion) {
   let rafId = 0
   let last = performance.now()
   let scrollImpulse = 0
-  const SCROLL_GAIN = 0.012
+  const SCROLL_GAIN = 0.016
   const SCROLL_DECAY = 12
   const SCROLL_MUL_MIN = 0.15
   const SCROLL_MUL_MAX = 7
