@@ -36,13 +36,13 @@ void main() {
       float dist = length(delta);
       float rMin = min(b.z, b.w);
       float distPx = dist * rMin;
-      float inner = max(1.0, rMin - 10.0);
+      float inner = max(1.0, rMin - 8.0);
       float outer = rMin + u_merge;
       field += 1.0 - smoothstep(inner, outer, distPx);
     }
   }
 
-  float alpha = smoothstep(u_threshold - 0.16, u_threshold + 0.16, field);
+  float alpha = smoothstep(u_threshold - 0.12, u_threshold + 0.12, field);
   vec3 rgb = u_color.rgb;
   float a = alpha * u_color.a;
   gl_FragColor = vec4(rgb * a, a);
@@ -163,7 +163,7 @@ export const createMetaballs = (canvas) => {
   gl.clearColor(0, 0, 0, 0)
   gl.useProgram(program)
   gl.uniform1f(uThreshold, 0.58)
-  gl.uniform1f(uMerge, 38.0)
+  gl.uniform1f(uMerge, 32.0)
 
   const resize = () => {
     if (destroyed) return
@@ -220,7 +220,7 @@ export const createMetaballs = (canvas) => {
       gl.uniform4f(loc, packed[i * 4], packed[i * 4 + 1], packed[i * 4 + 2], packed[i * 4 + 3])
     }
     gl.uniform1f(uThreshold, 0.58)
-    gl.uniform1f(uMerge, 38.0)
+    gl.uniform1f(uMerge, 32.0)
     gl.drawArrays(gl.TRIANGLES, 0, 3)
   }
 
