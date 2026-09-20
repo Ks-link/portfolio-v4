@@ -54,7 +54,7 @@ const lavaLampOffIcon = `
   </svg>
 `
 
-const BLOB_COUNT = 6
+const BLOB_COUNT = 8
 const UNDERLINE_POINTS = 40
 
 const projects = [
