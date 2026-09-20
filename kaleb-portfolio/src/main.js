@@ -506,6 +506,7 @@ const readAccentColor = () =>
 const syncMetaballColor = () => {
   metaballsRenderer?.setColor(readBlobColor())
   metaballsRenderer?.setAccent(readAccentColor())
+  metaballsRenderer?.setGain(root.getAttribute('data-theme') === 'dark' ? 2.35 : 1)
 }
 
 if (metaballsRenderer) {
@@ -1645,8 +1646,8 @@ const randomBlobLight = () => {
   return {
     lx: Math.cos(a) * r,
     ly: Math.sin(a) * r,
-    hiSize: rand(0.42, 1),
-    hiBright: rand(0.16, 0.5),
+    hiSize: rand(0.5, 1),
+    hiBright: rand(0.12, 0.38),
   }
 }
 
