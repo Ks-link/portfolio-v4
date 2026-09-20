@@ -779,6 +779,27 @@ body {
   transition: opacity 0.25s ease;
 }
 
+.blobs-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  pointer-events: none;
+}
+
+.blobs.is-webgl {
+  filter: none;
+}
+
+.blobs.is-webgl .blobs-canvas {
+  display: block;
+}
+
+.blobs.is-webgl .blob {
+  display: none;
+}
+
 .grain {
   position: fixed;
   inset: 0;

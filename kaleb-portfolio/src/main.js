@@ -1,4 +1,5 @@
 import './style.css'
+import { createMetaballs, parseCssColor } from './metaballs.js'
 import { mountPlay } from './play.js'
 
 const sunIcon = `
@@ -199,6 +200,7 @@ app.innerHTML = `
   </div>
   <div class="grain" aria-hidden="true"></div>
   <div class="blobs" aria-hidden="true">
+    <canvas class="blobs-canvas"></canvas>
     <span class="blob blob--endcap" data-endcap="top"></span>
     <span class="blob blob--endcap" data-endcap="bottom"></span>
     ${Array.from({ length: BLOB_COUNT }, (_, i) => `<span class="blob" data-blob="${i}"></span>`).join('')}
@@ -492,6 +494,20 @@ app.innerHTML = `
 const play = mountPlay(document.querySelector('.play-root'))
 const root = document.documentElement
 const toggle = document.querySelector('.theme-toggle')
+const blobsRoot = document.querySelector('.blobs')
+let metaballsRenderer = createMetaballs(document.querySelector('.blobs-canvas'))
+
+const readBlobColor = () =>
+  parseCssColor(getComputedStyle(root).getPropertyValue('--blob'))
+
+const syncMetaballColor = () => {
+  metaballsRenderer?.setColor(readBlobColor())
+}
+
+if (metaballsRenderer) {
+  blobsRoot?.classList.add('is-webgl')
+  syncMetaballColor()
+}
 
 const getPreferredTheme = () => {
   const stored = localStorage.getItem('theme')
@@ -505,6 +521,7 @@ const applyTheme = (theme) => {
   const isDark = theme === 'dark'
   toggle.innerHTML = isDark ? sunIcon : moonIcon
   toggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode')
+  syncMetaballColor()
 }
 
 applyTheme(getPreferredTheme())
@@ -2476,7 +2493,7 @@ if (profileWrap) {
 
 const bounceBlob = (blob, t, atBottom) => {
   blob.retired = false
-  blob.el.style.opacity = '1'
+  if (!metaballsRenderer) blob.el.style.opacity = '1'
   blob.progress = atBottom ? 1 - ABSORB : ABSORB
   blob.dir = atBottom ? -1 : 1
   blob.targetLane = rand(0.22, 0.78)
@@ -2533,6 +2550,7 @@ const progressToY = (progress, h) => {
 }
 
 const syncBlobSize = (blob) => {
+  if (metaballsRenderer) return
   const s = sizePx(blob)
   blob.el.style.width = `${s}px`
   blob.el.style.height = `${s}px`
@@ -2557,6 +2575,7 @@ const layoutEndcaps = (t = 0) => {
       const inset = h * (0.045 + cap.ripple * 0.04)
       cap.y = offset === 0 ? -size / 2 + inset : h + size / 2 - inset
 
+      if (metaballsRenderer) return
       const el = cap.el
       el.style.width = `${cap.w}px`
       el.style.height = `${cap.h}px`
@@ -2567,6 +2586,49 @@ const layoutEndcaps = (t = 0) => {
     })
 }
 
+const collectMetaballs = (t = 0) => {
+  const balls = []
+  const pushCap = (cap) => {
+    const rx = cap.w * 0.5
+    const ry = cap.h * 0.5
+    if (rx > 1 && ry > 1) balls.push({ x: cap.x, y: cap.y, rx, ry })
+  }
+  pushCap(endcaps.top)
+  pushCap(endcaps.bottom)
+
+  const hideFloaters = reduceMotion && app.dataset.blobs === 'off'
+  blobs.forEach((blob) => {
+    if (hideFloaters) return
+    const nest = reduceMotion ? 1 : blob.nest
+    if (nest <= 0.02) return
+    const s = sizePx(blob)
+    const stretch = reduceMotion ? 1 : blob.stretch
+    const base = 0.97 + Math.sin(t * blob.wobble * 0.7 + blob.phase) * 0.03
+    const rx = s * 0.5 * nest * base
+    const ry = s * 0.5 * nest * base * stretch
+    if (rx < 0.75 || ry < 0.75) return
+    balls.push({
+      x: blob.x + blob.pushX,
+      y: blob.y + blob.pushY,
+      rx,
+      ry,
+    })
+  })
+  return balls
+}
+
+const paintMetaballs = (t = 0) => {
+  if (!metaballsRenderer) return
+  if (app.dataset.screen === 'play') return
+  metaballsRenderer.setTime(t)
+  metaballsRenderer.draw(collectMetaballs(t))
+}
+
+blobsToggle.addEventListener('click', () => {
+  if (!metaballsRenderer) return
+  paintMetaballs(reduceMotion ? 0 : performance.now() / 1000)
+})
+
 const placeStaticBlobs = () => {
   endcaps.top.swell = 1
   endcaps.bottom.swell = 1
@@ -2574,12 +2636,17 @@ const placeStaticBlobs = () => {
   endcaps.bottom.ripple = 0
   layoutEndcaps()
   blobs.forEach((blob) => {
+    blob.x = blob.lane * window.innerWidth
+    blob.y = progressToY(blob.progress, window.innerHeight)
+    blob.pushX = 0
+    blob.pushY = 0
+    blob.stretch = 1
+    if (metaballsRenderer) return
     syncBlobSize(blob)
     const s = sizePx(blob)
-    const x = blob.lane * window.innerWidth - s / 2
-    const y = progressToY(blob.progress, window.innerHeight) - s / 2
-    blob.el.style.transform = `translate(${x}px, ${y}px)`
+    blob.el.style.transform = `translate(${blob.x - s / 2}px, ${blob.y - s / 2}px)`
   })
+  paintMetaballs(0)
   placeStaticProfile()
 }
 
@@ -2638,6 +2705,7 @@ if (reduceMotion) {
   window.addEventListener('resize', () => {
     blobs.forEach(syncBlobSize)
     layoutEndcaps()
+    metaballsRenderer?.resize()
   })
 
   window.addEventListener(
@@ -2848,6 +2916,8 @@ if (reduceMotion) {
       blob.pushX = damp(blob.pushX, targetPushX, 3.5, dt)
       blob.pushY = damp(blob.pushY, targetPushY, 3.5, dt)
 
+      if (metaballsRenderer) return
+
       const s = sizePx(blob)
       const flat = 1 - blob.nest
       const x = blob.x + blob.pushX - s / 2
@@ -2867,6 +2937,7 @@ if (reduceMotion) {
       blob.el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scaleX.toFixed(3)}, ${Math.max(0.08, scaleY).toFixed(3)})`
     })
 
+    paintMetaballs(t)
     tickAllProfileBlobs(t, dt, mouseX, mouseY, blobReach, blobPush)
     tickUnderlines(t, dt, mouseX, mouseY)
     tickProjectFrame(t)
