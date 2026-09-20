@@ -942,8 +942,8 @@ body {
   display: none;
   position: fixed;
   z-index: 10;
+  top: max(1.25rem, env(safe-area-inset-top));
   left: max(1.25rem, env(safe-area-inset-left));
-  bottom: max(1.25rem, env(safe-area-inset-bottom));
   width: 2.4rem;
   height: 2.4rem;
   overflow: visible;
@@ -951,17 +951,9 @@ body {
   --stage-map-idle: color-mix(in srgb, var(--text) 16%, var(--nav-blob));
   --stage-map-push: 0.17rem;
   transition:
-    bottom 0.25s ease,
     opacity 0.3s ease,
     width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
     height 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-#app[data-cookie-banner="open"]:not([data-screen="play"]) .stage-map {
-  bottom: calc(
-    var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
-      0.65rem
-  );
 }
 
 #app[data-screen="play"]:has(.play-root.is-playing) .stage-map {
@@ -970,12 +962,12 @@ body {
 
 .stage-map__scale {
   position: absolute;
+  top: 0;
   left: 0;
-  bottom: 0;
   width: 5.1rem;
   height: 5.1rem;
   transform: scale(0.47);
-  transform-origin: bottom left;
+  transform-origin: top left;
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -1231,7 +1223,7 @@ body {
 .stage-map__label {
   position: absolute;
   left: 50%;
-  bottom: calc(100% + 0.24rem);
+  top: calc(100% + 0.24rem);
   transform: translateX(-50%);
   margin: 0;
   padding: 0.18rem 0.42rem;

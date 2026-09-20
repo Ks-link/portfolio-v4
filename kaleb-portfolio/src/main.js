@@ -199,15 +199,13 @@ app.innerHTML = `
     <span class="blob blob--endcap" data-endcap="bottom"></span>
     ${Array.from({ length: BLOB_COUNT }, (_, i) => `<span class="blob" data-blob="${i}"></span>`).join('')}
   </div>
-  <div class="corner-cluster">
+  <div class="corner-cluster corner-cluster--right">
     <button type="button" class="corner-btn home-toggle" aria-label="Home">
       ${homeIcon}
     </button>
     <button type="button" class="corner-btn kill-toggle" aria-label="Die">
       ${killIcon}
     </button>
-  </div>
-  <div class="corner-cluster corner-cluster--right">
     <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
       ${lavaLampOnIcon}
     </button>
