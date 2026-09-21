@@ -501,12 +501,12 @@ const readBlobColor = () =>
   parseCssColor(getComputedStyle(root).getPropertyValue('--blob'))
 
 const readAccentColor = () =>
-  parseCssColor(getComputedStyle(root).getPropertyValue('--accent'))
+  parseCssColor(getComputedStyle(root).getPropertyValue('--blob-depth'))
 
 const syncMetaballColor = () => {
   metaballsRenderer?.setColor(readBlobColor())
   metaballsRenderer?.setAccent(readAccentColor())
-  metaballsRenderer?.setGain(root.getAttribute('data-theme') === 'dark' ? 2.35 : 1)
+  metaballsRenderer?.setGain(root.getAttribute('data-theme') === 'dark' ? 1.45 : 1)
 }
 
 if (metaballsRenderer) {

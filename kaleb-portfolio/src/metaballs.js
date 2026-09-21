@@ -50,11 +50,9 @@ void main() {
       float bright = clamp(light.w, 0.12, 1.0);
       vec3 n = normalize(vec3(delta, sqrt(max(0.0, 1.0 - min(dist * dist, 1.0))) + 0.002));
       vec3 L = normalize(vec3(light.xy, 0.74));
-      vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
-      float nh = max(0.0, dot(n, H));
-      float spec = pow(nh, mix(7.0, 1.8, size));
-      float hot = pow(nh, mix(16.0, 4.2, size));
-      float hi = spec * mix(0.04, 0.14, bright) + hot * mix(0.01, 0.045, bright);
+      float ndotl = max(0.0, dot(n, L));
+      float shade = pow(1.0 - ndotl, mix(1.7, 0.9, size));
+      float hi = shade * mix(0.22, 0.48, bright);
       hiW += hi * contrib;
     }
   }

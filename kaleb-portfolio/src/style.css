@@ -4,6 +4,7 @@
   --text: #322f2f;
   --accent: #ee8533;
   --blob: #f0ece2;
+  --blob-depth: #c5c0b6;
   --nav-blob: #e4ddd0;
   --cursor-blob: #ee8533;
   --blobs-opacity: 0.5;
@@ -20,6 +21,7 @@
   --text: #fffff4;
   --accent: #ee8533;
   --blob: #242120;
+  --blob-depth: #161412;
   --nav-blob: #2a2522;
   --cursor-blob: #ee8533;
   --blobs-opacity: 0.55;
