@@ -370,7 +370,7 @@ app.innerHTML = `
           <h2 id="about-heading" class="screen-title">About</h2>
           <p class="about-bio">
             Hey there, I'm Kaleb  👋  
-            <br>I'm a web developer based in Abbotsford, BC.
+            <br>I'm a web developer based in Abbotsford.
           </p>
           <div class="profile-blob">
             <span class="profile-blob-shape" role="button" tabindex="0" aria-label="Split portrait">
