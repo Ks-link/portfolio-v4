@@ -4,6 +4,7 @@
   --text: #322f2f;
   --accent: #ee8533;
   --blob: #f0ece2;
+  --blob-depth: #c5c0b6;
   --nav-blob: #e4ddd0;
   --cursor-blob: #ee8533;
   --blobs-opacity: 0.5;
@@ -20,6 +21,7 @@
   --text: #fffff4;
   --accent: #ee8533;
   --blob: #242120;
+  --blob-depth: #161412;
   --nav-blob: #2a2522;
   --cursor-blob: #ee8533;
   --blobs-opacity: 0.55;
@@ -779,6 +781,27 @@ body {
   transition: opacity 0.25s ease;
 }
 
+.blobs-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  pointer-events: none;
+}
+
+.blobs.is-webgl {
+  filter: none;
+}
+
+.blobs.is-webgl .blobs-canvas {
+  display: block;
+}
+
+.blobs.is-webgl .blob {
+  display: none;
+}
+
 .grain {
   position: fixed;
   inset: 0;
@@ -1068,20 +1091,22 @@ body {
 }
 
 /* Collapsed: keep the selected size steady — no travel grow/shrink */
-.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible)) .stage-map__blob.is-traveling {
+.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible))
+  .stage-map__blob.is-traveling {
   width: 1.7rem;
   height: 1.7rem;
 }
 
-.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible)) .stage-map__blob {
+.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible))
+  .stage-map__blob {
   transition:
     background 0.2s ease,
     transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-  .stage-map__cell.is-here:is(:hover, :focus-visible)
-) {
+    .stage-map__cell.is-here:is(:hover, :focus-visible)
+  ) {
   --stage-map-push: 0.24rem;
 }
 
@@ -1256,7 +1281,9 @@ body {
 }
 
 .stage-map:hover .stage-map__cell:hover .stage-map__label,
-.stage-map:has(.stage-map__cell:focus-visible) .stage-map__cell:focus-visible .stage-map__label {
+.stage-map:has(.stage-map__cell:focus-visible)
+  .stage-map__cell:focus-visible
+  .stage-map__label {
   opacity: 0.9;
 }
 
