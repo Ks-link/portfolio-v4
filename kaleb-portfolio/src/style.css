@@ -1669,6 +1669,7 @@ body {
     pointer-events: none;
   }
 
+  /* Desktop expanded map is 5.1rem — keep the same spacing ratios, scaled up. */
   #app[data-stage-map="open"] .stage-map {
     display: block;
     top: 50%;
@@ -1679,12 +1680,13 @@ body {
     height: min(62vw, 17.5rem);
     transform: translate(-50%, -52%);
     pointer-events: auto;
-    --stage-map-push: 0.55rem;
+    --stage-map-scale: calc(min(62vw, 17.5rem) / 5.1rem);
+    --stage-map-push: calc(0.17rem * var(--stage-map-scale));
   }
 
   #app[data-stage-map="open"]
     .stage-map:has(.stage-map__cell.is-here.is-selected) {
-    --stage-map-push: 0.72rem;
+    --stage-map-push: calc(0.24rem * var(--stage-map-scale));
   }
 
   #app[data-stage-map="open"] .stage-map__scale {
@@ -1698,61 +1700,63 @@ body {
 
   #app[data-stage-map="open"] .stage-map__blobs,
   #app[data-stage-map="open"] .stage-map__grid {
-    padding: 0.2rem;
+    padding: calc(0.14rem * var(--stage-map-scale));
   }
 
   #app[data-stage-map="open"] .stage-map__blob,
   #app[data-stage-map="open"] .stage-map__void {
-    width: 68%;
-    height: 68%;
-    max-width: 4.4rem;
-    max-height: 4.4rem;
+    width: calc(1.06rem * var(--stage-map-scale));
+    height: calc(1.06rem * var(--stage-map-scale));
+    max-width: none;
+    max-height: none;
   }
 
   #app[data-stage-map="open"] .stage-map__blob.is-here {
-    width: 88%;
-    height: 88%;
-    max-width: 5.6rem;
-    max-height: 5.6rem;
+    width: calc(1.7rem * var(--stage-map-scale));
+    height: calc(1.7rem * var(--stage-map-scale));
+    max-width: none;
+    max-height: none;
   }
 
   /* Current page shrinks when another destination is selected; keep accent. */
   #app[data-stage-map="open"]
     .stage-map:has(.stage-map__cell.is-selected)
     .stage-map__blob.is-here:not(.is-selected) {
-    width: 68%;
-    height: 68%;
-    max-width: 4.4rem;
-    max-height: 4.4rem;
+    width: calc(1.06rem * var(--stage-map-scale));
+    height: calc(1.06rem * var(--stage-map-scale));
     background: var(--cursor-blob);
   }
 
   #app[data-stage-map="open"] .stage-map__blob.is-traveling {
-    width: 94%;
-    height: 94%;
-    max-width: 6rem;
-    max-height: 6rem;
+    width: calc(1.86rem * var(--stage-map-scale));
+    height: calc(1.86rem * var(--stage-map-scale));
+    max-width: none;
+    max-height: none;
   }
 
   /* Selected destination: enlarged idle fill + accent arrow (no half-accent). */
   #app[data-stage-map="open"] .stage-map__blob.is-selected {
-    width: 88%;
-    height: 88%;
-    max-width: 5.6rem;
-    max-height: 5.6rem;
+    width: calc(1.7rem * var(--stage-map-scale));
+    height: calc(1.7rem * var(--stage-map-scale));
+    max-width: none;
+    max-height: none;
     background: var(--stage-map-idle);
   }
 
   #app[data-stage-map="open"] .stage-map__select-arrow {
-    width: 36%;
-    height: 36%;
-    max-width: 1.35rem;
-    max-height: 1.35rem;
+    width: calc(0.55rem * var(--stage-map-scale));
+    height: calc(0.55rem * var(--stage-map-scale));
+    max-width: none;
+    max-height: none;
+  }
+
+  #app[data-stage-map="open"] .stage-map__select-arrow path {
+    stroke-width: 3.25;
   }
 
   #app[data-stage-map="open"] .stage-map__label {
-    top: calc(100% + 0.35rem);
-    font-size: 0.74rem;
+    top: calc(100% + 0.24rem * var(--stage-map-scale));
+    font-size: 0.82rem;
     padding: 0.18rem 0.42rem;
   }
 }
