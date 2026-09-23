@@ -55,17 +55,12 @@ const lavaLampOffIcon = `
   </svg>
 `
 
-const menuIcon = `
-  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"
-      d="M4.5 7h15M4.5 12h15M4.5 17h15"/>
-  </svg>
-`
-
-const menuCloseIcon = `
-  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"
-      d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>
+const menuToggleIcon = `
+  <svg class="theme-icon menu-toggle__icon" viewBox="0 0 24 24" aria-hidden="true"
+    fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+    <line class="menu-toggle__line menu-toggle__line--1" x1="4" y1="6" x2="20" y2="6"/>
+    <line class="menu-toggle__line menu-toggle__line--2" x1="4" y1="12" x2="20" y2="12"/>
+    <line class="menu-toggle__line menu-toggle__line--3" x1="4" y1="18" x2="20" y2="18"/>
   </svg>
 `
 
@@ -255,7 +250,7 @@ app.innerHTML = `
       aria-controls="corner-menu"
     >
       <span class="menu-toggle__blob" aria-hidden="true"></span>
-      ${menuIcon}
+      ${menuToggleIcon}
     </button>
     <div id="corner-menu" class="corner-menu">
       <div class="corner-menu__shape">
@@ -692,10 +687,6 @@ const setCornerMenuOpen = (open) => {
   if (menuToggle) {
     menuToggle.setAttribute('aria-expanded', next ? 'true' : 'false')
     menuToggle.setAttribute('aria-label', next ? 'Close menu' : 'Open menu')
-    const icon = menuToggle.querySelector('.theme-icon')
-    const nextIcon = next ? menuCloseIcon : menuIcon
-    if (icon) icon.outerHTML = nextIcon.trim()
-    else menuToggle.insertAdjacentHTML('beforeend', nextIcon)
   }
 }
 
