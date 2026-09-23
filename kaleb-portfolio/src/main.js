@@ -219,6 +219,10 @@ app.innerHTML = `
       ${moonIcon}
     </button>
   </div>
+  <aside class="brand-mark" tabindex="0" aria-label="Link Web Development">
+    <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
+    <span class="brand-mark__label">Link Web Development</span>
+  </aside>
   <nav class="stage-map" aria-label="Site map">
     <div class="stage-map__scale">
       <div class="stage-map__goo" aria-hidden="true">
@@ -520,12 +524,29 @@ const getPreferredTheme = () => {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
+const brandMarkIcon = document.querySelector('.brand-mark__icon')
+let themeFaviconLink = document.querySelector('link[rel="icon"][type="image/png"]:not([media])')
+if (!themeFaviconLink) {
+  themeFaviconLink = document.createElement('link')
+  themeFaviconLink.rel = 'icon'
+  themeFaviconLink.type = 'image/png'
+  document.head.appendChild(themeFaviconLink)
+}
+
+const faviconForTheme = (theme) =>
+  theme === 'dark' ? '/favicon-dark.png' : '/favicon-light.png'
+
 const applyTheme = (theme) => {
   root.setAttribute('data-theme', theme)
   localStorage.setItem('theme', theme)
   const isDark = theme === 'dark'
   toggle.innerHTML = isDark ? sunIcon : moonIcon
   toggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode')
+  const iconSrc = faviconForTheme(theme)
+  if (brandMarkIcon) brandMarkIcon.src = iconSrc
+  // Drop OS media-query icons so the tab follows the in-app theme.
+  document.querySelectorAll('link[rel="icon"][media]').forEach((link) => link.remove())
+  themeFaviconLink.href = iconSrc
   syncMetaballColor()
 }
 
