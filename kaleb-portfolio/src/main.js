@@ -239,9 +239,6 @@ app.innerHTML = `
     <button type="button" class="corner-btn home-toggle" aria-label="Home">
       ${homeIcon}
     </button>
-    <button type="button" class="corner-btn kill-toggle" aria-label="Die">
-      ${killIcon}
-    </button>
     <button
       type="button"
       class="corner-btn menu-toggle"
@@ -276,6 +273,9 @@ app.innerHTML = `
         </div>
       </div>
     </div>
+    <button type="button" class="corner-btn kill-toggle" aria-label="Die">
+      ${killIcon}
+    </button>
   </div>
   <aside class="brand-mark brand-mark--corner" tabindex="0" aria-label="Link Web Development">
     <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
