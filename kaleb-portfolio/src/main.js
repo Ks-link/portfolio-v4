@@ -205,18 +205,18 @@ app.innerHTML = `
     <span class="blob blob--endcap" data-endcap="bottom"></span>
     ${Array.from({ length: BLOB_COUNT }, (_, i) => `<span class="blob" data-blob="${i}"></span>`).join('')}
   </div>
-  <div class="corner-cluster corner-cluster--right">
+  <div class="corner-cluster">
     <button type="button" class="corner-btn home-toggle" aria-label="Home">
       ${homeIcon}
     </button>
     <button type="button" class="corner-btn kill-toggle" aria-label="Die">
       ${killIcon}
     </button>
-    <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
-      ${lavaLampOnIcon}
-    </button>
     <button type="button" class="corner-btn theme-toggle" aria-label="Toggle dark mode">
       ${moonIcon}
+    </button>
+    <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
+      ${lavaLampOnIcon}
     </button>
   </div>
   <aside class="brand-mark brand-mark--corner" tabindex="0" aria-label="Link Web Development">

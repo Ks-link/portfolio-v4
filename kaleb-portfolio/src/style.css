@@ -914,12 +914,16 @@ body {
   align-items: center;
 }
 
-.corner-cluster--right {
-  left: auto;
-  right: max(1.25rem, env(safe-area-inset-right));
-}
-
 @media (max-width: 48rem) {
+  .corner-cluster {
+    left: auto;
+    right: max(1.25rem, env(safe-area-inset-right));
+  }
+
+  .blobs-toggle {
+    order: -1;
+  }
+
   .home-toggle,
   .kill-toggle {
     position: fixed;
@@ -929,6 +933,27 @@ body {
 
   .kill-toggle {
     left: calc(max(1.25rem, env(safe-area-inset-left)) + 2.5rem);
+  }
+}
+
+@media (min-width: 48rem) {
+  .blobs-toggle {
+    position: fixed;
+    top: auto;
+    left: auto;
+    right: max(1.25rem, env(safe-area-inset-right));
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    transition:
+      color 0.25s ease,
+      opacity 0.2s ease,
+      bottom 0.25s ease;
+  }
+
+  #app[data-cookie-banner="open"]:not([data-screen="play"]) .blobs-toggle {
+    bottom: calc(
+      var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
+        0.35rem
+    );
   }
 }
 
@@ -979,7 +1004,7 @@ body {
   position: fixed;
   z-index: 10;
   top: max(1.25rem, env(safe-area-inset-top));
-  left: max(1.25rem, env(safe-area-inset-left));
+  right: max(1.25rem, env(safe-area-inset-right));
   width: 2.4rem;
   height: 2.4rem;
   overflow: visible;
@@ -999,11 +1024,11 @@ body {
 .stage-map__scale {
   position: absolute;
   top: 0;
-  left: 0;
+  right: 0;
   width: 5.1rem;
   height: 5.1rem;
   transform: scale(0.47);
-  transform-origin: top left;
+  transform-origin: top right;
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
