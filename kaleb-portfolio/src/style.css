@@ -1675,16 +1675,16 @@ body {
     right: auto;
     left: 50%;
     z-index: 20;
-    width: min(82vw, 24rem);
-    height: min(82vw, 24rem);
+    width: min(62vw, 17.5rem);
+    height: min(62vw, 17.5rem);
     transform: translate(-50%, -52%);
     pointer-events: auto;
-    --stage-map-push: 0.85rem;
+    --stage-map-push: 0.55rem;
   }
 
   #app[data-stage-map="open"]
     .stage-map:has(.stage-map__cell.is-here.is-selected) {
-    --stage-map-push: 1.1rem;
+    --stage-map-push: 0.72rem;
   }
 
   #app[data-stage-map="open"] .stage-map__scale {
@@ -1698,62 +1698,62 @@ body {
 
   #app[data-stage-map="open"] .stage-map__blobs,
   #app[data-stage-map="open"] .stage-map__grid {
-    padding: 0.45rem;
+    padding: 0.2rem;
   }
 
   #app[data-stage-map="open"] .stage-map__blob,
   #app[data-stage-map="open"] .stage-map__void {
-    width: 58%;
-    height: 58%;
-    max-width: 5.5rem;
-    max-height: 5.5rem;
+    width: 68%;
+    height: 68%;
+    max-width: 4.4rem;
+    max-height: 4.4rem;
   }
 
   #app[data-stage-map="open"] .stage-map__blob.is-here {
-    width: 78%;
-    height: 78%;
-    max-width: 7.2rem;
-    max-height: 7.2rem;
+    width: 88%;
+    height: 88%;
+    max-width: 5.6rem;
+    max-height: 5.6rem;
   }
 
   /* Current page shrinks when another destination is selected; keep accent. */
   #app[data-stage-map="open"]
     .stage-map:has(.stage-map__cell.is-selected)
     .stage-map__blob.is-here:not(.is-selected) {
-    width: 58%;
-    height: 58%;
-    max-width: 5.5rem;
-    max-height: 5.5rem;
+    width: 68%;
+    height: 68%;
+    max-width: 4.4rem;
+    max-height: 4.4rem;
     background: var(--cursor-blob);
   }
 
   #app[data-stage-map="open"] .stage-map__blob.is-traveling {
-    width: 86%;
-    height: 86%;
-    max-width: 7.8rem;
-    max-height: 7.8rem;
+    width: 94%;
+    height: 94%;
+    max-width: 6rem;
+    max-height: 6rem;
   }
 
   /* Selected destination: enlarged idle fill + accent arrow (no half-accent). */
   #app[data-stage-map="open"] .stage-map__blob.is-selected {
-    width: 78%;
-    height: 78%;
-    max-width: 7.2rem;
-    max-height: 7.2rem;
+    width: 88%;
+    height: 88%;
+    max-width: 5.6rem;
+    max-height: 5.6rem;
     background: var(--stage-map-idle);
   }
 
   #app[data-stage-map="open"] .stage-map__select-arrow {
-    width: 38%;
-    height: 38%;
-    max-width: 1.65rem;
-    max-height: 1.65rem;
+    width: 36%;
+    height: 36%;
+    max-width: 1.35rem;
+    max-height: 1.35rem;
   }
 
   #app[data-stage-map="open"] .stage-map__label {
-    top: calc(100% + 0.45rem);
-    font-size: 0.82rem;
-    padding: 0.22rem 0.5rem;
+    top: calc(100% + 0.35rem);
+    font-size: 0.74rem;
+    padding: 0.18rem 0.42rem;
   }
 }
 
