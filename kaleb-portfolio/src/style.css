@@ -1713,11 +1713,12 @@ body {
     right: auto;
     left: 50%;
     z-index: 20;
-    width: min(62vw, 17.5rem);
-    height: min(62vw, 17.5rem);
+    width: min(48vw, 13.5rem);
+    height: min(48vw, 13.5rem);
     transform: translate(-50%, -52%);
     pointer-events: auto;
-    --stage-map-scale: calc(min(62vw, 17.5rem) / 5.1rem);
+    --stage-map-scale: calc(min(48vw, 13.5rem) / 5.1rem);
+    --stage-map-blob-scale: 0.9;
     --stage-map-push: calc(0.17rem * var(--stage-map-scale));
   }
 
@@ -1735,6 +1736,11 @@ body {
     transform-origin: center;
   }
 
+  /* Match desktop nav-blob look: discrete organic shapes, no goo merge. */
+  #app[data-stage-map="open"] .stage-map__goo {
+    filter: none;
+  }
+
   #app[data-stage-map="open"] .stage-map__blobs,
   #app[data-stage-map="open"] .stage-map__grid {
     padding: calc(0.14rem * var(--stage-map-scale));
@@ -1742,53 +1748,120 @@ body {
 
   #app[data-stage-map="open"] .stage-map__blob,
   #app[data-stage-map="open"] .stage-map__void {
-    width: calc(1.06rem * var(--stage-map-scale));
-    height: calc(1.06rem * var(--stage-map-scale));
+    width: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
     max-width: none;
     max-height: none;
   }
 
+  #app[data-stage-map="open"] .stage-map__blob {
+    background: var(--nav-blob);
+    opacity: 0.92;
+    --nav-blob-r0: 58% 42% 50% 46% / 44% 52% 42% 58%;
+    --nav-blob-r1: 44% 56% 40% 60% / 54% 40% 60% 44%;
+    --nav-blob-r2: 52% 44% 60% 40% / 40% 58% 44% 56%;
+    border-radius: var(--nav-blob-r0);
+    animation: nav-blob-morph 7s ease-in-out infinite;
+    transition:
+      background 0.2s ease,
+      opacity 0.2s ease,
+      width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      height 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      border-radius 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="play"] {
+    --nav-blob-r0: 62% 38% 54% 46% / 48% 58% 40% 52%;
+    --nav-blob-r1: 46% 56% 40% 62% / 58% 42% 56% 40%;
+    --nav-blob-r2: 54% 48% 58% 42% / 40% 60% 44% 54%;
+    animation-delay: -0.6s;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="home"] {
+    --nav-blob-r0: 50% 50% 36% 64% / 58% 44% 52% 46%;
+    --nav-blob-r1: 42% 60% 48% 50% / 40% 62% 38% 56%;
+    --nav-blob-r2: 60% 38% 46% 54% / 50% 42% 58% 48%;
+    animation-delay: -1.4s;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="work"] {
+    --nav-blob-r0: 38% 64% 44% 58% / 54% 40% 56% 46%;
+    --nav-blob-r1: 56% 46% 60% 40% / 42% 58% 38% 60%;
+    --nav-blob-r2: 44% 58% 48% 52% / 60% 38% 52% 44%;
+    animation-delay: -2.2s;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="about"] {
+    --nav-blob-r0: 46% 54% 62% 36% / 40% 58% 44% 56%;
+    --nav-blob-r1: 60% 40% 48% 54% / 56% 38% 62% 42%;
+    --nav-blob-r2: 38% 62% 54% 46% / 48% 52% 46% 54%;
+    animation-delay: -3s;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="experience"] {
+    --nav-blob-r0: 54% 48% 40% 60% / 46% 54% 42% 58%;
+    --nav-blob-r1: 40% 62% 52% 46% / 58% 40% 56% 44%;
+    --nav-blob-r2: 58% 42% 48% 52% / 42% 58% 48% 52%;
+    animation-delay: -3.8s;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="contact"] {
+    --nav-blob-r0: 48% 52% 58% 42% / 52% 46% 54% 48%;
+    --nav-blob-r1: 62% 38% 44% 56% / 40% 60% 46% 54%;
+    --nav-blob-r2: 42% 58% 50% 50% / 56% 44% 50% 50%;
+    animation-delay: -4.6s;
+  }
+
   #app[data-stage-map="open"] .stage-map__blob.is-here {
-    width: calc(1.7rem * var(--stage-map-scale));
-    height: calc(1.7rem * var(--stage-map-scale));
+    width: calc(1.7rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(1.7rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
     max-width: none;
     max-height: none;
+    background: var(--cursor-blob);
+    opacity: 1;
   }
 
   /* Current page shrinks when another destination is selected; keep accent. */
   #app[data-stage-map="open"]
     .stage-map:has(.stage-map__cell.is-selected)
     .stage-map__blob.is-here:not(.is-selected) {
-    width: calc(1.06rem * var(--stage-map-scale));
-    height: calc(1.06rem * var(--stage-map-scale));
+    width: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
     background: var(--cursor-blob);
+    opacity: 1;
   }
 
   #app[data-stage-map="open"] .stage-map__blob.is-traveling {
-    width: calc(1.86rem * var(--stage-map-scale));
-    height: calc(1.86rem * var(--stage-map-scale));
+    width: calc(1.86rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(1.86rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
     max-width: none;
     max-height: none;
   }
 
-  /* Selected destination: enlarged idle fill + accent arrow (no half-accent). */
+  /* Selected destination: nav-blob fill + accent arrow (like desktop nav blobs). */
   #app[data-stage-map="open"] .stage-map__blob.is-selected {
-    width: calc(1.7rem * var(--stage-map-scale));
-    height: calc(1.7rem * var(--stage-map-scale));
+    width: calc(1.7rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(1.7rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
     max-width: none;
     max-height: none;
-    background: var(--stage-map-idle);
+    background: var(--nav-blob);
+    opacity: 0.92;
   }
 
   #app[data-stage-map="open"] .stage-map__select-arrow {
-    width: calc(0.55rem * var(--stage-map-scale));
-    height: calc(0.55rem * var(--stage-map-scale));
+    width: calc(0.72rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(0.72rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
     max-width: none;
     max-height: none;
   }
 
+  #app[data-stage-map="open"] .stage-map__cell.is-selected .stage-map__select-arrow {
+    opacity: 0.75;
+  }
+
   #app[data-stage-map="open"] .stage-map__select-arrow path {
-    stroke-width: 3.25;
+    stroke-width: 2.5;
   }
 
   #app[data-stage-map="open"] .stage-map__label {
@@ -3452,7 +3525,8 @@ body {
   .project-preview-shape,
   .project-preview-img,
   .blob-cursor-shape,
-  .menu-toggle__blob {
+  .menu-toggle__blob,
+  #app[data-stage-map="open"] .stage-map__blob {
     animation: none;
     border-radius: 52% 44% 56% 48% / 46% 54% 42% 56%;
   }

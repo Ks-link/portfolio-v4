@@ -57,10 +57,10 @@ const lavaLampOffIcon = `
 
 const menuToggleIcon = `
   <svg class="theme-icon menu-toggle__icon" viewBox="0 0 24 24" aria-hidden="true"
-    fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
-    <line class="menu-toggle__line menu-toggle__line--1" x1="4" y1="6" x2="20" y2="6"/>
-    <line class="menu-toggle__line menu-toggle__line--2" x1="4" y1="12" x2="20" y2="12"/>
-    <line class="menu-toggle__line menu-toggle__line--3" x1="4" y1="18" x2="20" y2="18"/>
+    fill="currentColor">
+    <rect class="menu-toggle__line menu-toggle__line--1" x="4" y="5" width="16" height="2.25" rx="1.125" ry="1.125"/>
+    <rect class="menu-toggle__line menu-toggle__line--2" x="4" y="10.875" width="16" height="2.25" rx="1.125" ry="1.125"/>
+    <rect class="menu-toggle__line menu-toggle__line--3" x="4" y="16.75" width="16" height="2.25" rx="1.125" ry="1.125"/>
   </svg>
 `
 
