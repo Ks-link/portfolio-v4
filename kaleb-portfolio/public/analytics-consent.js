@@ -169,12 +169,12 @@ html[data-theme="dark"] .cookie-consent {
 }
 
 .cookie-consent__btn:focus-visible {
-  outline: 2px solid #ee8533;
+  outline: 2px solid #ee7330;
   outline-offset: 3px;
 }
 
 .cookie-consent__btn--accept {
-  color: #ee8533;
+  color: #ee7330;
 }
 `
 

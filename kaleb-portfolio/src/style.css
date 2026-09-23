@@ -2,11 +2,11 @@
 [data-theme="light"] {
   --bg: #fffff4;
   --text: #322f2f;
-  --accent: #ee8533;
+  --accent: #ee7330;
   --blob: #f0ece2;
   --blob-depth: #c5c0b6;
   --nav-blob: #e4ddd0;
-  --cursor-blob: #ee8533;
+  --cursor-blob: #ee7330;
   --blobs-opacity: 0.5;
   --cursor-blend: multiply;
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='grain' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.22' intercept='0.39'/%3E%3CfeFuncG type='linear' slope='0.22' intercept='0.39'/%3E%3CfeFuncB type='linear' slope='0.22' intercept='0.39'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
@@ -19,11 +19,11 @@
 [data-theme="dark"] {
   --bg: #141211;
   --text: #fffff4;
-  --accent: #ee8533;
+  --accent: #ee7330;
   --blob: #242120;
   --blob-depth: #161412;
   --nav-blob: #2a2522;
-  --cursor-blob: #ee8533;
+  --cursor-blob: #ee7330;
   --blobs-opacity: 0.55;
   --cursor-blend: screen;
   --grain-opacity: 0.32;
@@ -1392,6 +1392,10 @@ body {
     gap 0.35s ease,
     padding 0.35s ease,
     bottom 0.25s ease;
+}
+
+#app[data-screen="play"] .brand-mark {
+  display: none;
 }
 
 #app[data-cookie-banner="open"]:not([data-screen="play"]) .brand-mark {

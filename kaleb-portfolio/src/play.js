@@ -71,7 +71,7 @@ const AI_COLORS = [
   '#4a8f8a',
   '#8b5ea8',
 ]
-const FOOD_PALETTE = ['#ee8533', ...AI_COLORS]
+const FOOD_PALETTE = ['#ee7330', ...AI_COLORS]
 const CELL_PUB_MS = 80
 const FOOD_PUB_MS = 500
 const INPUT_PUB_MS = 50
@@ -163,7 +163,7 @@ const readTheme = () => {
   return {
     bg: s.getPropertyValue('--bg').trim() || '#fffff4',
     text: s.getPropertyValue('--text').trim() || '#322f2f',
-    accent: s.getPropertyValue('--accent').trim() || '#ee8533',
+    accent: s.getPropertyValue('--accent').trim() || '#ee7330',
   }
 }
 
@@ -354,7 +354,7 @@ export const mountPlay = (root) => {
   let slotDiffEnabled = false
   let emptyLobby = false
 
-  const theme = { bg: '#fffff4', text: '#322f2f', accent: '#ee8533' }
+  const theme = { bg: '#fffff4', text: '#322f2f', accent: '#ee7330' }
 
   const syncTheme = () => Object.assign(theme, readTheme())
 
