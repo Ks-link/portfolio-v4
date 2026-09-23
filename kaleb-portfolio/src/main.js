@@ -219,17 +219,6 @@ app.innerHTML = `
       ${moonIcon}
     </button>
   </div>
-  <aside class="brand-mark" tabindex="0" aria-label="Link Web Development">
-    <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
-    <div class="brand-mark__label">
-      <span class="brand-mark__name">Link Web Development</span>
-      <span class="brand-mark__meta">
-        <span class="brand-mark__copy">© 2026</span>
-        <a class="brand-mark__link" href="/terms.html">Terms</a>
-        <a class="brand-mark__link" href="/privacy.html">Privacy</a>
-      </span>
-    </div>
-  </aside>
   <nav class="stage-map" aria-label="Site map">
     <div class="stage-map__scale">
       <div class="stage-map__goo" aria-hidden="true">
@@ -464,6 +453,17 @@ app.innerHTML = `
             </div>
             <button type="submit" class="contact-form__submit">Send message</button>
             <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
+            <aside class="brand-mark" aria-label="Link Web Development">
+              <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
+              <div class="brand-mark__label">
+                <span class="brand-mark__name">Link Web Development</span>
+                <span class="brand-mark__meta">
+                  <span class="brand-mark__copy">© 2026</span>
+                  <a class="brand-mark__link" href="/terms.html">Terms</a>
+                  <a class="brand-mark__link" href="/privacy.html">Privacy</a>
+                </span>
+              </div>
+            </aside>
           </form>
           <svg class="contact-form-chevron" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M10 5l7 7-7 7"/>
