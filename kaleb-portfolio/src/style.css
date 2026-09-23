@@ -914,12 +914,36 @@ body {
   align-items: center;
 }
 
-.corner-cluster--right {
-  left: auto;
-  right: max(1.25rem, env(safe-area-inset-right));
+.corner-btn.menu-toggle {
+  display: none;
+}
+
+.corner-btn.map-toggle {
+  display: none;
+}
+
+.corner-menu {
+  display: contents;
+}
+
+.corner-menu__shape {
+  display: contents;
+}
+
+.corner-menu__item {
+  display: contents;
+}
+
+.corner-menu__item--map {
+  display: none;
 }
 
 @media (max-width: 48rem) {
+  .corner-cluster {
+    left: auto;
+    right: max(1.25rem, env(safe-area-inset-right));
+  }
+
   .home-toggle,
   .kill-toggle {
     position: fixed;
@@ -929,6 +953,188 @@ body {
 
   .kill-toggle {
     left: calc(max(1.25rem, env(safe-area-inset-left)) + 2.5rem);
+  }
+
+  .corner-btn.menu-toggle {
+    display: inline-flex;
+    position: relative;
+    z-index: 12;
+  }
+
+  .menu-toggle__blob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 0;
+    width: 2.35rem;
+    height: 2.35rem;
+    margin: 0;
+    pointer-events: none;
+    background: var(--cursor-blob);
+    border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+    mix-blend-mode: var(--cursor-blend);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+    transform-origin: center;
+    animation: blob-morph 6.5s ease-in-out infinite;
+    transition:
+      opacity 0.3s ease,
+      transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  #app[data-corner-menu="open"] .menu-toggle__blob {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .menu-toggle .theme-icon {
+    position: relative;
+    z-index: 1;
+    overflow: visible;
+  }
+
+  .menu-toggle__line {
+    transform-box: fill-box;
+    transition:
+      transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1),
+      opacity 0.2s ease;
+  }
+
+  .menu-toggle__line--1 {
+    transform-origin: top right;
+  }
+
+  .menu-toggle__line--3 {
+    transform-origin: bottom right;
+  }
+
+  /* Animate UI Menu morph: hamburger → X when open */
+  #app[data-corner-menu="open"] .menu-toggle__line--1,
+  .menu-toggle[aria-expanded="true"] .menu-toggle__line--1 {
+    transform: translate(-2.35px, 0.35px) rotate(-45deg);
+  }
+
+  #app[data-corner-menu="open"] .menu-toggle__line--2,
+  .menu-toggle[aria-expanded="true"] .menu-toggle__line--2 {
+    opacity: 0;
+  }
+
+  #app[data-corner-menu="open"] .menu-toggle__line--3,
+  .menu-toggle[aria-expanded="true"] .menu-toggle__line--3 {
+    transform: translate(-2.35px, -0.35px) rotate(45deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .menu-toggle__line {
+      transition: none;
+    }
+  }
+
+  .corner-menu {
+    display: block;
+    position: absolute;
+    z-index: 11;
+    top: 100%;
+    right: 0;
+    width: 2.5rem;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform-origin: top center;
+    transform: scale(0.6);
+    transition:
+      opacity 0.3s ease,
+      visibility 0.3s ease,
+      transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .corner-menu.is-open,
+  #app[data-corner-menu="open"] .corner-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+
+  .corner-menu__shape {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .corner-menu__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .corner-menu__item + .corner-menu__item {
+    margin-top: -0.35rem;
+  }
+
+  .corner-menu__item--map {
+    display: flex;
+  }
+
+  .corner-btn.map-toggle {
+    display: inline-flex;
+  }
+
+  #app[data-screen="play"] .corner-menu__item--blobs {
+    display: none;
+  }
+
+  /* Play: theme sits in the corner; no hamburger / map menu.
+     visibility inherits through display:contents, so force it visible
+     for the flattened theme button — but leave opacity/transform alone
+     so leaving play does not animate the overlay closed. */
+  #app[data-screen="play"] .corner-btn.menu-toggle {
+    display: none;
+  }
+
+  #app[data-screen="play"] .corner-menu,
+  #app[data-screen="play"] .corner-menu__shape,
+  #app[data-screen="play"] .corner-menu__item {
+    display: contents;
+  }
+
+  #app[data-screen="play"] .corner-menu {
+    visibility: visible;
+    /* Closed menu uses pointer-events:none; restore hits for flattened theme. */
+    pointer-events: auto;
+  }
+
+  #app[data-screen="play"] .corner-menu__item--map {
+    display: none;
+  }
+
+  #app[data-screen="play"] .corner-btn.theme-toggle {
+    display: inline-flex;
+    visibility: visible;
+    pointer-events: auto;
+  }
+}
+
+@media (min-width: 48rem) {
+  .blobs-toggle,
+  .theme-toggle {
+    position: fixed;
+    top: max(1.25rem, env(safe-area-inset-top));
+    left: auto;
+    bottom: auto;
+    transition:
+      color 0.25s ease,
+      opacity 0.2s ease;
+  }
+
+  /* Theme sits at the right edge; lava lamp to its left. */
+  .theme-toggle {
+    right: max(1.25rem, env(safe-area-inset-right));
+  }
+
+  .blobs-toggle {
+    right: calc(max(1.25rem, env(safe-area-inset-right)) + 2.5rem);
   }
 }
 
@@ -979,7 +1185,7 @@ body {
   position: fixed;
   z-index: 10;
   top: max(1.25rem, env(safe-area-inset-top));
-  left: max(1.25rem, env(safe-area-inset-left));
+  right: max(1.25rem, env(safe-area-inset-right));
   width: 2.4rem;
   height: 2.4rem;
   overflow: visible;
@@ -992,6 +1198,10 @@ body {
     height 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.stage-map__title {
+  display: none;
+}
+
 #app[data-screen="play"]:has(.play-root.is-playing) .stage-map {
   opacity: 0.55;
 }
@@ -999,22 +1209,26 @@ body {
 .stage-map__scale {
   position: absolute;
   top: 0;
-  left: 0;
+  right: 0;
   width: 5.1rem;
   height: 5.1rem;
   transform: scale(0.47);
-  transform-origin: top left;
+  transform-origin: top right;
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .stage-map:hover,
-.stage-map:has(.stage-map__cell:focus-visible) {
+.stage-map:has(.stage-map__cell:focus-visible),
+.stage-map:has(.stage-map__cell.is-selected),
+.stage-map.is-mobile-open {
   width: 5.1rem;
   height: 5.1rem;
 }
 
 .stage-map:hover .stage-map__scale,
-.stage-map:has(.stage-map__cell:focus-visible) .stage-map__scale {
+.stage-map:has(.stage-map__cell:focus-visible) .stage-map__scale,
+.stage-map:has(.stage-map__cell.is-selected) .stage-map__scale,
+.stage-map.is-mobile-open .stage-map__scale {
   transform: scale(1);
 }
 
@@ -1091,154 +1305,263 @@ body {
 }
 
 /* Collapsed: keep the selected size steady — no travel grow/shrink */
-.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible))
+.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell.is-selected)
+  ):not(.is-mobile-open)
   .stage-map__blob.is-traveling {
   width: 1.7rem;
   height: 1.7rem;
 }
 
-.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible))
+.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell.is-selected)
+  ):not(.is-mobile-open)
   .stage-map__blob {
   transition:
     background 0.2s ease,
     transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell.is-here:is(:hover, :focus-visible)
-  ) {
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell.is-here:is(:hover, :focus-visible, .is-selected)) {
   --stage-map-push: 0.24rem;
 }
 
-/* Push only while the map is expanded (hover / focus) */
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="play"]:is(:hover, :focus-visible)
-  )
+/* Push only while the map is expanded (hover / focus / mobile select) */
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="play"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="home"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="play"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="play"].is-here
+  )
   .stage-map__blob[data-to="home"] {
   transform: translateX(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="play"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="home"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="home"].is-here
+  )
   .stage-map__blob[data-to="play"] {
   transform: translateX(calc(var(--stage-map-push) * -1));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="work"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="home"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="home"].is-here
+  )
   .stage-map__blob[data-to="work"] {
   transform: translateX(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="about"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="home"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="home"].is-here
+  )
   .stage-map__blob[data-to="about"] {
   transform: translateY(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="work"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="work"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="home"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="work"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="work"].is-here
+  )
   .stage-map__blob[data-to="home"] {
   transform: translateX(calc(var(--stage-map-push) * -1));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="work"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="work"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="experience"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="work"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="work"].is-here
+  )
   .stage-map__blob[data-to="experience"] {
   transform: translateY(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="home"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="about"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="about"].is-here
+  )
   .stage-map__blob[data-to="home"] {
   transform: translateY(calc(var(--stage-map-push) * -1));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="experience"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="about"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="about"].is-here
+  )
   .stage-map__blob[data-to="experience"] {
   transform: translateX(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="contact"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="about"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="about"].is-here
+  )
   .stage-map__blob[data-to="contact"] {
   transform: translateY(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(
+    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible, .is-selected)
   )
   .stage-map__blob[data-to="work"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="experience"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="experience"].is-here
+  )
   .stage-map__blob[data-to="work"] {
   transform: translateY(calc(var(--stage-map-push) * -1));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(
+    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible, .is-selected)
   )
   .stage-map__blob[data-to="about"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="experience"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="experience"].is-here
+  )
   .stage-map__blob[data-to="about"] {
   transform: translateX(calc(var(--stage-map-push) * -1));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="contact"]:is(:hover, :focus-visible)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(
+    .stage-map__cell[data-to="contact"]:is(:hover, :focus-visible, .is-selected)
   )
   .stage-map__blob[data-to="about"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="contact"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="contact"].is-here
+  )
   .stage-map__blob[data-to="about"] {
   transform: translateY(calc(var(--stage-map-push) * -1));
 }
@@ -1256,6 +1579,25 @@ body {
   background: transparent;
   color: var(--text);
   cursor: pointer;
+}
+
+.stage-map__select-arrow {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin: 0;
+  color: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.2s ease;
+}
+
+.stage-map__cell.is-selected .stage-map__select-arrow {
+  opacity: 1;
 }
 
 .stage-map__label {
@@ -1283,7 +1625,8 @@ body {
 .stage-map:hover .stage-map__cell:hover .stage-map__label,
 .stage-map:has(.stage-map__cell:focus-visible)
   .stage-map__cell:focus-visible
-  .stage-map__label {
+  .stage-map__label,
+.stage-map .stage-map__cell.is-selected .stage-map__label {
   opacity: 0.9;
 }
 
@@ -1296,6 +1639,8 @@ body {
 .stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:hover)
   .stage-map__blob.is-here,
 .stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:focus-visible)
+  .stage-map__blob.is-here,
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here.is-selected)
   .stage-map__blob.is-here {
   width: 1.86rem;
   height: 1.86rem;
@@ -1340,6 +1685,30 @@ body {
 .stage-map__goo:has(
     + .stage-map__grid .stage-map__cell[data-to="contact"]:focus-visible
   )
+  .stage-map__blob[data-to="contact"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="play"].is-selected
+  )
+  .stage-map__blob[data-to="play"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="home"].is-selected
+  )
+  .stage-map__blob[data-to="home"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="work"].is-selected
+  )
+  .stage-map__blob[data-to="work"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="about"].is-selected
+  )
+  .stage-map__blob[data-to="about"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="experience"].is-selected
+  )
+  .stage-map__blob[data-to="experience"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="contact"].is-selected
+  )
   .stage-map__blob[data-to="contact"]:not(.is-here) {
   width: 1.7rem;
   height: 1.7rem;
@@ -1348,7 +1717,265 @@ body {
 
 @media (min-width: 48rem) {
   .stage-map {
+    --stage-map-grow: 1.3;
     display: block;
+    top: auto;
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    width: calc(2.4rem * var(--stage-map-grow));
+    height: calc(2.4rem * var(--stage-map-grow));
+    transition:
+      opacity 0.3s ease,
+      width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      height 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      bottom 0.25s ease;
+  }
+
+  .stage-map:hover,
+  .stage-map:has(.stage-map__cell:focus-visible),
+  .stage-map:has(.stage-map__cell.is-selected) {
+    width: calc(5.1rem * var(--stage-map-grow));
+    height: calc(5.1rem * var(--stage-map-grow));
+  }
+
+  .stage-map__scale {
+    top: auto;
+    bottom: 0;
+    transform: scale(calc(0.47 * var(--stage-map-grow)));
+    transform-origin: bottom right;
+  }
+
+  .stage-map:hover .stage-map__scale,
+  .stage-map:has(.stage-map__cell:focus-visible) .stage-map__scale,
+  .stage-map:has(.stage-map__cell.is-selected) .stage-map__scale {
+    transform: scale(var(--stage-map-grow));
+  }
+
+  /* Keep labels at the pre-grow size while the map scales up. */
+  .stage-map__label {
+    transform: translateX(-50%) scale(calc(1 / var(--stage-map-grow)));
+    transform-origin: center top;
+  }
+
+  #app[data-cookie-banner="open"]:not([data-screen="play"]) .stage-map {
+    bottom: calc(
+      var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
+        0.35rem
+    );
+  }
+}
+
+@media (max-width: 48rem) {
+  #app[data-stage-map="open"] {
+    touch-action: none;
+  }
+
+  #app[data-stage-map="open"] .corner-cluster {
+    z-index: 22;
+  }
+
+  #app[data-stage-map="open"] .stage,
+  #app[data-stage-map="open"] .blobs,
+  #app[data-stage-map="open"] .grain {
+    opacity: 0.06;
+    pointer-events: none;
+  }
+
+  #app[data-stage-map="open"] .swipe-hints,
+  #app[data-stage-map="open"] .brand-mark--corner {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Desktop expanded map is 5.1rem — keep the same spacing ratios, scaled up. */
+  #app[data-stage-map="open"] .stage-map {
+    display: block;
+    top: 50%;
+    right: auto;
+    left: 50%;
+    z-index: 20;
+    width: min(48vw, 13.5rem);
+    height: min(48vw, 13.5rem);
+    transform: translate(-50%, -52%);
+    pointer-events: auto;
+    --stage-map-scale: calc(min(48vw, 13.5rem) / 5.1rem);
+    --stage-map-blob-scale: 0.9;
+    --stage-map-push: calc(0.17rem * var(--stage-map-scale));
+  }
+
+  #app[data-stage-map="open"]
+    .stage-map:has(.stage-map__cell.is-here.is-selected) {
+    --stage-map-push: calc(0.24rem * var(--stage-map-scale));
+  }
+
+  #app[data-stage-map="open"] .stage-map__scale {
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    transform: none;
+    transform-origin: center;
+  }
+
+  #app[data-stage-map="open"] .stage-map__title {
+    display: block;
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 3.1rem);
+    z-index: 1;
+    margin: 0;
+    transform: translateX(-50%);
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 1.5rem;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    line-height: 1.1;
+    white-space: nowrap;
+    color: var(--text);
+    pointer-events: none;
+  }
+
+  #app[data-stage-map="open"] .stage-map__title::after {
+    content: "";
+    display: block;
+    width: 2.25rem;
+    height: 2px;
+    margin: 0.4rem auto 0;
+    background: var(--accent);
+  }
+
+  /* Match desktop nav-blob look: discrete organic shapes, no goo merge. */
+  #app[data-stage-map="open"] .stage-map__goo {
+    filter: none;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blobs,
+  #app[data-stage-map="open"] .stage-map__grid {
+    padding: calc(0.14rem * var(--stage-map-scale));
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob,
+  #app[data-stage-map="open"] .stage-map__void {
+    width: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    max-width: none;
+    max-height: none;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob {
+    background: var(--nav-blob);
+    opacity: 0.92;
+    --nav-blob-r0: 58% 42% 50% 46% / 44% 52% 42% 58%;
+    --nav-blob-r1: 44% 56% 40% 60% / 54% 40% 60% 44%;
+    --nav-blob-r2: 52% 44% 60% 40% / 40% 58% 44% 56%;
+    border-radius: var(--nav-blob-r0);
+    animation: nav-blob-morph 7s ease-in-out infinite;
+    transition:
+      background 0.2s ease,
+      opacity 0.2s ease,
+      width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      height 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      border-radius 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="play"] {
+    --nav-blob-r0: 62% 38% 54% 46% / 48% 58% 40% 52%;
+    --nav-blob-r1: 46% 56% 40% 62% / 58% 42% 56% 40%;
+    --nav-blob-r2: 54% 48% 58% 42% / 40% 60% 44% 54%;
+    animation-delay: -0.6s;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="home"] {
+    --nav-blob-r0: 50% 50% 36% 64% / 58% 44% 52% 46%;
+    --nav-blob-r1: 42% 60% 48% 50% / 40% 62% 38% 56%;
+    --nav-blob-r2: 60% 38% 46% 54% / 50% 42% 58% 48%;
+    animation-delay: -1.4s;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="work"] {
+    --nav-blob-r0: 38% 64% 44% 58% / 54% 40% 56% 46%;
+    --nav-blob-r1: 56% 46% 60% 40% / 42% 58% 38% 60%;
+    --nav-blob-r2: 44% 58% 48% 52% / 60% 38% 52% 44%;
+    animation-delay: -2.2s;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="about"] {
+    --nav-blob-r0: 46% 54% 62% 36% / 40% 58% 44% 56%;
+    --nav-blob-r1: 60% 40% 48% 54% / 56% 38% 62% 42%;
+    --nav-blob-r2: 38% 62% 54% 46% / 48% 52% 46% 54%;
+    animation-delay: -3s;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="experience"] {
+    --nav-blob-r0: 54% 48% 40% 60% / 46% 54% 42% 58%;
+    --nav-blob-r1: 40% 62% 52% 46% / 58% 40% 56% 44%;
+    --nav-blob-r2: 58% 42% 48% 52% / 42% 58% 48% 52%;
+    animation-delay: -3.8s;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob[data-to="contact"] {
+    --nav-blob-r0: 48% 52% 58% 42% / 52% 46% 54% 48%;
+    --nav-blob-r1: 62% 38% 44% 56% / 40% 60% 46% 54%;
+    --nav-blob-r2: 42% 58% 50% 50% / 56% 44% 50% 50%;
+    animation-delay: -4.6s;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob.is-here {
+    width: calc(1.7rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(1.7rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    max-width: none;
+    max-height: none;
+    background: var(--cursor-blob);
+    opacity: 1;
+  }
+
+  /* Current page shrinks when another destination is selected; keep accent. */
+  #app[data-stage-map="open"]
+    .stage-map:has(.stage-map__cell.is-selected)
+    .stage-map__blob.is-here:not(.is-selected) {
+    width: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    background: var(--cursor-blob);
+    opacity: 1;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob.is-traveling {
+    width: calc(1.86rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(1.86rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    max-width: none;
+    max-height: none;
+  }
+
+  /* Selected destination: nav-blob fill + accent arrow (like desktop nav blobs). */
+  #app[data-stage-map="open"] .stage-map__blob.is-selected {
+    width: calc(1.7rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(1.7rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    max-width: none;
+    max-height: none;
+    background: var(--nav-blob);
+    opacity: 0.92;
+  }
+
+  #app[data-stage-map="open"] .stage-map__select-arrow {
+    width: calc(0.72rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(0.72rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    max-width: none;
+    max-height: none;
+  }
+
+  #app[data-stage-map="open"] .stage-map__cell.is-selected .stage-map__select-arrow {
+    opacity: 0.75;
+  }
+
+  #app[data-stage-map="open"] .stage-map__select-arrow path {
+    stroke-width: 2.5;
+  }
+
+  #app[data-stage-map="open"] .stage-map__label {
+    top: calc(100% + 0.24rem * var(--stage-map-scale));
+    font-size: 0.82rem;
+    padding: 0.18rem 0.42rem;
   }
 }
 
@@ -3005,7 +3632,9 @@ body {
 
   .project-preview-shape,
   .project-preview-img,
-  .blob-cursor-shape {
+  .blob-cursor-shape,
+  .menu-toggle__blob,
+  #app[data-stage-map="open"] .stage-map__blob {
     animation: none;
     border-radius: 52% 44% 56% 48% / 46% 54% 42% 56%;
   }
@@ -3099,8 +3728,6 @@ body {
     --swipe-track: 0.12em;
   }
 
-  #app[data-screen="play"]:not(:has(.play-root.is-playing))
-    .swipe-hints__set--play,
   #app[data-screen="home"] .swipe-hints__set--home,
   #app[data-screen="work"]:not([data-project]) .swipe-hints__set--work,
   #app[data-screen="work"][data-project] .swipe-hints__set--work-detail,

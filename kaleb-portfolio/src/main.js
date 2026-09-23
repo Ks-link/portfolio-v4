@@ -55,6 +55,29 @@ const lavaLampOffIcon = `
   </svg>
 `
 
+const menuToggleIcon = `
+  <svg class="theme-icon menu-toggle__icon" viewBox="0 0 24 24" aria-hidden="true"
+    fill="currentColor">
+    <rect class="menu-toggle__line menu-toggle__line--1" x="4" y="5" width="16" height="2.25" rx="1.125" ry="1.125"/>
+    <rect class="menu-toggle__line menu-toggle__line--2" x="4" y="10.875" width="16" height="2.25" rx="1.125" ry="1.125"/>
+    <rect class="menu-toggle__line menu-toggle__line--3" x="4" y="16.75" width="16" height="2.25" rx="1.125" ry="1.125"/>
+  </svg>
+`
+
+const mapGridIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="6" cy="6" r="1.85" fill="currentColor"/>
+    <circle cx="12" cy="6" r="1.85" fill="currentColor"/>
+    <circle cx="18" cy="6" r="1.85" fill="currentColor"/>
+    <circle cx="6" cy="12" r="1.85" fill="currentColor"/>
+    <circle cx="12" cy="12" r="1.85" fill="currentColor"/>
+    <circle cx="18" cy="12" r="1.85" fill="currentColor"/>
+    <circle cx="6" cy="18" r="1.85" fill="currentColor"/>
+    <circle cx="12" cy="18" r="1.85" fill="currentColor"/>
+    <circle cx="18" cy="18" r="1.85" fill="currentColor"/>
+  </svg>
+`
+
 const BLOB_COUNT = 12
 const VISIBLE_MIN = 5
 const VISIBLE_MAX = 8
@@ -146,6 +169,13 @@ const swipeChevron = (dir) => `
   </svg>
 `
 
+const stageMapSelectArrow = `
+  <svg class="stage-map__select-arrow" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+      d="M9 5l7 7-7 7"/>
+  </svg>
+`
+
 const swipeDir = (dir, to, label) => `
   <button type="button" class="swipe-hints__dir swipe-hints__dir--${dir}" data-to="${to}">
     ${swipeChevron(dir)}
@@ -205,19 +235,47 @@ app.innerHTML = `
     <span class="blob blob--endcap" data-endcap="bottom"></span>
     ${Array.from({ length: BLOB_COUNT }, (_, i) => `<span class="blob" data-blob="${i}"></span>`).join('')}
   </div>
-  <div class="corner-cluster corner-cluster--right">
+  <div class="corner-cluster">
     <button type="button" class="corner-btn home-toggle" aria-label="Home">
       ${homeIcon}
     </button>
     <button type="button" class="corner-btn kill-toggle" aria-label="Die">
       ${killIcon}
     </button>
-    <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
-      ${lavaLampOnIcon}
+    <button
+      type="button"
+      class="corner-btn menu-toggle"
+      aria-label="Open menu"
+      aria-expanded="false"
+      aria-controls="corner-menu"
+    >
+      <span class="menu-toggle__blob" aria-hidden="true"></span>
+      ${menuToggleIcon}
     </button>
-    <button type="button" class="corner-btn theme-toggle" aria-label="Toggle dark mode">
-      ${moonIcon}
-    </button>
+    <div id="corner-menu" class="corner-menu">
+      <div class="corner-menu__shape">
+        <div class="corner-menu__item corner-menu__item--map">
+          <button
+            type="button"
+            class="corner-btn map-toggle"
+            aria-label="Open site map"
+            aria-pressed="false"
+          >
+            ${mapGridIcon}
+          </button>
+        </div>
+        <div class="corner-menu__item">
+          <button type="button" class="corner-btn theme-toggle" aria-label="Toggle dark mode">
+            ${moonIcon}
+          </button>
+        </div>
+        <div class="corner-menu__item corner-menu__item--blobs">
+          <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
+            ${lavaLampOnIcon}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
   <aside class="brand-mark brand-mark--corner" tabindex="0" aria-label="Link Web Development">
     <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
@@ -231,6 +289,7 @@ app.innerHTML = `
     </div>
   </aside>
   <nav class="stage-map" aria-label="Site map">
+    <p class="stage-map__title">Mini Map</p>
     <div class="stage-map__scale">
       <div class="stage-map__goo" aria-hidden="true">
         <div class="stage-map__blobs">
@@ -247,23 +306,29 @@ app.innerHTML = `
       </div>
       <div class="stage-map__grid">
         <button type="button" class="stage-map__cell" data-to="play" aria-label="Play">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">play</span>
         </button>
         <button type="button" class="stage-map__cell" data-to="home" aria-label="Home">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">home</span>
         </button>
         <button type="button" class="stage-map__cell" data-to="work" aria-label="View work">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">work</span>
         </button>
         <span class="stage-map__slot" aria-hidden="true"></span>
         <button type="button" class="stage-map__cell" data-to="about" aria-label="About">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">about</span>
         </button>
         <button type="button" class="stage-map__cell" data-to="experience" aria-label="Experience">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">experience</span>
         </button>
         <span class="stage-map__slot" aria-hidden="true"></span>
         <button type="button" class="stage-map__cell" data-to="contact" aria-label="Get In Touch">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">contact</span>
         </button>
         <span class="stage-map__slot" aria-hidden="true"></span>
@@ -605,6 +670,55 @@ blobsToggle.addEventListener('click', () => {
   applyBlobs(app.dataset.blobs === 'off' ? 'on' : 'off')
 })
 
+const menuToggle = document.querySelector('.menu-toggle')
+const cornerMenu = document.querySelector('.corner-menu')
+const mobileMenuMq = window.matchMedia('(max-width: 48rem)')
+
+const setCornerMenuOpen = (open) => {
+  const onPlayMobile = mobileMenuMq.matches && app.dataset.screen === 'play'
+  const next = Boolean(open) && mobileMenuMq.matches && !onPlayMobile
+  if (next) app.dataset.cornerMenu = 'open'
+  else delete app.dataset.cornerMenu
+  cornerMenu?.classList.toggle('is-open', next)
+  if (cornerMenu) {
+    // Desktop flattens the menu into the chrome; play shows theme inline.
+    // Only hide the overlay from a11y when the mobile menu is closed elsewhere.
+    const a11yHidden = mobileMenuMq.matches && !next && !onPlayMobile
+    cornerMenu.setAttribute('aria-hidden', a11yHidden ? 'true' : 'false')
+  }
+  if (menuToggle) {
+    menuToggle.setAttribute('aria-expanded', next ? 'true' : 'false')
+    menuToggle.setAttribute('aria-label', next ? 'Close menu' : 'Open menu')
+  }
+}
+
+const closeCornerMenu = () => setCornerMenuOpen(false)
+
+setCornerMenuOpen(false)
+
+menuToggle?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  setCornerMenuOpen(app.dataset.cornerMenu !== 'open')
+})
+
+document.addEventListener('pointerdown', (event) => {
+  if (app.dataset.cornerMenu !== 'open') return
+  const target = event.target
+  if (!(target instanceof Node)) return
+  if (cornerMenu?.contains(target) || menuToggle?.contains(target)) return
+  closeCornerMenu()
+})
+
+const onMobileMenuMqChange = () => {
+  setCornerMenuOpen(false)
+}
+
+if (typeof mobileMenuMq.addEventListener === 'function') {
+  mobileMenuMq.addEventListener('change', onMobileMenuMqChange)
+} else {
+  mobileMenuMq.addListener(onMobileMenuMqChange)
+}
+
 const screens = new Set(['play', 'home', 'work', 'about', 'experience', 'contact'])
 const hoverPreviewMq = window.matchMedia('(hover: hover)')
 
@@ -775,6 +889,71 @@ const navBlobs = [...document.querySelectorAll('.nav-blob')]
 const stageMap = document.querySelector('.stage-map')
 const stageMapCells = [...document.querySelectorAll('.stage-map__cell')]
 const stageMapBlobs = [...document.querySelectorAll('.stage-map__blob')]
+const mapToggle = document.querySelector('.map-toggle')
+const mobileStageMapMq = window.matchMedia('(max-width: 48rem)')
+
+const clearStageMapSelection = () => {
+  stageMapCells.forEach((cell) => cell.classList.remove('is-selected'))
+  stageMapBlobs.forEach((blob) => blob.classList.remove('is-selected'))
+}
+
+const selectStageMapDest = (dest) => {
+  stageMapCells.forEach((cell) => {
+    cell.classList.toggle('is-selected', cell.dataset.to === dest)
+  })
+  stageMapBlobs.forEach((blob) => {
+    blob.classList.toggle('is-selected', blob.dataset.to === dest)
+  })
+}
+
+const isStageMapOpen = () => app.dataset.stageMap === 'open'
+
+const syncStageMapA11y = () => {
+  if (!stageMap) return
+  if (!mobileStageMapMq.matches) {
+    stageMap.removeAttribute('aria-hidden')
+  } else {
+    stageMap.setAttribute('aria-hidden', isStageMapOpen() ? 'false' : 'true')
+  }
+  if (mapToggle) {
+    const open = isStageMapOpen()
+    mapToggle.setAttribute('aria-pressed', open ? 'true' : 'false')
+    mapToggle.setAttribute('aria-label', open ? 'Close site map' : 'Open site map')
+  }
+}
+
+const closeStageMap = () => {
+  if (!isStageMapOpen()) return
+  delete app.dataset.stageMap
+  stageMap?.classList.remove('is-mobile-open')
+  clearStageMapSelection()
+  syncStageMapA11y()
+}
+
+const openStageMap = () => {
+  if (!mobileStageMapMq.matches || isStageMapOpen()) return
+  if (document.querySelector('.play-root.is-playing')) return
+  closeCornerMenu()
+  app.dataset.stageMap = 'open'
+  stageMap?.classList.add('is-mobile-open')
+  clearStageMapSelection()
+  syncStageMapA11y()
+}
+
+const toggleStageMap = () => {
+  if (isStageMapOpen()) closeStageMap()
+  else openStageMap()
+}
+
+document.addEventListener('pointerdown', (event) => {
+  if (!isStageMapOpen()) return
+  const target = event.target
+  if (!(target instanceof Element)) return
+  // Keep taps on cells and corner chrome; everything else dismisses.
+  if (target.closest('.stage-map__cell, .corner-cluster')) return
+  closeStageMap()
+})
+
 const routeEffects = {
   syncScroll: () => { },
   syncCursor: () => { },
@@ -782,6 +961,31 @@ const routeEffects = {
 document.querySelector('.play-root')?.addEventListener('playchange', () => {
   routeEffects.syncCursor()
 })
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return
+  if (app.dataset.stageMap === 'open') {
+    closeStageMap()
+    return
+  }
+  if (app.dataset.cornerMenu === 'open') {
+    closeCornerMenu()
+    menuToggle?.focus({ preventScroll: true })
+  }
+})
+
+syncStageMapA11y()
+if (typeof mobileStageMapMq.addEventListener === 'function') {
+  mobileStageMapMq.addEventListener('change', () => {
+    if (!mobileStageMapMq.matches) closeStageMap()
+    syncStageMapA11y()
+  })
+} else {
+  mobileStageMapMq.addListener(() => {
+    if (!mobileStageMapMq.matches) closeStageMap()
+    syncStageMapA11y()
+  })
+}
 
 const syncNavLabels = (screen, project = '') => {
   navBlobs.forEach((btn) => {
@@ -954,12 +1158,15 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
   if (screen !== 'work') project = ''
   if (project && !projectById.has(project)) project = ''
 
+  closeStageMap()
+
   const prevScreen = app.dataset.screen || ''
   const prevProject = app.dataset.project || ''
   const shouldFocus = focus && prevProject !== project
   const opening = Boolean(project) && !prevProject
 
   app.dataset.screen = screen
+  closeCornerMenu()
   app.style.setProperty('--work-swipe', '0px')
   syncNavLabels(screen, project)
   syncStageMap(screen)
@@ -1020,9 +1227,24 @@ document.querySelectorAll('.swipe-hints__dir').forEach((btn) => {
 stageMapCells.forEach((btn) => {
   btn.addEventListener('click', () => {
     const dest = btn.dataset.to
-    if (dest) setScreen(dest, { push: true })
+    if (!dest) return
+    if (isStageMapOpen()) {
+      if (btn.classList.contains('is-selected')) {
+        setScreen(dest, { push: true })
+      } else {
+        selectStageMapDest(dest)
+      }
+      btn.blur()
+      return
+    }
+    setScreen(dest, { push: true })
     btn.blur()
   })
+})
+
+mapToggle?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  toggleStageMap()
 })
 
 window.addEventListener('popstate', () => {
@@ -1264,6 +1486,7 @@ const matchSwipeRoute = (routes, delta, atTop, atBottom) => {
 
 const beginSwipe = (id, x, y, target) => {
   if (!swipeMq.matches || swipeStart) return
+  if (isStageMapOpen()) return
   if (isInteractiveTarget(target)) return
   // Near-miss taps on the play blob should start the game, not a page swipe
   if (inPlayStartSafeZone(x, y)) return
@@ -1448,6 +1671,66 @@ window.addEventListener('pointercancel', (e) => {
   if (e.pointerType === 'touch') return
   endSwipe(e.pointerId)
 })
+
+const PINCH_MAP_THRESHOLD = 40
+let mapPinch = null
+
+const touchPairDistance = (touches) => {
+  const a = touches[0]
+  const b = touches[1]
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+}
+
+const canPinchStageMap = () => {
+  if (!swipeMq.matches) return false
+  if (document.querySelector('.play-root.is-playing')) return false
+  return true
+}
+
+const cancelActiveSwipe = () => {
+  if (!swipeStart) return
+  swipeStart = null
+  resetSwipeOffset()
+}
+
+app.addEventListener(
+  'touchstart',
+  (e) => {
+    if (!canPinchStageMap()) return
+    if (e.touches.length !== 2) return
+    if (e.target?.closest?.('input, textarea, select, label')) return
+    cancelActiveSwipe()
+    mapPinch = {
+      startDist: touchPairDistance(e.touches),
+      fired: false,
+    }
+  },
+  { passive: true, capture: true },
+)
+
+app.addEventListener(
+  'touchmove',
+  (e) => {
+    if (!mapPinch || e.touches.length !== 2) return
+    if (e.cancelable) e.preventDefault()
+    if (mapPinch.fired) return
+    const dist = touchPairDistance(e.touches)
+    const delta = dist - mapPinch.startDist
+    if (Math.abs(delta) < PINCH_MAP_THRESHOLD) return
+    mapPinch.fired = true
+    if (delta < 0) openStageMap()
+    else closeStageMap()
+  },
+  { passive: false, capture: true },
+)
+
+const endMapPinch = (e) => {
+  if (e.touches.length < 2) mapPinch = null
+}
+
+app.addEventListener('touchend', endMapPinch, { passive: true, capture: true })
+app.addEventListener('touchcancel', endMapPinch, { passive: true, capture: true })
+
 
 const hero = document.querySelector('.hero')
 const blobEls = [...document.querySelectorAll('.blob[data-blob]')]
