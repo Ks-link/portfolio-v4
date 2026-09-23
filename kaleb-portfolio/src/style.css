@@ -1400,7 +1400,8 @@ body {
 
 #app[data-cookie-banner="open"]:not([data-screen="play"]) .brand-mark {
   bottom: calc(
-    var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) + 0.35rem
+    var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
+      0.35rem
   );
 }
 
@@ -3026,13 +3027,7 @@ body {
   }
 
   .brand-mark {
-    bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 2.85rem);
-  }
-
-  #app[data-cookie-banner="open"]:not([data-screen="play"]) .brand-mark {
-    bottom: calc(
-      var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) + 2.85rem
-    );
+    display: none;
   }
 
   .swipe-hints__set {
