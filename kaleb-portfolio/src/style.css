@@ -1085,7 +1085,10 @@ body {
     display: none;
   }
 
-  /* Play: theme sits in the corner; no hamburger / map menu. */
+  /* Play: theme sits in the corner; no hamburger / map menu.
+     visibility inherits through display:contents, so force it visible
+     for the flattened theme button — but leave opacity/transform alone
+     so leaving play does not animate the overlay closed. */
   #app[data-screen="play"] .corner-btn.menu-toggle {
     display: none;
   }
@@ -1094,9 +1097,11 @@ body {
   #app[data-screen="play"] .corner-menu__shape,
   #app[data-screen="play"] .corner-menu__item {
     display: contents;
-    opacity: 1;
+  }
+
+  #app[data-screen="play"] .corner-menu {
     visibility: visible;
-    transform: none;
+    /* Closed menu uses pointer-events:none; restore hits for flattened theme. */
     pointer-events: auto;
   }
 
@@ -1106,6 +1111,8 @@ body {
 
   #app[data-screen="play"] .corner-btn.theme-toggle {
     display: inline-flex;
+    visibility: visible;
+    pointer-events: auto;
   }
 }
 
