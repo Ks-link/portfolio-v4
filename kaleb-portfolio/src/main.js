@@ -219,6 +219,17 @@ app.innerHTML = `
       ${moonIcon}
     </button>
   </div>
+  <aside class="brand-mark brand-mark--corner" tabindex="0" aria-label="Link Web Development">
+    <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
+    <div class="brand-mark__label">
+      <span class="brand-mark__name">Link Web Development</span>
+      <span class="brand-mark__meta">
+        <span class="brand-mark__copy">© 2026</span>
+        <a class="brand-mark__link" href="/terms.html">Terms</a>
+        <a class="brand-mark__link" href="/privacy.html">Privacy</a>
+      </span>
+    </div>
+  </aside>
   <nav class="stage-map" aria-label="Site map">
     <div class="stage-map__scale">
       <div class="stage-map__goo" aria-hidden="true">
@@ -453,7 +464,7 @@ app.innerHTML = `
             </div>
             <button type="submit" class="contact-form__submit">Send message</button>
             <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
-            <aside class="brand-mark" aria-label="Link Web Development">
+            <aside class="brand-mark brand-mark--contact" aria-label="Link Web Development">
               <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
               <div class="brand-mark__label">
                 <span class="brand-mark__name">Link Web Development</span>
@@ -531,7 +542,7 @@ const getPreferredTheme = () => {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-const brandMarkIcon = document.querySelector('.brand-mark__icon')
+const brandMarkIcons = document.querySelectorAll('.brand-mark__icon')
 let themeFaviconLink = document.querySelector('link[rel="icon"][type="image/png"]:not([media])')
 if (!themeFaviconLink) {
   themeFaviconLink = document.createElement('link')
@@ -550,7 +561,9 @@ const applyTheme = (theme) => {
   toggle.innerHTML = isDark ? sunIcon : moonIcon
   toggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode')
   const iconSrc = faviconForTheme(theme)
-  if (brandMarkIcon) brandMarkIcon.src = iconSrc
+  brandMarkIcons.forEach((icon) => {
+    icon.src = iconSrc
+  })
   // Drop OS media-query icons so the tab follows the in-app theme.
   document.querySelectorAll('link[rel="icon"][media]').forEach((link) => link.remove())
   themeFaviconLink.href = iconSrc
