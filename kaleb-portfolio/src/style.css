@@ -907,10 +907,21 @@ body {
 
 .corner-cluster {
   position: fixed;
-  top: max(1.25rem, env(safe-area-inset-top));
-  left: max(1.25rem, env(safe-area-inset-left));
   z-index: 10;
   display: flex;
+  align-items: center;
+}
+
+.corner-cluster--home {
+  top: max(1.25rem, env(safe-area-inset-top));
+  left: max(1.25rem, env(safe-area-inset-left));
+}
+
+/* Desktop: settings + theme/lava in the bottom-right */
+.corner-cluster--controls {
+  right: max(1.25rem, env(safe-area-inset-right));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  flex-direction: column-reverse;
   align-items: center;
 }
 
@@ -918,20 +929,77 @@ body {
   display: none;
 }
 
+.corner-btn.settings-toggle {
+  display: inline-flex;
+  position: relative;
+  z-index: 12;
+}
+
 .corner-btn.map-toggle {
   display: none;
 }
 
+/* Animate UI settings: gear rotates 0 → 90 on open, back on close */
+.settings-toggle__icon {
+  transform-origin: center;
+  transform: translateY(0.2rem) rotate(0deg);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.settings-toggle[aria-expanded="true"] .settings-toggle__icon,
+#app[data-corner-menu="open"] .settings-toggle .settings-toggle__icon {
+  transform: translateY(0.2rem) rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-toggle__icon {
+    transition: none !important;
+  }
+}
+
 .corner-menu {
-  display: contents;
+  display: block;
+  position: absolute;
+  z-index: 11;
+  right: 0;
+  /* Match shape gap so gear → theme spacing equals theme → lava */
+  bottom: calc(100% + 0.2rem);
+  width: 2.5rem;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform-origin: bottom center;
+  transform: scale(0.6);
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease,
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.corner-menu.is-open,
+#app[data-corner-menu="open"] .corner-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  pointer-events: auto;
 }
 
 .corner-menu__shape {
-  display: contents;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.2rem;
 }
 
 .corner-menu__item {
-  display: contents;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.corner-menu__item + .corner-menu__item {
+  margin-bottom: 0;
 }
 
 .corner-menu__item--map {
@@ -939,26 +1007,22 @@ body {
 }
 
 @media (max-width: 48rem) {
-  .corner-cluster {
+  .corner-cluster--controls {
+    top: max(1.25rem, env(safe-area-inset-top));
+    bottom: auto;
     left: auto;
     right: max(1.25rem, env(safe-area-inset-right));
-  }
-
-  .home-toggle,
-  .kill-toggle {
-    position: fixed;
-    top: max(1.25rem, env(safe-area-inset-top));
-    left: max(1.25rem, env(safe-area-inset-left));
-  }
-
-  .kill-toggle {
-    left: calc(max(1.25rem, env(safe-area-inset-left)) + 2.5rem);
+    flex-direction: column;
   }
 
   .corner-btn.menu-toggle {
     display: inline-flex;
     position: relative;
     z-index: 12;
+  }
+
+  .corner-btn.settings-toggle {
+    display: none;
   }
 
   .menu-toggle__blob {
@@ -1031,46 +1095,19 @@ body {
   }
 
   .corner-menu {
-    display: block;
-    position: absolute;
-    z-index: 11;
     top: 100%;
-    right: 0;
-    width: 2.5rem;
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
+    bottom: auto;
     transform-origin: top center;
-    transform: scale(0.6);
-    transition:
-      opacity 0.3s ease,
-      visibility 0.3s ease,
-      transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .corner-menu.is-open,
-  #app[data-corner-menu="open"] .corner-menu {
-    opacity: 1;
-    visibility: visible;
-    transform: scale(1);
-    pointer-events: auto;
   }
 
   .corner-menu__shape {
-    display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-  }
-
-  .corner-menu__item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    gap: 0;
   }
 
   .corner-menu__item + .corner-menu__item {
     margin-top: -0.35rem;
+    margin-bottom: 0;
   }
 
   .corner-menu__item--map {
@@ -1117,14 +1154,18 @@ body {
 }
 
 @media (min-width: 48rem) {
-  /* Theme + lava lamp sit in the top-left cluster beside home
-     (DOM order: home → theme → lava lamp). */
   .blobs-toggle,
   .theme-toggle {
     position: static;
     transition:
       color 0.25s ease,
       opacity 0.2s ease;
+  }
+
+  /* Match gear’s optical nudge so the column reads evenly */
+  .corner-cluster--controls .theme-toggle .theme-icon,
+  .corner-cluster--controls .blobs-toggle .theme-icon {
+    transform: translateY(0.2rem);
   }
 }
 
@@ -2121,6 +2162,15 @@ body {
     var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
       0.35rem
   );
+}
+
+@media (min-width: 48rem) {
+  #app[data-cookie-banner="open"]:not([data-screen="play"]) .corner-cluster--controls {
+    bottom: calc(
+      var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
+        0.35rem
+    );
+  }
 }
 
 .brand-mark--corner .brand-mark__icon {

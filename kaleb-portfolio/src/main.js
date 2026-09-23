@@ -64,6 +64,17 @@ const menuToggleIcon = `
   </svg>
 `
 
+/* Lucide settings paths; rotation mimics Animate UI icons-settings default. */
+const settingsToggleIcon = `
+  <svg class="theme-icon settings-toggle__icon" viewBox="0 0 24 24" aria-hidden="true"
+    fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <g class="settings-toggle__gear">
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </g>
+  </svg>
+`
+
 const mapGridIcon = `
   <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
     <circle cx="6" cy="6" r="1.85" fill="currentColor"/>
@@ -235,10 +246,15 @@ app.innerHTML = `
     <span class="blob blob--endcap" data-endcap="bottom"></span>
     ${Array.from({ length: BLOB_COUNT }, (_, i) => `<span class="blob" data-blob="${i}"></span>`).join('')}
   </div>
-  <div class="corner-cluster">
+  <div class="corner-cluster corner-cluster--home">
     <button type="button" class="corner-btn home-toggle" aria-label="Home">
       ${homeIcon}
     </button>
+    <button type="button" class="corner-btn kill-toggle" aria-label="Die">
+      ${killIcon}
+    </button>
+  </div>
+  <div class="corner-cluster corner-cluster--controls">
     <button
       type="button"
       class="corner-btn menu-toggle"
@@ -248,6 +264,15 @@ app.innerHTML = `
     >
       <span class="menu-toggle__blob" aria-hidden="true"></span>
       ${menuToggleIcon}
+    </button>
+    <button
+      type="button"
+      class="corner-btn settings-toggle"
+      aria-label="Open settings"
+      aria-expanded="false"
+      aria-controls="corner-menu"
+    >
+      ${settingsToggleIcon}
     </button>
     <div id="corner-menu" class="corner-menu">
       <div class="corner-menu__shape">
@@ -273,9 +298,6 @@ app.innerHTML = `
         </div>
       </div>
     </div>
-    <button type="button" class="corner-btn kill-toggle" aria-label="Die">
-      ${killIcon}
-    </button>
   </div>
   <aside class="brand-mark brand-mark--corner" tabindex="0" aria-label="Link Web Development">
     <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
@@ -671,24 +693,29 @@ blobsToggle.addEventListener('click', () => {
 })
 
 const menuToggle = document.querySelector('.menu-toggle')
+const settingsToggle = document.querySelector('.settings-toggle')
 const cornerMenu = document.querySelector('.corner-menu')
 const mobileMenuMq = window.matchMedia('(max-width: 48rem)')
 
 const setCornerMenuOpen = (open) => {
   const onPlayMobile = mobileMenuMq.matches && app.dataset.screen === 'play'
-  const next = Boolean(open) && mobileMenuMq.matches && !onPlayMobile
+  // Mobile play flattens to theme-only; menu toggle is hidden there.
+  const next = Boolean(open) && !onPlayMobile
   if (next) app.dataset.cornerMenu = 'open'
   else delete app.dataset.cornerMenu
   cornerMenu?.classList.toggle('is-open', next)
   if (cornerMenu) {
-    // Desktop flattens the menu into the chrome; play shows theme inline.
-    // Only hide the overlay from a11y when the mobile menu is closed elsewhere.
-    const a11yHidden = mobileMenuMq.matches && !next && !onPlayMobile
+    // Play mobile shows theme inline; elsewhere hide closed overlay from a11y.
+    const a11yHidden = !next && !onPlayMobile
     cornerMenu.setAttribute('aria-hidden', a11yHidden ? 'true' : 'false')
   }
   if (menuToggle) {
     menuToggle.setAttribute('aria-expanded', next ? 'true' : 'false')
     menuToggle.setAttribute('aria-label', next ? 'Close menu' : 'Open menu')
+  }
+  if (settingsToggle) {
+    settingsToggle.setAttribute('aria-expanded', next ? 'true' : 'false')
+    settingsToggle.setAttribute('aria-label', next ? 'Close settings' : 'Open settings')
   }
 }
 
@@ -696,16 +723,25 @@ const closeCornerMenu = () => setCornerMenuOpen(false)
 
 setCornerMenuOpen(false)
 
-menuToggle?.addEventListener('click', (event) => {
+const toggleCornerMenu = (event) => {
   event.stopPropagation()
   setCornerMenuOpen(app.dataset.cornerMenu !== 'open')
-})
+}
+
+menuToggle?.addEventListener('click', toggleCornerMenu)
+settingsToggle?.addEventListener('click', toggleCornerMenu)
 
 document.addEventListener('pointerdown', (event) => {
   if (app.dataset.cornerMenu !== 'open') return
   const target = event.target
   if (!(target instanceof Node)) return
-  if (cornerMenu?.contains(target) || menuToggle?.contains(target)) return
+  if (
+    cornerMenu?.contains(target) ||
+    menuToggle?.contains(target) ||
+    settingsToggle?.contains(target)
+  ) {
+    return
+  }
   closeCornerMenu()
 })
 
@@ -970,7 +1006,8 @@ document.addEventListener('keydown', (event) => {
   }
   if (app.dataset.cornerMenu === 'open') {
     closeCornerMenu()
-    menuToggle?.focus({ preventScroll: true })
+    const focusToggle = mobileMenuMq.matches ? menuToggle : settingsToggle
+    focusToggle?.focus({ preventScroll: true })
   }
 })
 
