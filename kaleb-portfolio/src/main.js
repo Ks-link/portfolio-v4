@@ -221,7 +221,14 @@ app.innerHTML = `
   </div>
   <aside class="brand-mark" tabindex="0" aria-label="Link Web Development">
     <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
-    <span class="brand-mark__label">Link Web Development</span>
+    <div class="brand-mark__label">
+      <span class="brand-mark__name">Link Web Development</span>
+      <span class="brand-mark__meta">
+        <span class="brand-mark__copy">© 2026</span>
+        <a class="brand-mark__link" href="/terms.html">Terms</a>
+        <a class="brand-mark__link" href="/privacy.html">Privacy</a>
+      </span>
+    </div>
   </aside>
   <nav class="stage-map" aria-label="Site map">
     <div class="stage-map__scale">
