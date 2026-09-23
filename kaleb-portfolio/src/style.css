@@ -1031,13 +1031,12 @@ body {
     justify-content: center;
   }
 
-  .corner-menu__item--blobs {
+  .corner-menu__item + .corner-menu__item {
     margin-top: -0.35rem;
   }
 
   .corner-menu__item--map {
     display: flex;
-    margin-top: -0.35rem;
   }
 
   .corner-btn.map-toggle {

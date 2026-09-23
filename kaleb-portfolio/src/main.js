@@ -57,14 +57,14 @@ const lavaLampOffIcon = `
 
 const menuIcon = `
   <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
+    <path fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"
       d="M4.5 7h15M4.5 12h15M4.5 17h15"/>
   </svg>
 `
 
 const menuCloseIcon = `
   <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
+    <path fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"
       d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>
   </svg>
 `
@@ -259,11 +259,6 @@ app.innerHTML = `
     </button>
     <div id="corner-menu" class="corner-menu">
       <div class="corner-menu__shape">
-        <div class="corner-menu__item">
-          <button type="button" class="corner-btn theme-toggle" aria-label="Toggle dark mode">
-            ${moonIcon}
-          </button>
-        </div>
         <div class="corner-menu__item corner-menu__item--map">
           <button
             type="button"
@@ -272,6 +267,11 @@ app.innerHTML = `
             aria-pressed="false"
           >
             ${mapGridIcon}
+          </button>
+        </div>
+        <div class="corner-menu__item">
+          <button type="button" class="corner-btn theme-toggle" aria-label="Toggle dark mode">
+            ${moonIcon}
           </button>
         </div>
         <div class="corner-menu__item corner-menu__item--blobs">
