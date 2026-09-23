@@ -1120,13 +1120,12 @@ body {
   .blobs-toggle,
   .theme-toggle {
     position: fixed;
-    top: auto;
+    top: max(1.25rem, env(safe-area-inset-top));
     left: auto;
-    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    bottom: auto;
     transition:
       color 0.25s ease,
-      opacity 0.2s ease,
-      bottom 0.25s ease;
+      opacity 0.2s ease;
   }
 
   /* Theme sits at the right edge; lava lamp to its left. */
@@ -1136,14 +1135,6 @@ body {
 
   .blobs-toggle {
     right: calc(max(1.25rem, env(safe-area-inset-right)) + 2.5rem);
-  }
-
-  #app[data-cookie-banner="open"]:not([data-screen="play"]) .blobs-toggle,
-  #app[data-cookie-banner="open"]:not([data-screen="play"]) .theme-toggle {
-    bottom: calc(
-      var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
-        0.35rem
-    );
   }
 }
 
@@ -1726,7 +1717,50 @@ body {
 
 @media (min-width: 48rem) {
   .stage-map {
+    --stage-map-grow: 1.3;
     display: block;
+    top: auto;
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    width: calc(2.4rem * var(--stage-map-grow));
+    height: calc(2.4rem * var(--stage-map-grow));
+    transition:
+      opacity 0.3s ease,
+      width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      height 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      bottom 0.25s ease;
+  }
+
+  .stage-map:hover,
+  .stage-map:has(.stage-map__cell:focus-visible),
+  .stage-map:has(.stage-map__cell.is-selected) {
+    width: calc(5.1rem * var(--stage-map-grow));
+    height: calc(5.1rem * var(--stage-map-grow));
+  }
+
+  .stage-map__scale {
+    top: auto;
+    bottom: 0;
+    transform: scale(calc(0.47 * var(--stage-map-grow)));
+    transform-origin: bottom right;
+  }
+
+  .stage-map:hover .stage-map__scale,
+  .stage-map:has(.stage-map__cell:focus-visible) .stage-map__scale,
+  .stage-map:has(.stage-map__cell.is-selected) .stage-map__scale {
+    transform: scale(var(--stage-map-grow));
+  }
+
+  /* Keep labels at the pre-grow size while the map scales up. */
+  .stage-map__label {
+    transform: translateX(-50%) scale(calc(1 / var(--stage-map-grow)));
+    transform-origin: center top;
+  }
+
+  #app[data-cookie-banner="open"]:not([data-screen="play"]) .stage-map {
+    bottom: calc(
+      var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
+        0.35rem
+    );
   }
 }
 
