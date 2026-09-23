@@ -914,14 +914,26 @@ body {
   align-items: center;
 }
 
+.corner-btn.menu-toggle {
+  display: none;
+}
+
+.corner-menu {
+  display: contents;
+}
+
+.corner-menu__shape {
+  display: contents;
+}
+
+.corner-menu__item {
+  display: contents;
+}
+
 @media (max-width: 48rem) {
   .corner-cluster {
     left: auto;
     right: max(1.25rem, env(safe-area-inset-right));
-  }
-
-  .blobs-toggle {
-    order: -1;
   }
 
   .home-toggle,
@@ -933,6 +945,90 @@ body {
 
   .kill-toggle {
     left: calc(max(1.25rem, env(safe-area-inset-left)) + 2.5rem);
+  }
+
+  .corner-btn.menu-toggle {
+    display: inline-flex;
+    position: relative;
+    z-index: 12;
+  }
+
+  .menu-toggle__blob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 0;
+    width: 2.35rem;
+    height: 2.35rem;
+    margin: 0;
+    pointer-events: none;
+    background: var(--cursor-blob);
+    border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+    mix-blend-mode: var(--cursor-blend);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+    transform-origin: center;
+    animation: blob-morph 6.5s ease-in-out infinite;
+    transition:
+      opacity 0.3s ease,
+      transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  #app[data-corner-menu="open"] .menu-toggle__blob {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .menu-toggle .theme-icon {
+    position: relative;
+    z-index: 1;
+  }
+
+  .corner-menu {
+    display: block;
+    position: absolute;
+    z-index: 11;
+    top: 100%;
+    right: 0;
+    width: 2.5rem;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform-origin: top center;
+    transform: scale(0.6);
+    transition:
+      opacity 0.3s ease,
+      visibility 0.3s ease,
+      transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .corner-menu.is-open,
+  #app[data-corner-menu="open"] .corner-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+
+  .corner-menu__shape {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .corner-menu__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .corner-menu__item--blobs {
+    margin-top: -0.35rem;
+  }
+
+  #app[data-screen="play"] .corner-menu__item--blobs {
+    display: none;
   }
 }
 
@@ -3030,7 +3126,8 @@ body {
 
   .project-preview-shape,
   .project-preview-img,
-  .blob-cursor-shape {
+  .blob-cursor-shape,
+  .menu-toggle__blob {
     animation: none;
     border-radius: 52% 44% 56% 48% / 46% 54% 42% 56%;
   }

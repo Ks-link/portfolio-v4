@@ -55,6 +55,20 @@ const lavaLampOffIcon = `
   </svg>
 `
 
+const menuIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
+      d="M4.5 7h15M4.5 12h15M4.5 17h15"/>
+  </svg>
+`
+
+const menuCloseIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
+      d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>
+  </svg>
+`
+
 const BLOB_COUNT = 12
 const VISIBLE_MIN = 5
 const VISIBLE_MAX = 8
@@ -212,12 +226,30 @@ app.innerHTML = `
     <button type="button" class="corner-btn kill-toggle" aria-label="Die">
       ${killIcon}
     </button>
-    <button type="button" class="corner-btn theme-toggle" aria-label="Toggle dark mode">
-      ${moonIcon}
+    <button
+      type="button"
+      class="corner-btn menu-toggle"
+      aria-label="Open menu"
+      aria-expanded="false"
+      aria-controls="corner-menu"
+    >
+      <span class="menu-toggle__blob" aria-hidden="true"></span>
+      ${menuIcon}
     </button>
-    <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
-      ${lavaLampOnIcon}
-    </button>
+    <div id="corner-menu" class="corner-menu">
+      <div class="corner-menu__shape">
+        <div class="corner-menu__item">
+          <button type="button" class="corner-btn theme-toggle" aria-label="Toggle dark mode">
+            ${moonIcon}
+          </button>
+        </div>
+        <div class="corner-menu__item corner-menu__item--blobs">
+          <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
+            ${lavaLampOnIcon}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
   <aside class="brand-mark brand-mark--corner" tabindex="0" aria-label="Link Web Development">
     <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
@@ -605,6 +637,65 @@ blobsToggle.addEventListener('click', () => {
   applyBlobs(app.dataset.blobs === 'off' ? 'on' : 'off')
 })
 
+const menuToggle = document.querySelector('.menu-toggle')
+const cornerMenu = document.querySelector('.corner-menu')
+const mobileMenuMq = window.matchMedia('(max-width: 48rem)')
+
+const setCornerMenuOpen = (open) => {
+  const next = Boolean(open) && mobileMenuMq.matches
+  if (next) app.dataset.cornerMenu = 'open'
+  else delete app.dataset.cornerMenu
+  cornerMenu?.classList.toggle('is-open', next)
+  if (cornerMenu) {
+    // Desktop flattens the menu into the chrome; only hide it from a11y when
+    // the mobile overlay is closed.
+    const a11yHidden = mobileMenuMq.matches && !next
+    cornerMenu.setAttribute('aria-hidden', a11yHidden ? 'true' : 'false')
+  }
+  if (menuToggle) {
+    menuToggle.setAttribute('aria-expanded', next ? 'true' : 'false')
+    menuToggle.setAttribute('aria-label', next ? 'Close menu' : 'Open menu')
+    const icon = menuToggle.querySelector('.theme-icon')
+    const nextIcon = next ? menuCloseIcon : menuIcon
+    if (icon) icon.outerHTML = nextIcon.trim()
+    else menuToggle.insertAdjacentHTML('beforeend', nextIcon)
+  }
+}
+
+const closeCornerMenu = () => setCornerMenuOpen(false)
+
+setCornerMenuOpen(false)
+
+menuToggle?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  setCornerMenuOpen(app.dataset.cornerMenu !== 'open')
+})
+
+document.addEventListener('pointerdown', (event) => {
+  if (app.dataset.cornerMenu !== 'open') return
+  const target = event.target
+  if (!(target instanceof Node)) return
+  if (cornerMenu?.contains(target) || menuToggle?.contains(target)) return
+  closeCornerMenu()
+})
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && app.dataset.cornerMenu === 'open') {
+    closeCornerMenu()
+    menuToggle?.focus({ preventScroll: true })
+  }
+})
+
+const onMobileMenuMqChange = () => {
+  setCornerMenuOpen(false)
+}
+
+if (typeof mobileMenuMq.addEventListener === 'function') {
+  mobileMenuMq.addEventListener('change', onMobileMenuMqChange)
+} else {
+  mobileMenuMq.addListener(onMobileMenuMqChange)
+}
+
 const screens = new Set(['play', 'home', 'work', 'about', 'experience', 'contact'])
 const hoverPreviewMq = window.matchMedia('(hover: hover)')
 
@@ -953,6 +1044,8 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
   }
   if (screen !== 'work') project = ''
   if (project && !projectById.has(project)) project = ''
+
+  closeCornerMenu()
 
   const prevScreen = app.dataset.screen || ''
   const prevProject = app.dataset.project || ''
