@@ -1117,11 +1117,11 @@ body {
 }
 
 @media (min-width: 48rem) {
-  .blobs-toggle {
+  .blobs-toggle,
+  .theme-toggle {
     position: fixed;
     top: auto;
     left: auto;
-    right: max(1.25rem, env(safe-area-inset-right));
     bottom: max(1.25rem, env(safe-area-inset-bottom));
     transition:
       color 0.25s ease,
@@ -1129,7 +1129,17 @@ body {
       bottom 0.25s ease;
   }
 
-  #app[data-cookie-banner="open"]:not([data-screen="play"]) .blobs-toggle {
+  /* Theme sits at the right edge; lava lamp to its left. */
+  .theme-toggle {
+    right: max(1.25rem, env(safe-area-inset-right));
+  }
+
+  .blobs-toggle {
+    right: calc(max(1.25rem, env(safe-area-inset-right)) + 2.5rem);
+  }
+
+  #app[data-cookie-banner="open"]:not([data-screen="play"]) .blobs-toggle,
+  #app[data-cookie-banner="open"]:not([data-screen="play"]) .theme-toggle {
     bottom: calc(
       var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
         0.35rem
