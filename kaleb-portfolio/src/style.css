@@ -1117,24 +1117,14 @@ body {
 }
 
 @media (min-width: 48rem) {
+  /* Theme + lava lamp sit in the top-left cluster beside home
+     (DOM order: home → theme → lava lamp). */
   .blobs-toggle,
   .theme-toggle {
-    position: fixed;
-    top: max(1.25rem, env(safe-area-inset-top));
-    left: auto;
-    bottom: auto;
+    position: static;
     transition:
       color 0.25s ease,
       opacity 0.2s ease;
-  }
-
-  /* Theme sits at the right edge; lava lamp to its left. */
-  .theme-toggle {
-    right: max(1.25rem, env(safe-area-inset-right));
-  }
-
-  .blobs-toggle {
-    right: calc(max(1.25rem, env(safe-area-inset-right)) + 2.5rem);
   }
 }
 
@@ -1337,7 +1327,9 @@ body {
     :has(.stage-map__cell:focus-visible),
     :has(.stage-map__cell.is-selected),
     .is-mobile-open
-  ):has(.stage-map__cell[data-to="play"]:is(:hover, :focus-visible, .is-selected))
+  ):has(
+    .stage-map__cell[data-to="play"]:is(:hover, :focus-visible, .is-selected)
+  )
   .stage-map__blob[data-to="home"],
 .stage-map:is(
     :hover,
@@ -1356,7 +1348,9 @@ body {
     :has(.stage-map__cell:focus-visible),
     :has(.stage-map__cell.is-selected),
     .is-mobile-open
-  ):has(.stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected))
+  ):has(
+    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected)
+  )
   .stage-map__blob[data-to="play"],
 .stage-map:is(
     :hover,
@@ -1375,7 +1369,9 @@ body {
     :has(.stage-map__cell:focus-visible),
     :has(.stage-map__cell.is-selected),
     .is-mobile-open
-  ):has(.stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected))
+  ):has(
+    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected)
+  )
   .stage-map__blob[data-to="work"],
 .stage-map:is(
     :hover,
@@ -1394,7 +1390,9 @@ body {
     :has(.stage-map__cell:focus-visible),
     :has(.stage-map__cell.is-selected),
     .is-mobile-open
-  ):has(.stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected))
+  ):has(
+    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected)
+  )
   .stage-map__blob[data-to="about"],
 .stage-map:is(
     :hover,
@@ -1413,7 +1411,9 @@ body {
     :has(.stage-map__cell:focus-visible),
     :has(.stage-map__cell.is-selected),
     .is-mobile-open
-  ):has(.stage-map__cell[data-to="work"]:is(:hover, :focus-visible, .is-selected))
+  ):has(
+    .stage-map__cell[data-to="work"]:is(:hover, :focus-visible, .is-selected)
+  )
   .stage-map__blob[data-to="home"],
 .stage-map:is(
     :hover,
@@ -1432,7 +1432,9 @@ body {
     :has(.stage-map__cell:focus-visible),
     :has(.stage-map__cell.is-selected),
     .is-mobile-open
-  ):has(.stage-map__cell[data-to="work"]:is(:hover, :focus-visible, .is-selected))
+  ):has(
+    .stage-map__cell[data-to="work"]:is(:hover, :focus-visible, .is-selected)
+  )
   .stage-map__blob[data-to="experience"],
 .stage-map:is(
     :hover,
@@ -1451,7 +1453,9 @@ body {
     :has(.stage-map__cell:focus-visible),
     :has(.stage-map__cell.is-selected),
     .is-mobile-open
-  ):has(.stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected))
+  ):has(
+    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected)
+  )
   .stage-map__blob[data-to="home"],
 .stage-map:is(
     :hover,
@@ -1470,7 +1474,9 @@ body {
     :has(.stage-map__cell:focus-visible),
     :has(.stage-map__cell.is-selected),
     .is-mobile-open
-  ):has(.stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected))
+  ):has(
+    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected)
+  )
   .stage-map__blob[data-to="experience"],
 .stage-map:is(
     :hover,
@@ -1489,7 +1495,9 @@ body {
     :has(.stage-map__cell:focus-visible),
     :has(.stage-map__cell.is-selected),
     .is-mobile-open
-  ):has(.stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected))
+  ):has(
+    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected)
+  )
   .stage-map__blob[data-to="contact"],
 .stage-map:is(
     :hover,
@@ -1509,7 +1517,11 @@ body {
     :has(.stage-map__cell.is-selected),
     .is-mobile-open
   ):has(
-    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible, .is-selected)
+    .stage-map__cell[data-to="experience"]:is(
+        :hover,
+        :focus-visible,
+        .is-selected
+      )
   )
   .stage-map__blob[data-to="work"],
 .stage-map:is(
@@ -1530,7 +1542,11 @@ body {
     :has(.stage-map__cell.is-selected),
     .is-mobile-open
   ):has(
-    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible, .is-selected)
+    .stage-map__cell[data-to="experience"]:is(
+        :hover,
+        :focus-visible,
+        .is-selected
+      )
   )
   .stage-map__blob[data-to="about"],
 .stage-map:is(
@@ -1719,15 +1735,15 @@ body {
   .stage-map {
     --stage-map-grow: 1.3;
     display: block;
-    top: auto;
-    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    top: max(1.25rem, env(safe-area-inset-top));
+    right: max(1.25rem, env(safe-area-inset-right));
+    bottom: auto;
     width: calc(2.4rem * var(--stage-map-grow));
     height: calc(2.4rem * var(--stage-map-grow));
     transition:
       opacity 0.3s ease,
       width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-      height 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-      bottom 0.25s ease;
+      height 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .stage-map:hover,
@@ -1738,10 +1754,11 @@ body {
   }
 
   .stage-map__scale {
-    top: auto;
-    bottom: 0;
+    top: 0;
+    right: 0;
+    bottom: auto;
     transform: scale(calc(0.47 * var(--stage-map-grow)));
-    transform-origin: bottom right;
+    transform-origin: top right;
   }
 
   .stage-map:hover .stage-map__scale,
@@ -1754,13 +1771,6 @@ body {
   .stage-map__label {
     transform: translateX(-50%) scale(calc(1 / var(--stage-map-grow)));
     transform-origin: center top;
-  }
-
-  #app[data-cookie-banner="open"]:not([data-screen="play"]) .stage-map {
-    bottom: calc(
-      var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
-        0.35rem
-    );
   }
 }
 
@@ -1788,14 +1798,21 @@ body {
 
   /* Desktop expanded map is 5.1rem — keep the same spacing ratios, scaled up. */
   #app[data-stage-map="open"] .stage-map {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    --stage-map-open-gap: 3.1rem;
+    --stage-map-open-drop: 1.75rem;
+    /* Heading block: one line plus the accent rule under it. */
+    --stage-map-title-block: calc(1.5rem * 1.1 + 0.4rem + 2px);
+    gap: var(--stage-map-open-gap);
     top: 50%;
     right: auto;
     left: 50%;
     z-index: 20;
     width: min(48vw, 13.5rem);
-    height: min(48vw, 13.5rem);
-    transform: translate(-50%, -52%);
+    height: auto;
+    transform: translate(-50%, -50%);
     pointer-events: auto;
     --stage-map-scale: calc(min(48vw, 13.5rem) / 5.1rem);
     --stage-map-blob-scale: 0.9;
@@ -1808,22 +1825,36 @@ body {
   }
 
   #app[data-stage-map="open"] .stage-map__scale {
-    top: 0;
-    right: 0;
+    position: relative;
+    top: auto;
+    right: auto;
     width: 100%;
-    height: 100%;
-    transform: none;
+    height: auto;
+    aspect-ratio: 1;
+    /* Shift the grid up by half the heading stack so it centers, then
+       drop it with the heading. */
+    transform: translateY(
+      calc(
+        (var(--stage-map-title-block) + var(--stage-map-open-gap)) / -2 +
+          var(--stage-map-open-drop)
+      )
+    );
     transform-origin: center;
   }
 
   #app[data-stage-map="open"] .stage-map__title {
     display: block;
-    position: absolute;
-    left: 50%;
-    bottom: calc(100% + 3.1rem);
+    position: static;
+    left: auto;
+    bottom: auto;
     z-index: 1;
     margin: 0;
-    transform: translateX(-50%);
+    transform: translateY(
+      calc(
+        (var(--stage-map-title-block) + var(--stage-map-open-gap)) / -2 +
+          var(--stage-map-open-drop)
+      )
+    );
     font-family: var(--display);
     font-weight: 400;
     font-size: 1.5rem;
@@ -1857,7 +1888,9 @@ body {
   #app[data-stage-map="open"] .stage-map__blob,
   #app[data-stage-map="open"] .stage-map__void {
     width: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
-    height: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(
+      1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale)
+    );
     max-width: none;
     max-height: none;
   }
@@ -1935,14 +1968,18 @@ body {
     .stage-map:has(.stage-map__cell.is-selected)
     .stage-map__blob.is-here:not(.is-selected) {
     width: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
-    height: calc(1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(
+      1.06rem * var(--stage-map-scale) * var(--stage-map-blob-scale)
+    );
     background: var(--cursor-blob);
     opacity: 1;
   }
 
   #app[data-stage-map="open"] .stage-map__blob.is-traveling {
     width: calc(1.86rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
-    height: calc(1.86rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(
+      1.86rem * var(--stage-map-scale) * var(--stage-map-blob-scale)
+    );
     max-width: none;
     max-height: none;
   }
@@ -1959,12 +1996,16 @@ body {
 
   #app[data-stage-map="open"] .stage-map__select-arrow {
     width: calc(0.72rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
-    height: calc(0.72rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
+    height: calc(
+      0.72rem * var(--stage-map-scale) * var(--stage-map-blob-scale)
+    );
     max-width: none;
     max-height: none;
   }
 
-  #app[data-stage-map="open"] .stage-map__cell.is-selected .stage-map__select-arrow {
+  #app[data-stage-map="open"]
+    .stage-map__cell.is-selected
+    .stage-map__select-arrow {
     opacity: 0.75;
   }
 
