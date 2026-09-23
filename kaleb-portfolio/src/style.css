@@ -918,6 +918,10 @@ body {
   display: none;
 }
 
+.corner-btn.map-toggle {
+  display: none;
+}
+
 .corner-menu {
   display: contents;
 }
@@ -928,6 +932,10 @@ body {
 
 .corner-menu__item {
   display: contents;
+}
+
+.corner-menu__item--map {
+  display: none;
 }
 
 @media (max-width: 48rem) {
@@ -1025,6 +1033,15 @@ body {
 
   .corner-menu__item--blobs {
     margin-top: -0.35rem;
+  }
+
+  .corner-menu__item--map {
+    display: flex;
+    margin-top: -0.35rem;
+  }
+
+  .corner-btn.map-toggle {
+    display: inline-flex;
   }
 
   #app[data-screen="play"] .corner-menu__item--blobs {
@@ -1129,13 +1146,17 @@ body {
 }
 
 .stage-map:hover,
-.stage-map:has(.stage-map__cell:focus-visible) {
+.stage-map:has(.stage-map__cell:focus-visible),
+.stage-map:has(.stage-map__cell.is-selected),
+.stage-map.is-mobile-open {
   width: 5.1rem;
   height: 5.1rem;
 }
 
 .stage-map:hover .stage-map__scale,
-.stage-map:has(.stage-map__cell:focus-visible) .stage-map__scale {
+.stage-map:has(.stage-map__cell:focus-visible) .stage-map__scale,
+.stage-map:has(.stage-map__cell.is-selected) .stage-map__scale,
+.stage-map.is-mobile-open .stage-map__scale {
   transform: scale(1);
 }
 
@@ -1212,154 +1233,263 @@ body {
 }
 
 /* Collapsed: keep the selected size steady — no travel grow/shrink */
-.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible))
+.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell.is-selected)
+  ):not(.is-mobile-open)
   .stage-map__blob.is-traveling {
   width: 1.7rem;
   height: 1.7rem;
 }
 
-.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible))
+.stage-map:not(:hover):not(:has(.stage-map__cell:focus-visible)):not(
+    :has(.stage-map__cell.is-selected)
+  ):not(.is-mobile-open)
   .stage-map__blob {
   transition:
     background 0.2s ease,
     transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell.is-here:is(:hover, :focus-visible)
-  ) {
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell.is-here:is(:hover, :focus-visible, .is-selected)) {
   --stage-map-push: 0.24rem;
 }
 
-/* Push only while the map is expanded (hover / focus) */
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="play"]:is(:hover, :focus-visible)
-  )
+/* Push only while the map is expanded (hover / focus / mobile select) */
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="play"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="home"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="play"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="play"].is-here
+  )
   .stage-map__blob[data-to="home"] {
   transform: translateX(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="play"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="home"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="home"].is-here
+  )
   .stage-map__blob[data-to="play"] {
   transform: translateX(calc(var(--stage-map-push) * -1));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="work"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="home"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="home"].is-here
+  )
   .stage-map__blob[data-to="work"] {
   transform: translateX(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="home"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="home"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="about"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="home"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="home"].is-here
+  )
   .stage-map__blob[data-to="about"] {
   transform: translateY(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="work"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="work"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="home"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="work"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="work"].is-here
+  )
   .stage-map__blob[data-to="home"] {
   transform: translateX(calc(var(--stage-map-push) * -1));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="work"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="work"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="experience"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="work"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="work"].is-here
+  )
   .stage-map__blob[data-to="experience"] {
   transform: translateY(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="home"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="about"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="about"].is-here
+  )
   .stage-map__blob[data-to="home"] {
   transform: translateY(calc(var(--stage-map-push) * -1));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="experience"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="about"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="about"].is-here
+  )
   .stage-map__blob[data-to="experience"] {
   transform: translateX(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="about"]:is(:hover, :focus-visible)
-  )
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(.stage-map__cell[data-to="about"]:is(:hover, :focus-visible, .is-selected))
   .stage-map__blob[data-to="contact"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="about"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="about"].is-here
+  )
   .stage-map__blob[data-to="contact"] {
   transform: translateY(var(--stage-map-push));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(
+    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible, .is-selected)
   )
   .stage-map__blob[data-to="work"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="experience"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="experience"].is-here
+  )
   .stage-map__blob[data-to="work"] {
   transform: translateY(calc(var(--stage-map-push) * -1));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(
+    .stage-map__cell[data-to="experience"]:is(:hover, :focus-visible, .is-selected)
   )
   .stage-map__blob[data-to="about"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="experience"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="experience"].is-here
+  )
   .stage-map__blob[data-to="about"] {
   transform: translateX(calc(var(--stage-map-push) * -1));
 }
 
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):has(
-    .stage-map__cell[data-to="contact"]:is(:hover, :focus-visible)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):has(
+    .stage-map__cell[data-to="contact"]:is(:hover, :focus-visible, .is-selected)
   )
   .stage-map__blob[data-to="about"],
-.stage-map:is(:hover, :has(.stage-map__cell:focus-visible)):not(
-    :has(.stage-map__cell:is(:hover, :focus-visible))
-  ):has(.stage-map__cell[data-to="contact"].is-here)
+.stage-map:is(
+    :hover,
+    :has(.stage-map__cell:focus-visible),
+    :has(.stage-map__cell.is-selected),
+    .is-mobile-open
+  ):not(:has(.stage-map__cell:is(:hover, :focus-visible, .is-selected))):has(
+    .stage-map__cell[data-to="contact"].is-here
+  )
   .stage-map__blob[data-to="about"] {
   transform: translateY(calc(var(--stage-map-push) * -1));
 }
@@ -1404,7 +1534,8 @@ body {
 .stage-map:hover .stage-map__cell:hover .stage-map__label,
 .stage-map:has(.stage-map__cell:focus-visible)
   .stage-map__cell:focus-visible
-  .stage-map__label {
+  .stage-map__label,
+.stage-map .stage-map__cell.is-selected .stage-map__label {
   opacity: 0.9;
 }
 
@@ -1417,6 +1548,8 @@ body {
 .stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:hover)
   .stage-map__blob.is-here,
 .stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:focus-visible)
+  .stage-map__blob.is-here,
+.stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here.is-selected)
   .stage-map__blob.is-here {
   width: 1.86rem;
   height: 1.86rem;
@@ -1461,15 +1594,192 @@ body {
 .stage-map__goo:has(
     + .stage-map__grid .stage-map__cell[data-to="contact"]:focus-visible
   )
+  .stage-map__blob[data-to="contact"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="play"].is-selected
+  )
+  .stage-map__blob[data-to="play"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="home"].is-selected
+  )
+  .stage-map__blob[data-to="home"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="work"].is-selected
+  )
+  .stage-map__blob[data-to="work"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="about"].is-selected
+  )
+  .stage-map__blob[data-to="about"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="experience"].is-selected
+  )
+  .stage-map__blob[data-to="experience"]:not(.is-here),
+.stage-map__goo:has(
+    + .stage-map__grid .stage-map__cell[data-to="contact"].is-selected
+  )
   .stage-map__blob[data-to="contact"]:not(.is-here) {
   width: 1.7rem;
   height: 1.7rem;
   background: color-mix(in srgb, var(--stage-map-idle) 65%, var(--cursor-blob));
 }
 
+.stage-map-move {
+  display: none;
+}
+
 @media (min-width: 48rem) {
   .stage-map {
     display: block;
+  }
+}
+
+@media (max-width: 48rem) {
+  #app[data-stage-map="open"] {
+    touch-action: none;
+  }
+
+  #app[data-stage-map="open"] .corner-cluster {
+    z-index: 22;
+  }
+
+  #app[data-stage-map="open"] .stage {
+    opacity: 0.22;
+    pointer-events: none;
+  }
+
+  #app[data-stage-map="open"] .swipe-hints,
+  #app[data-stage-map="open"] .brand-mark--corner {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #app[data-stage-map="open"] .stage-map {
+    display: block;
+    top: 50%;
+    right: auto;
+    left: 50%;
+    z-index: 20;
+    width: min(82vw, 24rem);
+    height: min(82vw, 24rem);
+    transform: translate(-50%, -52%);
+    pointer-events: auto;
+    --stage-map-push: 0.85rem;
+  }
+
+  #app[data-stage-map="open"]
+    .stage-map:has(.stage-map__cell.is-here.is-selected) {
+    --stage-map-push: 1.1rem;
+  }
+
+  #app[data-stage-map="open"] .stage-map__scale {
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    transform: none;
+    transform-origin: center;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blobs,
+  #app[data-stage-map="open"] .stage-map__grid {
+    padding: 0.45rem;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob,
+  #app[data-stage-map="open"] .stage-map__void {
+    width: 58%;
+    height: 58%;
+    max-width: 5.5rem;
+    max-height: 5.5rem;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob.is-here {
+    width: 78%;
+    height: 78%;
+    max-width: 7.2rem;
+    max-height: 7.2rem;
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob.is-traveling,
+  #app[data-stage-map="open"]
+    .stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here.is-selected)
+    .stage-map__blob.is-here {
+    width: 86%;
+    height: 86%;
+    max-width: 7.8rem;
+    max-height: 7.8rem;
+  }
+
+  #app[data-stage-map="open"]
+    .stage-map__goo:has(
+      + .stage-map__grid .stage-map__cell.is-selected:not(.is-here)
+    )
+    .stage-map__blob.is-selected:not(.is-here) {
+    width: 78%;
+    height: 78%;
+    max-width: 7.2rem;
+    max-height: 7.2rem;
+  }
+
+  #app[data-stage-map="open"] .stage-map__label {
+    top: calc(100% + 0.45rem);
+    font-size: 0.82rem;
+    padding: 0.22rem 0.5rem;
+  }
+
+  .stage-map-move {
+    appearance: none;
+    position: fixed;
+    z-index: 21;
+    left: 50%;
+    bottom: max(1.15rem, env(safe-area-inset-bottom));
+    display: none;
+    align-items: center;
+    gap: 0.28rem;
+    margin: 0;
+    padding: 0.55rem 0.35rem;
+    border: 0;
+    background: none;
+    transform: translateX(-50%);
+    font-family: var(--sans);
+    font-weight: 300;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: lowercase;
+    color: var(--text);
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #app[data-stage-map="open"] .stage-map-move:not([hidden]) {
+    display: inline-flex;
+  }
+
+  #app[data-cookie-banner="open"] .stage-map-move {
+    bottom: calc(
+      var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
+        0.35rem
+    );
+  }
+
+  .stage-map-move:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .stage-map-move .swipe-hints__chevron {
+    width: 0.78rem;
+    height: 0.78rem;
+    flex-shrink: 0;
+    display: block;
+    overflow: visible;
+  }
+
+  .stage-map-move__label {
+    letter-spacing: 0.12em;
   }
 }
 

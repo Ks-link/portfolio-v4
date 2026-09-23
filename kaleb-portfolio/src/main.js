@@ -69,6 +69,20 @@ const menuCloseIcon = `
   </svg>
 `
 
+const mapGridIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="6" cy="6" r="1.85" fill="currentColor"/>
+    <circle cx="12" cy="6" r="1.85" fill="currentColor"/>
+    <circle cx="18" cy="6" r="1.85" fill="currentColor"/>
+    <circle cx="6" cy="12" r="1.85" fill="currentColor"/>
+    <circle cx="12" cy="12" r="1.85" fill="currentColor"/>
+    <circle cx="18" cy="12" r="1.85" fill="currentColor"/>
+    <circle cx="6" cy="18" r="1.85" fill="currentColor"/>
+    <circle cx="12" cy="18" r="1.85" fill="currentColor"/>
+    <circle cx="18" cy="18" r="1.85" fill="currentColor"/>
+  </svg>
+`
+
 const BLOB_COUNT = 12
 const VISIBLE_MIN = 5
 const VISIBLE_MAX = 8
@@ -243,6 +257,16 @@ app.innerHTML = `
             ${moonIcon}
           </button>
         </div>
+        <div class="corner-menu__item corner-menu__item--map">
+          <button
+            type="button"
+            class="corner-btn map-toggle"
+            aria-label="Open site map"
+            aria-pressed="false"
+          >
+            ${mapGridIcon}
+          </button>
+        </div>
         <div class="corner-menu__item corner-menu__item--blobs">
           <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
             ${lavaLampOnIcon}
@@ -302,6 +326,16 @@ app.innerHTML = `
       </div>
     </div>
   </nav>
+  <button
+    type="button"
+    class="stage-map-move"
+    hidden
+    aria-hidden="true"
+    aria-label="Move to selected page"
+  >
+    ${swipeChevron('right')}
+    <span class="stage-map-move__label">move</span>
+  </button>
   <button type="button" class="nav-blob nav-blob--right" data-edge="right" aria-label="View work">
     ${navArrow}
   </button>
@@ -679,13 +713,6 @@ document.addEventListener('pointerdown', (event) => {
   closeCornerMenu()
 })
 
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && app.dataset.cornerMenu === 'open') {
-    closeCornerMenu()
-    menuToggle?.focus({ preventScroll: true })
-  }
-})
-
 const onMobileMenuMqChange = () => {
   setCornerMenuOpen(false)
 }
@@ -866,6 +893,82 @@ const navBlobs = [...document.querySelectorAll('.nav-blob')]
 const stageMap = document.querySelector('.stage-map')
 const stageMapCells = [...document.querySelectorAll('.stage-map__cell')]
 const stageMapBlobs = [...document.querySelectorAll('.stage-map__blob')]
+const stageMapMove = document.querySelector('.stage-map-move')
+const mapToggle = document.querySelector('.map-toggle')
+const mobileStageMapMq = window.matchMedia('(max-width: 48rem)')
+
+const clearStageMapSelection = () => {
+  stageMapCells.forEach((cell) => cell.classList.remove('is-selected'))
+  stageMapBlobs.forEach((blob) => blob.classList.remove('is-selected'))
+  if (!stageMapMove) return
+  stageMapMove.hidden = true
+  stageMapMove.setAttribute('aria-hidden', 'true')
+  stageMapMove.removeAttribute('data-to')
+  stageMapMove.setAttribute('aria-label', 'Move to selected page')
+}
+
+const selectStageMapDest = (dest) => {
+  stageMapCells.forEach((cell) => {
+    cell.classList.toggle('is-selected', cell.dataset.to === dest)
+  })
+  stageMapBlobs.forEach((blob) => {
+    blob.classList.toggle('is-selected', blob.dataset.to === dest)
+  })
+  if (!stageMapMove) return
+  stageMapMove.hidden = false
+  stageMapMove.setAttribute('aria-hidden', 'false')
+  stageMapMove.dataset.to = dest
+  stageMapMove.setAttribute('aria-label', `Move to ${ariaForDest(dest)}`)
+}
+
+const isStageMapOpen = () => app.dataset.stageMap === 'open'
+
+const syncStageMapA11y = () => {
+  if (!stageMap) return
+  if (!mobileStageMapMq.matches) {
+    stageMap.removeAttribute('aria-hidden')
+  } else {
+    stageMap.setAttribute('aria-hidden', isStageMapOpen() ? 'false' : 'true')
+  }
+  if (mapToggle) {
+    const open = isStageMapOpen()
+    mapToggle.setAttribute('aria-pressed', open ? 'true' : 'false')
+    mapToggle.setAttribute('aria-label', open ? 'Close site map' : 'Open site map')
+  }
+}
+
+const closeStageMap = () => {
+  if (!isStageMapOpen()) return
+  delete app.dataset.stageMap
+  stageMap?.classList.remove('is-mobile-open')
+  clearStageMapSelection()
+  syncStageMapA11y()
+}
+
+const openStageMap = () => {
+  if (!mobileStageMapMq.matches || isStageMapOpen()) return
+  if (document.querySelector('.play-root.is-playing')) return
+  closeCornerMenu()
+  app.dataset.stageMap = 'open'
+  stageMap?.classList.add('is-mobile-open')
+  clearStageMapSelection()
+  syncStageMapA11y()
+}
+
+const toggleStageMap = () => {
+  if (isStageMapOpen()) closeStageMap()
+  else openStageMap()
+}
+
+document.addEventListener('pointerdown', (event) => {
+  if (!isStageMapOpen()) return
+  const target = event.target
+  if (!(target instanceof Element)) return
+  // Keep taps on cells, move CTA, and corner chrome; everything else dismisses.
+  if (target.closest('.stage-map__cell, .stage-map-move, .corner-cluster')) return
+  closeStageMap()
+})
+
 const routeEffects = {
   syncScroll: () => { },
   syncCursor: () => { },
@@ -873,6 +976,31 @@ const routeEffects = {
 document.querySelector('.play-root')?.addEventListener('playchange', () => {
   routeEffects.syncCursor()
 })
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return
+  if (app.dataset.stageMap === 'open') {
+    closeStageMap()
+    return
+  }
+  if (app.dataset.cornerMenu === 'open') {
+    closeCornerMenu()
+    menuToggle?.focus({ preventScroll: true })
+  }
+})
+
+syncStageMapA11y()
+if (typeof mobileStageMapMq.addEventListener === 'function') {
+  mobileStageMapMq.addEventListener('change', () => {
+    if (!mobileStageMapMq.matches) closeStageMap()
+    syncStageMapA11y()
+  })
+} else {
+  mobileStageMapMq.addListener(() => {
+    if (!mobileStageMapMq.matches) closeStageMap()
+    syncStageMapA11y()
+  })
+}
 
 const syncNavLabels = (screen, project = '') => {
   navBlobs.forEach((btn) => {
@@ -1046,6 +1174,7 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
   if (project && !projectById.has(project)) project = ''
 
   closeCornerMenu()
+  closeStageMap()
 
   const prevScreen = app.dataset.screen || ''
   const prevProject = app.dataset.project || ''
@@ -1113,9 +1242,29 @@ document.querySelectorAll('.swipe-hints__dir').forEach((btn) => {
 stageMapCells.forEach((btn) => {
   btn.addEventListener('click', () => {
     const dest = btn.dataset.to
-    if (dest) setScreen(dest, { push: true })
+    if (!dest) return
+    if (isStageMapOpen()) {
+      if (btn.classList.contains('is-selected')) {
+        setScreen(dest, { push: true })
+      } else {
+        selectStageMapDest(dest)
+      }
+      btn.blur()
+      return
+    }
+    setScreen(dest, { push: true })
     btn.blur()
   })
+})
+
+stageMapMove?.addEventListener('click', () => {
+  const dest = stageMapMove.dataset.to
+  if (dest) setScreen(dest, { push: true })
+})
+
+mapToggle?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  toggleStageMap()
 })
 
 window.addEventListener('popstate', () => {
@@ -1357,6 +1506,7 @@ const matchSwipeRoute = (routes, delta, atTop, atBottom) => {
 
 const beginSwipe = (id, x, y, target) => {
   if (!swipeMq.matches || swipeStart) return
+  if (isStageMapOpen()) return
   if (isInteractiveTarget(target)) return
   // Near-miss taps on the play blob should start the game, not a page swipe
   if (inPlayStartSafeZone(x, y)) return
@@ -1541,6 +1691,66 @@ window.addEventListener('pointercancel', (e) => {
   if (e.pointerType === 'touch') return
   endSwipe(e.pointerId)
 })
+
+const PINCH_MAP_THRESHOLD = 40
+let mapPinch = null
+
+const touchPairDistance = (touches) => {
+  const a = touches[0]
+  const b = touches[1]
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+}
+
+const canPinchStageMap = () => {
+  if (!swipeMq.matches) return false
+  if (document.querySelector('.play-root.is-playing')) return false
+  return true
+}
+
+const cancelActiveSwipe = () => {
+  if (!swipeStart) return
+  swipeStart = null
+  resetSwipeOffset()
+}
+
+app.addEventListener(
+  'touchstart',
+  (e) => {
+    if (!canPinchStageMap()) return
+    if (e.touches.length !== 2) return
+    if (e.target?.closest?.('input, textarea, select, label')) return
+    cancelActiveSwipe()
+    mapPinch = {
+      startDist: touchPairDistance(e.touches),
+      fired: false,
+    }
+  },
+  { passive: true, capture: true },
+)
+
+app.addEventListener(
+  'touchmove',
+  (e) => {
+    if (!mapPinch || e.touches.length !== 2) return
+    if (e.cancelable) e.preventDefault()
+    if (mapPinch.fired) return
+    const dist = touchPairDistance(e.touches)
+    const delta = dist - mapPinch.startDist
+    if (Math.abs(delta) < PINCH_MAP_THRESHOLD) return
+    mapPinch.fired = true
+    if (delta < 0) openStageMap()
+    else closeStageMap()
+  },
+  { passive: false, capture: true },
+)
+
+const endMapPinch = (e) => {
+  if (e.touches.length < 2) mapPinch = null
+}
+
+app.addEventListener('touchend', endMapPinch, { passive: true, capture: true })
+app.addEventListener('touchcancel', endMapPinch, { passive: true, capture: true })
+
 
 const hero = document.querySelector('.hero')
 const blobEls = [...document.querySelectorAll('.blob[data-blob]')]
