@@ -1509,6 +1509,25 @@ body {
   cursor: pointer;
 }
 
+.stage-map__select-arrow {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin: 0;
+  color: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.2s ease;
+}
+
+.stage-map__cell.is-selected .stage-map__select-arrow {
+  opacity: 1;
+}
+
 .stage-map__label {
   position: absolute;
   left: 50%;
@@ -1624,10 +1643,6 @@ body {
   background: color-mix(in srgb, var(--stage-map-idle) 65%, var(--cursor-blob));
 }
 
-.stage-map-move {
-  display: none;
-}
-
 @media (min-width: 48rem) {
   .stage-map {
     display: block;
@@ -1701,85 +1716,44 @@ body {
     max-height: 7.2rem;
   }
 
-  #app[data-stage-map="open"] .stage-map__blob.is-traveling,
+  /* Current page shrinks when another destination is selected; keep accent. */
   #app[data-stage-map="open"]
-    .stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here.is-selected)
-    .stage-map__blob.is-here {
+    .stage-map:has(.stage-map__cell.is-selected)
+    .stage-map__blob.is-here:not(.is-selected) {
+    width: 58%;
+    height: 58%;
+    max-width: 5.5rem;
+    max-height: 5.5rem;
+    background: var(--cursor-blob);
+  }
+
+  #app[data-stage-map="open"] .stage-map__blob.is-traveling {
     width: 86%;
     height: 86%;
     max-width: 7.8rem;
     max-height: 7.8rem;
   }
 
-  #app[data-stage-map="open"]
-    .stage-map__goo:has(
-      + .stage-map__grid .stage-map__cell.is-selected:not(.is-here)
-    )
-    .stage-map__blob.is-selected:not(.is-here) {
+  /* Selected destination: enlarged idle fill + accent arrow (no half-accent). */
+  #app[data-stage-map="open"] .stage-map__blob.is-selected {
     width: 78%;
     height: 78%;
     max-width: 7.2rem;
     max-height: 7.2rem;
+    background: var(--stage-map-idle);
+  }
+
+  #app[data-stage-map="open"] .stage-map__select-arrow {
+    width: 38%;
+    height: 38%;
+    max-width: 1.65rem;
+    max-height: 1.65rem;
   }
 
   #app[data-stage-map="open"] .stage-map__label {
     top: calc(100% + 0.45rem);
     font-size: 0.82rem;
     padding: 0.22rem 0.5rem;
-  }
-
-  .stage-map-move {
-    appearance: none;
-    position: fixed;
-    z-index: 21;
-    left: 50%;
-    bottom: max(1.15rem, env(safe-area-inset-bottom));
-    display: none;
-    align-items: center;
-    gap: 0.28rem;
-    margin: 0;
-    padding: 0.55rem 0.35rem;
-    border: 0;
-    background: none;
-    transform: translateX(-50%);
-    font-family: var(--sans);
-    font-weight: 300;
-    font-size: 0.78rem;
-    letter-spacing: 0.12em;
-    text-transform: lowercase;
-    color: var(--text);
-    line-height: 1;
-    white-space: nowrap;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  #app[data-stage-map="open"] .stage-map-move:not([hidden]) {
-    display: inline-flex;
-  }
-
-  #app[data-cookie-banner="open"] .stage-map-move {
-    bottom: calc(
-      var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
-        0.35rem
-    );
-  }
-
-  .stage-map-move:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
-  }
-
-  .stage-map-move .swipe-hints__chevron {
-    width: 0.78rem;
-    height: 0.78rem;
-    flex-shrink: 0;
-    display: block;
-    overflow: visible;
-  }
-
-  .stage-map-move__label {
-    letter-spacing: 0.12em;
   }
 }
 

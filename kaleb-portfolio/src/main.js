@@ -174,6 +174,13 @@ const swipeChevron = (dir) => `
   </svg>
 `
 
+const stageMapSelectArrow = `
+  <svg class="stage-map__select-arrow" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+      d="M9 5l7 7-7 7"/>
+  </svg>
+`
+
 const swipeDir = (dir, to, label) => `
   <button type="button" class="swipe-hints__dir swipe-hints__dir--${dir}" data-to="${to}">
     ${swipeChevron(dir)}
@@ -303,39 +310,35 @@ app.innerHTML = `
       </div>
       <div class="stage-map__grid">
         <button type="button" class="stage-map__cell" data-to="play" aria-label="Play">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">play</span>
         </button>
         <button type="button" class="stage-map__cell" data-to="home" aria-label="Home">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">home</span>
         </button>
         <button type="button" class="stage-map__cell" data-to="work" aria-label="View work">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">work</span>
         </button>
         <span class="stage-map__slot" aria-hidden="true"></span>
         <button type="button" class="stage-map__cell" data-to="about" aria-label="About">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">about</span>
         </button>
         <button type="button" class="stage-map__cell" data-to="experience" aria-label="Experience">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">experience</span>
         </button>
         <span class="stage-map__slot" aria-hidden="true"></span>
         <button type="button" class="stage-map__cell" data-to="contact" aria-label="Get In Touch">
+          ${stageMapSelectArrow}
           <span class="stage-map__label">contact</span>
         </button>
         <span class="stage-map__slot" aria-hidden="true"></span>
       </div>
     </div>
   </nav>
-  <button
-    type="button"
-    class="stage-map-move"
-    hidden
-    aria-hidden="true"
-    aria-label="Move to selected page"
-  >
-    ${swipeChevron('right')}
-    <span class="stage-map-move__label">move</span>
-  </button>
   <button type="button" class="nav-blob nav-blob--right" data-edge="right" aria-label="View work">
     ${navArrow}
   </button>
@@ -893,18 +896,12 @@ const navBlobs = [...document.querySelectorAll('.nav-blob')]
 const stageMap = document.querySelector('.stage-map')
 const stageMapCells = [...document.querySelectorAll('.stage-map__cell')]
 const stageMapBlobs = [...document.querySelectorAll('.stage-map__blob')]
-const stageMapMove = document.querySelector('.stage-map-move')
 const mapToggle = document.querySelector('.map-toggle')
 const mobileStageMapMq = window.matchMedia('(max-width: 48rem)')
 
 const clearStageMapSelection = () => {
   stageMapCells.forEach((cell) => cell.classList.remove('is-selected'))
   stageMapBlobs.forEach((blob) => blob.classList.remove('is-selected'))
-  if (!stageMapMove) return
-  stageMapMove.hidden = true
-  stageMapMove.setAttribute('aria-hidden', 'true')
-  stageMapMove.removeAttribute('data-to')
-  stageMapMove.setAttribute('aria-label', 'Move to selected page')
 }
 
 const selectStageMapDest = (dest) => {
@@ -914,11 +911,6 @@ const selectStageMapDest = (dest) => {
   stageMapBlobs.forEach((blob) => {
     blob.classList.toggle('is-selected', blob.dataset.to === dest)
   })
-  if (!stageMapMove) return
-  stageMapMove.hidden = false
-  stageMapMove.setAttribute('aria-hidden', 'false')
-  stageMapMove.dataset.to = dest
-  stageMapMove.setAttribute('aria-label', `Move to ${ariaForDest(dest)}`)
 }
 
 const isStageMapOpen = () => app.dataset.stageMap === 'open'
@@ -964,8 +956,8 @@ document.addEventListener('pointerdown', (event) => {
   if (!isStageMapOpen()) return
   const target = event.target
   if (!(target instanceof Element)) return
-  // Keep taps on cells, move CTA, and corner chrome; everything else dismisses.
-  if (target.closest('.stage-map__cell, .stage-map-move, .corner-cluster')) return
+  // Keep taps on cells and corner chrome; everything else dismisses.
+  if (target.closest('.stage-map__cell, .corner-cluster')) return
   closeStageMap()
 })
 
@@ -1255,11 +1247,6 @@ stageMapCells.forEach((btn) => {
     setScreen(dest, { push: true })
     btn.blur()
   })
-})
-
-stageMapMove?.addEventListener('click', () => {
-  const dest = stageMapMove.dataset.to
-  if (dest) setScreen(dest, { push: true })
 })
 
 mapToggle?.addEventListener('click', (event) => {
