@@ -289,6 +289,7 @@ app.innerHTML = `
     </div>
   </aside>
   <nav class="stage-map" aria-label="Site map">
+    <p class="stage-map__title">Mini Map</p>
     <div class="stage-map__scale">
       <div class="stage-map__goo" aria-hidden="true">
         <div class="stage-map__blobs">
@@ -674,14 +675,15 @@ const cornerMenu = document.querySelector('.corner-menu')
 const mobileMenuMq = window.matchMedia('(max-width: 48rem)')
 
 const setCornerMenuOpen = (open) => {
-  const next = Boolean(open) && mobileMenuMq.matches
+  const onPlayMobile = mobileMenuMq.matches && app.dataset.screen === 'play'
+  const next = Boolean(open) && mobileMenuMq.matches && !onPlayMobile
   if (next) app.dataset.cornerMenu = 'open'
   else delete app.dataset.cornerMenu
   cornerMenu?.classList.toggle('is-open', next)
   if (cornerMenu) {
-    // Desktop flattens the menu into the chrome; only hide it from a11y when
-    // the mobile overlay is closed.
-    const a11yHidden = mobileMenuMq.matches && !next
+    // Desktop flattens the menu into the chrome; play shows theme inline.
+    // Only hide the overlay from a11y when the mobile menu is closed elsewhere.
+    const a11yHidden = mobileMenuMq.matches && !next && !onPlayMobile
     cornerMenu.setAttribute('aria-hidden', a11yHidden ? 'true' : 'false')
   }
   if (menuToggle) {
@@ -1156,7 +1158,6 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
   if (screen !== 'work') project = ''
   if (project && !projectById.has(project)) project = ''
 
-  closeCornerMenu()
   closeStageMap()
 
   const prevScreen = app.dataset.screen || ''
@@ -1165,6 +1166,7 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
   const opening = Boolean(project) && !prevProject
 
   app.dataset.screen = screen
+  closeCornerMenu()
   app.style.setProperty('--work-swipe', '0px')
   syncNavLabels(screen, project)
   syncStageMap(screen)
