@@ -2035,6 +2035,12 @@ body {
     opacity: 0.92;
   }
 
+  /* Current page stays accent-colored even while it is the initial selection. */
+  #app[data-stage-map="open"] .stage-map__blob.is-here.is-selected {
+    background: var(--cursor-blob);
+    opacity: 1;
+  }
+
   #app[data-stage-map="open"] .stage-map__select-arrow {
     width: calc(0.72rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
     height: calc(

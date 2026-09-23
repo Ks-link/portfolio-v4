@@ -972,7 +972,8 @@ const openStageMap = () => {
   closeCornerMenu()
   app.dataset.stageMap = 'open'
   stageMap?.classList.add('is-mobile-open')
-  clearStageMapSelection()
+  // Current page starts selected so its label shows; another tap moves selection.
+  selectStageMapDest(app.dataset.screen || 'home')
   syncStageMapA11y()
 }
 
