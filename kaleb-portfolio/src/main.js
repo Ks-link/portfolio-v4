@@ -299,14 +299,14 @@ app.innerHTML = `
       </div>
     </div>
   </div>
-  <aside class="brand-mark brand-mark--corner" tabindex="0" aria-label="Link Web Development">
+  <aside class="brand-mark brand-mark--corner" tabindex="0" aria-expanded="false" aria-label="Link Web Development">
     <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
     <div class="brand-mark__label">
       <span class="brand-mark__name">Link Web Development</span>
       <span class="brand-mark__meta">
         <span class="brand-mark__copy">© 2026</span>
-        <a class="brand-mark__link" href="/terms.html">Terms</a>
-        <a class="brand-mark__link" href="/privacy.html">Privacy</a>
+        <a class="brand-mark__link" href="/terms/">Terms</a>
+        <a class="brand-mark__link" href="/privacy/">Privacy</a>
       </span>
     </div>
   </aside>
@@ -318,10 +318,10 @@ app.innerHTML = `
           <span class="stage-map__blob" data-to="play"></span>
           <span class="stage-map__blob" data-to="home"></span>
           <span class="stage-map__blob" data-to="work"></span>
-          <span class="stage-map__void"></span>
+          <span class="stage-map__blob stage-map__blob--locked" data-to="terms" aria-hidden="true"></span>
           <span class="stage-map__blob" data-to="about"></span>
           <span class="stage-map__blob" data-to="experience"></span>
-          <span class="stage-map__void"></span>
+          <span class="stage-map__blob stage-map__blob--locked" data-to="privacy" aria-hidden="true"></span>
           <span class="stage-map__blob" data-to="contact"></span>
           <span class="stage-map__void"></span>
         </div>
@@ -551,17 +551,6 @@ app.innerHTML = `
             </div>
             <button type="submit" class="contact-form__submit">Send message</button>
             <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
-            <aside class="brand-mark brand-mark--contact" aria-label="Link Web Development">
-              <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
-              <div class="brand-mark__label">
-                <span class="brand-mark__name">Link Web Development</span>
-                <span class="brand-mark__meta">
-                  <span class="brand-mark__copy">© 2026</span>
-                  <a class="brand-mark__link" href="/terms.html">Terms</a>
-                  <a class="brand-mark__link" href="/privacy.html">Privacy</a>
-                </span>
-              </div>
-            </aside>
           </form>
           <svg class="contact-form-chevron" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M10 5l7 7-7 7"/>
@@ -595,6 +584,328 @@ app.innerHTML = `
             </p>
           </li>
         </ul>
+      </div>
+    </section>
+    <section class="screen screen--terms" aria-labelledby="terms-heading">
+      <div class="screen-inner legal-inner">
+        <button type="button" class="legal-back" data-to="home">Back</button>
+        <h2 id="terms-heading" class="legal-title">Terms &amp; Conditions</h2>
+        <p class="legal-lede">Link Web Development</p>
+        <p class="legal-updated">Last updated: 22 September 2026</p>
+
+        <h3 class="legal-heading">1. Agreement to these terms</h3>
+        <p>
+          These Terms &amp; Conditions (“Terms”) govern your access to and use of
+          <a href="https://kaleblink.com/">kaleblink.com</a> (the “Site”),
+          operated by Link Web Development / Kaleb Link in Abbotsford, British
+          Columbia, Canada. By using the Site, you agree to these Terms. If you
+          do not agree, do not use the Site.
+        </p>
+        <p>
+          Our collection and use of personal information is described in the
+          <a class="legal-spa-link" href="/privacy/">Privacy Policy</a>.
+        </p>
+
+        <h3 class="legal-heading">2. The Site</h3>
+        <p>
+          The Site is a personal/professional portfolio and includes optional
+          features such as a contact form and a play/leaderboard experience. We
+          may change, suspend, or discontinue any part of the Site at any time
+          without notice.
+        </p>
+
+        <h3 class="legal-heading">3. Acceptable use</h3>
+        <p>You agree not to:</p>
+        <ul>
+          <li>Use the Site in any way that is unlawful or infringes others’ rights</li>
+          <li>
+            Abuse, overload, scrape, probe, or interfere with the Site,
+            contact form, play feature, or related infrastructure
+          </li>
+          <li>
+            Submit spam, malware, deceptive content, or harassing material
+            through the contact form or play features
+          </li>
+          <li>
+            Attempt to gain unauthorized access to accounts, systems, or data
+          </li>
+          <li>
+            Impersonate others or use offensive, misleading, or infringing
+            display names on the leaderboard
+          </li>
+        </ul>
+        <p>
+          We may remove content, reset game data, or restrict access if we
+          reasonably believe these Terms have been violated.
+        </p>
+
+        <h3 class="legal-heading">4. Intellectual property</h3>
+        <p>
+          Unless otherwise noted, the Site’s design, text, graphics, logos, brand
+          mark, code samples, and other materials are owned by Link Web
+          Development or used with permission. You may view and share links to
+          the Site for personal or ordinary professional reference. You may not
+          copy, modify, distribute, sell, or create derivative works from Site
+          content for commercial use without prior written permission, except as
+          allowed by applicable law (including fair dealing).
+        </p>
+
+        <h3 class="legal-heading">5. User submissions</h3>
+        <p>
+          If you send a contact message or provide a play display name / game
+          data, you grant us a non-exclusive, worldwide, royalty-free license to
+          use that material as needed to operate the Site (for example, to reply
+          to you and to display leaderboard entries). You represent that you have
+          the right to submit that content and that it does not violate any law
+          or third-party rights.
+        </p>
+
+        <h3 class="legal-heading">6. Play feature</h3>
+        <p>
+          The play experience is provided for entertainment on an “as is” basis.
+          Scores, matches, and leaderboard rankings may be delayed, inaccurate,
+          moderated, reset, or discontinued. We do not guarantee availability,
+          fairness, or continuity of multiplayer or leaderboard data.
+        </p>
+
+        <h3 class="legal-heading">7. Third-party links and services</h3>
+        <p>
+          The Site may link to third-party sites or services (for example GitHub,
+          LinkedIn, Google Analytics, Web3Forms, or Firebase). We are not
+          responsible for their content, availability, or practices. Your use of
+          third-party services is at your own risk and subject to their terms.
+        </p>
+
+        <h3 class="legal-heading">8. Disclaimers</h3>
+        <p>
+          The Site and its content are provided “as is” and “as available”
+          without warranties of any kind, whether express or implied, including
+          warranties of accuracy, merchantability, fitness for a particular
+          purpose, or non-infringement, to the fullest extent permitted by law.
+          Portfolio descriptions and project information are for general
+          informational purposes and do not constitute professional advice or a
+          binding offer of services unless separately agreed in writing.
+        </p>
+
+        <h3 class="legal-heading">9. Limitation of liability</h3>
+        <p>
+          To the fullest extent permitted by the laws of British Columbia and
+          Canada, Link Web Development and Kaleb Link will not be liable for any
+          indirect, incidental, special, consequential, or punitive damages, or
+          any loss of profits, data, or goodwill, arising from your use of (or
+          inability to use) the Site. Our total liability for any claim relating
+          to the Site will not exceed CAD $100, except where liability cannot be
+          limited under applicable law.
+        </p>
+
+        <h3 class="legal-heading">10. Indemnity</h3>
+        <p>
+          You agree to indemnify and hold harmless Link Web Development and Kaleb
+          Link from claims, damages, losses, and expenses (including reasonable
+          legal fees) arising out of your misuse of the Site or your violation of
+          these Terms.
+        </p>
+
+        <h3 class="legal-heading">11. Changes and termination</h3>
+        <p>
+          We may update these Terms from time to time. The “Last updated” date
+          will change when we do. Continued use of the Site after changes means
+          you accept the updated Terms. We may suspend or terminate access to the
+          Site or any feature at any time.
+        </p>
+
+        <h3 class="legal-heading">12. Governing law and venue</h3>
+        <p>
+          These Terms are governed by the laws of the Province of British
+          Columbia and the applicable laws of Canada, without regard to conflict
+          of law principles. You agree that courts located in British Columbia
+          have exclusive jurisdiction over disputes arising from these Terms or
+          the Site, except where prohibited by law.
+        </p>
+
+        <h3 class="legal-heading">13. Contact</h3>
+        <p>
+          Questions about these Terms:
+          <a href="mailto:contact@kaleblink.com">contact@kaleblink.com</a>
+        </p>
+
+        <p class="legal-disclaimer">
+          These Terms are a site-specific draft tailored to kaleblink.com. They
+          are not formal legal advice. Consider having a lawyer review them if you
+          need a binding commercial agreement.
+        </p>
+
+        <p class="legal-meta">
+          © 2026 Link Web Development ·
+          <a class="legal-spa-link" href="/privacy/">Privacy Policy</a>
+        </p>
+      </div>
+    </section>
+    <section class="screen screen--privacy" aria-labelledby="privacy-heading">
+      <div class="screen-inner legal-inner">
+        <button type="button" class="legal-back" data-to="home">Back</button>
+        <h2 id="privacy-heading" class="legal-title">Privacy Policy</h2>
+        <p class="legal-lede">Link Web Development</p>
+        <p class="legal-updated">Last updated: 22 September 2026</p>
+
+        <h3 class="legal-heading">1. Who we are</h3>
+        <p>
+          This Privacy Policy explains how Link Web Development (“we”, “us”, or
+          “our”), operated by Kaleb Link in Abbotsford, British Columbia, Canada,
+          collects, uses, and shares information when you use
+          <a href="https://kaleblink.com/">kaleblink.com</a> (the “Site”),
+          including the portfolio and play experience.
+        </p>
+        <p>
+          Questions about this policy:
+          <a href="mailto:contact@kaleblink.com">contact@kaleblink.com</a>
+        </p>
+
+        <h3 class="legal-heading">2. Information we collect</h3>
+        <p>Depending on how you use the Site, we may collect:</p>
+        <ul>
+          <li>
+            <strong>Contact form data.</strong> If you send a message, we receive
+            your name, email address, and message content.
+          </li>
+          <li>
+            <strong>Analytics data.</strong> If you accept analytics cookies, we
+            use Google Analytics to collect usage information such as pages
+            viewed, approximate location derived from IP address, device/browser
+            type, and referral source.
+          </li>
+          <li>
+            <strong>Local preferences.</strong> We store preferences in your
+            browser (for example theme, blob animation preference, and cookie
+            consent choice) using local storage.
+          </li>
+          <li>
+            <strong>Play / leaderboard data.</strong> If you use the play feature,
+            we may process an anonymous Firebase account identifier, a display
+            name you choose, and game-related data such as scores for the
+            leaderboard and multiplayer experience.
+          </li>
+        </ul>
+        <p>
+          We do not intentionally collect sensitive personal information through
+          the Site.
+        </p>
+
+        <h3 class="legal-heading">3. How we use information</h3>
+        <p>We use information to:</p>
+        <ul>
+          <li>Respond to inquiries and provide services you request</li>
+          <li>Operate, maintain, and improve the Site</li>
+          <li>Run the play feature and leaderboard</li>
+          <li>Understand aggregate traffic and engagement (when analytics are accepted)</li>
+          <li>Remember your preferences and consent choices</li>
+          <li>Protect the Site against abuse and spam</li>
+        </ul>
+
+        <h3 class="legal-heading">4. Cookies and similar technologies</h3>
+        <p>
+          We show a consent banner for analytics. If you accept, Google Analytics
+          may set cookies (such as <code>_ga</code> / <code>_gid</code>) to
+          measure Site use. If you decline, we do not load Google Analytics and
+          we will attempt to clear related Google Analytics cookies.
+        </p>
+        <p>
+          Preference storage (theme, animation, consent) uses browser local
+          storage rather than advertising cookies. You can clear cookies and site
+          data in your browser settings at any time.
+        </p>
+
+        <h3 class="legal-heading">5. Third-party processors</h3>
+        <p>We use service providers that process data on our behalf or as
+          independent controllers, including:</p>
+        <ul>
+          <li>
+            <strong>Google Analytics</strong> — usage analytics when you consent
+          </li>
+          <li>
+            <strong>Web3Forms</strong> — delivery of contact form submissions
+          </li>
+          <li>
+            <strong>Google Firebase</strong> (Authentication, Firestore, Realtime
+            Database) — play accounts, game state, and leaderboard data
+          </li>
+        </ul>
+        <p>
+          Those providers have their own privacy practices. We encourage you to
+          review them.
+        </p>
+
+        <h3 class="legal-heading">6. Retention</h3>
+        <ul>
+          <li>
+            Contact messages are kept as long as reasonably needed to respond and
+            manage follow-up communication.
+          </li>
+          <li>
+            Analytics retention follows Google Analytics settings and Google’s
+            policies.
+          </li>
+          <li>
+            Play and leaderboard data are kept while the feature is offered,
+            unless we remove data earlier or you successfully request deletion.
+          </li>
+          <li>
+            Local preferences remain on your device until you clear them.
+          </li>
+        </ul>
+
+        <h3 class="legal-heading">7. Your choices</h3>
+        <ul>
+          <li>Decline analytics via the cookie consent banner (or clear site data and choose again).</li>
+          <li>
+            Email
+            <a href="mailto:contact@kaleblink.com">contact@kaleblink.com</a>
+            to request access to or deletion of contact-form or play-related data
+            we hold, where feasible and permitted by law. We may need enough
+            information to locate your records (for example the email used in a
+            contact message, or a display name and approximate play time).
+          </li>
+        </ul>
+
+        <h3 class="legal-heading">8. Children’s privacy</h3>
+        <p>
+          The Site is not directed at children under 13, and we do not knowingly
+          collect personal information from children under 13. If you believe a
+          child has provided personal information, contact us and we will take
+          reasonable steps to delete it.
+        </p>
+
+        <h3 class="legal-heading">9. International transfers</h3>
+        <p>
+          We are based in Canada. Some processors (including Google and Web3Forms)
+          may store or process data in the United States or other countries. Those
+          jurisdictions may have different data-protection laws than yours.
+        </p>
+
+        <h3 class="legal-heading">10. Changes</h3>
+        <p>
+          We may update this Privacy Policy from time to time. The “Last updated”
+          date at the top will change when we do. Continued use of the Site after
+          an update means you acknowledge the revised policy.
+        </p>
+
+        <h3 class="legal-heading">11. Governing law</h3>
+        <p>
+          This Privacy Policy is governed by the laws of the Province of British
+          Columbia and the applicable laws of Canada, without regard to conflict
+          of law principles.
+        </p>
+
+        <p class="legal-disclaimer">
+          This page describes how the Site handles information based on its
+          current features. It is provided for transparency and is not formal
+          legal advice.
+        </p>
+
+        <p class="legal-meta">
+          © 2026 Link Web Development ·
+          <a class="legal-spa-link" href="/terms/">Terms &amp; Conditions</a>
+        </p>
       </div>
     </section>
   </div>
@@ -697,6 +1008,37 @@ const settingsToggle = document.querySelector('.settings-toggle')
 const cornerMenu = document.querySelector('.corner-menu')
 const mobileMenuMq = window.matchMedia('(max-width: 48rem)')
 
+/** Extra px beyond each control’s visual radius for forgiving mobile taps. */
+const MOBILE_TAP_HIT_PAD = 36
+
+const isCornerBtnTappable = (btn) => {
+  if (!(btn instanceof HTMLElement)) return false
+  const style = getComputedStyle(btn)
+  if (style.display === 'none' || style.visibility === 'hidden') return false
+  if (style.pointerEvents === 'none') return false
+  const rect = btn.getBoundingClientRect()
+  return rect.width >= 1 && rect.height >= 1
+}
+
+const nearestCornerIconBtn = (clientX, clientY) => {
+  if (!mobileMenuMq.matches) return null
+  let best = null
+  let bestDist = Infinity
+  for (const btn of document.querySelectorAll('.corner-cluster .corner-btn')) {
+    if (!isCornerBtnTappable(btn)) continue
+    const rect = btn.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const dist = Math.hypot(clientX - cx, clientY - cy)
+    const hitR = Math.max(rect.width, rect.height) / 2 + MOBILE_TAP_HIT_PAD
+    if (dist <= hitR && dist < bestDist) {
+      bestDist = dist
+      best = btn
+    }
+  }
+  return best
+}
+
 const setCornerMenuOpen = (open) => {
   const onPlayMobile = mobileMenuMq.matches && app.dataset.screen === 'play'
   // Mobile play flattens to theme-only; menu toggle is hidden there.
@@ -731,6 +1073,31 @@ const toggleCornerMenu = (event) => {
 menuToggle?.addEventListener('click', toggleCornerMenu)
 settingsToggle?.addEventListener('click', toggleCornerMenu)
 
+const brandMarkCorner = document.querySelector('.brand-mark--corner')
+
+const setBrandMarkOpen = (open) => {
+  if (!brandMarkCorner) return
+  const next = Boolean(open) && mobileMenuMq.matches && app.dataset.screen !== 'play'
+  brandMarkCorner.setAttribute('aria-expanded', next ? 'true' : 'false')
+}
+
+const closeBrandMark = () => setBrandMarkOpen(false)
+
+brandMarkCorner?.addEventListener('click', (event) => {
+  if (!mobileMenuMq.matches) return
+  if (event.target instanceof Element && event.target.closest('a')) return
+  event.stopPropagation()
+  setBrandMarkOpen(brandMarkCorner.getAttribute('aria-expanded') !== 'true')
+})
+
+brandMarkCorner?.addEventListener('keydown', (event) => {
+  if (!mobileMenuMq.matches) return
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  if (event.target !== brandMarkCorner) return
+  event.preventDefault()
+  setBrandMarkOpen(brandMarkCorner.getAttribute('aria-expanded') !== 'true')
+})
+
 document.addEventListener('pointerdown', (event) => {
   if (app.dataset.cornerMenu !== 'open') return
   const target = event.target
@@ -742,11 +1109,49 @@ document.addEventListener('pointerdown', (event) => {
   ) {
     return
   }
+  // Keep open when tapping within a menu icon’s hit radius (same pad as mini map).
+  if (nearestCornerIconBtn(event.clientX, event.clientY)) return
   closeCornerMenu()
+})
+
+document.addEventListener(
+  'click',
+  (event) => {
+    if (!mobileMenuMq.matches) return
+    if (swipeClaimedClick) return
+    const nearest = nearestCornerIconBtn(event.clientX, event.clientY)
+    if (!nearest) return
+    const hit =
+      event.target instanceof Element ? event.target.closest('.corner-btn') : null
+    if (hit === nearest) return
+    // Prefer closest icon when tap lands in overlapping hit radii, or activate on near-miss.
+    if (
+      !hit &&
+      event.target instanceof Element &&
+      event.target.closest(
+        'a, button, input, textarea, select, label, .stage-map__cell',
+      )
+    ) {
+      return
+    }
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    nearest.click()
+  },
+  true,
+)
+
+document.addEventListener('pointerdown', (event) => {
+  if (brandMarkCorner?.getAttribute('aria-expanded') !== 'true') return
+  const target = event.target
+  if (!(target instanceof Node)) return
+  if (brandMarkCorner.contains(target)) return
+  closeBrandMark()
 })
 
 const onMobileMenuMqChange = () => {
   setCornerMenuOpen(false)
+  closeBrandMark()
 }
 
 if (typeof mobileMenuMq.addEventListener === 'function') {
@@ -755,7 +1160,8 @@ if (typeof mobileMenuMq.addEventListener === 'function') {
   mobileMenuMq.addListener(onMobileMenuMqChange)
 }
 
-const screens = new Set(['play', 'home', 'work', 'about', 'experience', 'contact'])
+const screens = new Set(['play', 'home', 'work', 'about', 'experience', 'contact', 'terms', 'privacy'])
+const lockedScreens = new Set(['terms', 'privacy'])
 const hoverPreviewMq = window.matchMedia('(hover: hover)')
 
 const workScreen = document.querySelector('.screen--work')
@@ -918,6 +1324,8 @@ const ariaForDest = (dest) => {
   if (dest === 'about') return 'About'
   if (dest === 'experience') return 'Experience'
   if (dest === 'contact') return 'Get In Touch'
+  if (dest === 'terms') return 'Terms & Conditions'
+  if (dest === 'privacy') return 'Privacy Policy'
   return dest
 }
 
@@ -934,6 +1342,10 @@ const clearStageMapSelection = () => {
 }
 
 const selectStageMapDest = (dest) => {
+  if (lockedScreens.has(dest)) {
+    clearStageMapSelection()
+    return
+  }
   stageMapCells.forEach((cell) => {
     cell.classList.toggle('is-selected', cell.dataset.to === dest)
   })
@@ -982,13 +1394,64 @@ const toggleStageMap = () => {
   else openStageMap()
 }
 
+/** Extra px beyond each blob’s visual radius for forgiving mobile taps. */
+const STAGE_MAP_HIT_PAD = MOBILE_TAP_HIT_PAD
+
+const nearestStageMapDest = (clientX, clientY) => {
+  let bestDest = null
+  let bestDist = Infinity
+  for (const blob of stageMapBlobs) {
+    const dest = blob.dataset.to
+    if (!dest || lockedScreens.has(dest)) continue
+    const rect = blob.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const dist = Math.hypot(clientX - cx, clientY - cy)
+    const hitR = Math.max(rect.width, rect.height) / 2 + STAGE_MAP_HIT_PAD
+    if (dist <= hitR && dist < bestDist) {
+      bestDist = dist
+      bestDest = dest
+    }
+  }
+  return bestDest
+}
+
+const activateStageMapDest = (dest) => {
+  if (!dest || lockedScreens.has(dest)) return
+  if (isStageMapOpen()) {
+    const selected = stageMapCells.some(
+      (cell) => cell.dataset.to === dest && cell.classList.contains('is-selected'),
+    )
+    if (selected) setScreen(dest, { push: true })
+    else selectStageMapDest(dest)
+    const focused = document.activeElement
+    if (focused instanceof HTMLElement && focused.classList.contains('stage-map__cell')) {
+      focused.blur()
+    }
+    return
+  }
+  setScreen(dest, { push: true })
+}
+
 document.addEventListener('pointerdown', (event) => {
   if (!isStageMapOpen()) return
   const target = event.target
   if (!(target instanceof Element)) return
-  // Keep taps on cells and corner chrome; everything else dismisses.
-  if (target.closest('.stage-map__cell, .corner-cluster')) return
+  if (target.closest('.corner-cluster')) return
+  // Keep open when tapping a blob or within its hit radius.
+  if (nearestStageMapDest(event.clientX, event.clientY)) return
+  if (target.closest('.stage-map__cell')) return
   closeStageMap()
+})
+
+stageMap?.querySelector('.stage-map__scale')?.addEventListener('click', (event) => {
+  if (!isStageMapOpen()) return
+  // Direct cell hits are handled below; this catches near-misses on slots/gaps.
+  if (event.target instanceof Element && event.target.closest('.stage-map__cell')) return
+  const dest = nearestStageMapDest(event.clientX, event.clientY)
+  if (!dest) return
+  event.preventDefault()
+  activateStageMapDest(dest)
 })
 
 const routeEffects = {
@@ -1009,6 +1472,11 @@ document.addEventListener('keydown', (event) => {
     closeCornerMenu()
     const focusToggle = mobileMenuMq.matches ? menuToggle : settingsToggle
     focusToggle?.focus({ preventScroll: true })
+    return
+  }
+  if (brandMarkCorner?.getAttribute('aria-expanded') === 'true') {
+    closeBrandMark()
+    brandMarkCorner.focus({ preventScroll: true })
   }
 })
 
@@ -1205,6 +1673,7 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
 
   app.dataset.screen = screen
   closeCornerMenu()
+  closeBrandMark()
   app.style.setProperty('--work-swipe', '0px')
   syncNavLabels(screen, project)
   syncStageMap(screen)
@@ -1263,19 +1732,16 @@ document.querySelectorAll('.swipe-hints__dir').forEach((btn) => {
 })
 
 stageMapCells.forEach((btn) => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', (event) => {
     const dest = btn.dataset.to
     if (!dest) return
     if (isStageMapOpen()) {
-      if (btn.classList.contains('is-selected')) {
-        setScreen(dest, { push: true })
-      } else {
-        selectStageMapDest(dest)
-      }
-      btn.blur()
+      // Prefer closest blob when the tap lands in overlapping hit radii.
+      const nearest = nearestStageMapDest(event.clientX, event.clientY)
+      activateStageMapDest(nearest || dest)
       return
     }
-    setScreen(dest, { push: true })
+    activateStageMapDest(dest)
     btn.blur()
   })
 })
@@ -1300,6 +1766,23 @@ homeToggle.addEventListener('click', () => {
 document.querySelector('.hero-cta')?.addEventListener('click', (e) => {
   e.preventDefault()
   setScreen('contact', { push: true })
+})
+
+document.querySelectorAll('.brand-mark__link, .legal-spa-link').forEach((link) => {
+  link.addEventListener('click', (e) => {
+    const href = link.getAttribute('href') || ''
+    const screen = href.replace(/^\/|\/$/g, '')
+    if (!lockedScreens.has(screen)) return
+    e.preventDefault()
+    setScreen(screen, { push: true })
+  })
+})
+
+document.querySelectorAll('.legal-back').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const dest = btn.dataset.to || 'home'
+    setScreen(dest, { push: true })
+  })
 })
 
 killToggle?.addEventListener('click', () => {
@@ -1528,6 +2011,8 @@ const beginSwipe = (id, x, y, target) => {
   if (isInteractiveTarget(target)) return
   // Near-miss taps on the play blob should start the game, not a page swipe
   if (inPlayStartSafeZone(x, y)) return
+  // Same forgiving radius as the expanded mini map / corner icons
+  if (nearestCornerIconBtn(x, y)) return
   const el = currentScrollEl()
   const screen = app.dataset.screen || 'home'
   swipeStart = {
