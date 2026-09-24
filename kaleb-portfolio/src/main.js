@@ -589,7 +589,7 @@ app.innerHTML = `
     <section class="screen screen--terms" aria-labelledby="terms-heading">
       <div class="screen-inner legal-inner">
         <button type="button" class="legal-back" data-to="home">Back</button>
-        <h2 id="terms-heading" class="screen-title">Terms &amp; Conditions</h2>
+        <h2 id="terms-heading" class="legal-title">Terms &amp; Conditions</h2>
         <p class="legal-lede">Link Web Development</p>
         <p class="legal-updated">Last updated: 22 September 2026</p>
 
@@ -744,7 +744,7 @@ app.innerHTML = `
     <section class="screen screen--privacy" aria-labelledby="privacy-heading">
       <div class="screen-inner legal-inner">
         <button type="button" class="legal-back" data-to="home">Back</button>
-        <h2 id="privacy-heading" class="screen-title">Privacy Policy</h2>
+        <h2 id="privacy-heading" class="legal-title">Privacy Policy</h2>
         <p class="legal-lede">Link Web Development</p>
         <p class="legal-updated">Last updated: 22 September 2026</p>
 
@@ -1008,6 +1008,37 @@ const settingsToggle = document.querySelector('.settings-toggle')
 const cornerMenu = document.querySelector('.corner-menu')
 const mobileMenuMq = window.matchMedia('(max-width: 48rem)')
 
+/** Extra px beyond each control’s visual radius for forgiving mobile taps. */
+const MOBILE_TAP_HIT_PAD = 36
+
+const isCornerBtnTappable = (btn) => {
+  if (!(btn instanceof HTMLElement)) return false
+  const style = getComputedStyle(btn)
+  if (style.display === 'none' || style.visibility === 'hidden') return false
+  if (style.pointerEvents === 'none') return false
+  const rect = btn.getBoundingClientRect()
+  return rect.width >= 1 && rect.height >= 1
+}
+
+const nearestCornerIconBtn = (clientX, clientY) => {
+  if (!mobileMenuMq.matches) return null
+  let best = null
+  let bestDist = Infinity
+  for (const btn of document.querySelectorAll('.corner-cluster .corner-btn')) {
+    if (!isCornerBtnTappable(btn)) continue
+    const rect = btn.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const dist = Math.hypot(clientX - cx, clientY - cy)
+    const hitR = Math.max(rect.width, rect.height) / 2 + MOBILE_TAP_HIT_PAD
+    if (dist <= hitR && dist < bestDist) {
+      bestDist = dist
+      best = btn
+    }
+  }
+  return best
+}
+
 const setCornerMenuOpen = (open) => {
   const onPlayMobile = mobileMenuMq.matches && app.dataset.screen === 'play'
   // Mobile play flattens to theme-only; menu toggle is hidden there.
@@ -1078,8 +1109,37 @@ document.addEventListener('pointerdown', (event) => {
   ) {
     return
   }
+  // Keep open when tapping within a menu icon’s hit radius (same pad as mini map).
+  if (nearestCornerIconBtn(event.clientX, event.clientY)) return
   closeCornerMenu()
 })
+
+document.addEventListener(
+  'click',
+  (event) => {
+    if (!mobileMenuMq.matches) return
+    if (swipeClaimedClick) return
+    const nearest = nearestCornerIconBtn(event.clientX, event.clientY)
+    if (!nearest) return
+    const hit =
+      event.target instanceof Element ? event.target.closest('.corner-btn') : null
+    if (hit === nearest) return
+    // Prefer closest icon when tap lands in overlapping hit radii, or activate on near-miss.
+    if (
+      !hit &&
+      event.target instanceof Element &&
+      event.target.closest(
+        'a, button, input, textarea, select, label, .stage-map__cell',
+      )
+    ) {
+      return
+    }
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    nearest.click()
+  },
+  true,
+)
 
 document.addEventListener('pointerdown', (event) => {
   if (brandMarkCorner?.getAttribute('aria-expanded') !== 'true') return
@@ -1335,7 +1395,7 @@ const toggleStageMap = () => {
 }
 
 /** Extra px beyond each blob’s visual radius for forgiving mobile taps. */
-const STAGE_MAP_HIT_PAD = 36
+const STAGE_MAP_HIT_PAD = MOBILE_TAP_HIT_PAD
 
 const nearestStageMapDest = (clientX, clientY) => {
   let bestDest = null
@@ -1951,6 +2011,8 @@ const beginSwipe = (id, x, y, target) => {
   if (isInteractiveTarget(target)) return
   // Near-miss taps on the play blob should start the game, not a page swipe
   if (inPlayStartSafeZone(x, y)) return
+  // Same forgiving radius as the expanded mini map / corner icons
+  if (nearestCornerIconBtn(x, y)) return
   const el = currentScrollEl()
   const screen = app.dataset.screen || 'home'
   swipeStart = {
