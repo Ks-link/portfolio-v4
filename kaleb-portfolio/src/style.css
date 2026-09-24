@@ -1636,6 +1636,7 @@ body {
   background: transparent;
   color: var(--text);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .stage-map__select-arrow {
@@ -1691,6 +1692,12 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
   border-radius: 50%;
+}
+
+/* Mobile expanded map: selection is shown via label/arrow — no focus box flash. */
+#app[data-stage-map="open"] .stage-map__cell:focus,
+#app[data-stage-map="open"] .stage-map__cell:focus-visible {
+  outline: none;
 }
 
 .stage-map__goo:has(+ .stage-map__grid .stage-map__cell.is-here:hover)

@@ -982,13 +982,64 @@ const toggleStageMap = () => {
   else openStageMap()
 }
 
+/** Extra px beyond each blob’s visual radius for forgiving mobile taps. */
+const STAGE_MAP_HIT_PAD = 36
+
+const nearestStageMapDest = (clientX, clientY) => {
+  let bestDest = null
+  let bestDist = Infinity
+  for (const blob of stageMapBlobs) {
+    const dest = blob.dataset.to
+    if (!dest) continue
+    const rect = blob.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const dist = Math.hypot(clientX - cx, clientY - cy)
+    const hitR = Math.max(rect.width, rect.height) / 2 + STAGE_MAP_HIT_PAD
+    if (dist <= hitR && dist < bestDist) {
+      bestDist = dist
+      bestDest = dest
+    }
+  }
+  return bestDest
+}
+
+const activateStageMapDest = (dest) => {
+  if (!dest) return
+  if (isStageMapOpen()) {
+    const selected = stageMapCells.some(
+      (cell) => cell.dataset.to === dest && cell.classList.contains('is-selected'),
+    )
+    if (selected) setScreen(dest, { push: true })
+    else selectStageMapDest(dest)
+    const focused = document.activeElement
+    if (focused instanceof HTMLElement && focused.classList.contains('stage-map__cell')) {
+      focused.blur()
+    }
+    return
+  }
+  setScreen(dest, { push: true })
+}
+
 document.addEventListener('pointerdown', (event) => {
   if (!isStageMapOpen()) return
   const target = event.target
   if (!(target instanceof Element)) return
-  // Keep taps on cells and corner chrome; everything else dismisses.
-  if (target.closest('.stage-map__cell, .corner-cluster')) return
+  if (target.closest('.corner-cluster')) return
+  // Keep open when tapping a blob or within its hit radius.
+  if (nearestStageMapDest(event.clientX, event.clientY)) return
+  if (target.closest('.stage-map__cell')) return
   closeStageMap()
+})
+
+stageMap?.querySelector('.stage-map__scale')?.addEventListener('click', (event) => {
+  if (!isStageMapOpen()) return
+  // Direct cell hits are handled below; this catches near-misses on slots/gaps.
+  if (event.target instanceof Element && event.target.closest('.stage-map__cell')) return
+  const dest = nearestStageMapDest(event.clientX, event.clientY)
+  if (!dest) return
+  event.preventDefault()
+  activateStageMapDest(dest)
 })
 
 const routeEffects = {
@@ -1263,19 +1314,16 @@ document.querySelectorAll('.swipe-hints__dir').forEach((btn) => {
 })
 
 stageMapCells.forEach((btn) => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', (event) => {
     const dest = btn.dataset.to
     if (!dest) return
     if (isStageMapOpen()) {
-      if (btn.classList.contains('is-selected')) {
-        setScreen(dest, { push: true })
-      } else {
-        selectStageMapDest(dest)
-      }
-      btn.blur()
+      // Prefer closest blob when the tap lands in overlapping hit radii.
+      const nearest = nearestStageMapDest(event.clientX, event.clientY)
+      activateStageMapDest(nearest || dest)
       return
     }
-    setScreen(dest, { push: true })
+    activateStageMapDest(dest)
     btn.blur()
   })
 })
