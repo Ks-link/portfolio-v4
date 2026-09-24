@@ -299,7 +299,7 @@ app.innerHTML = `
       </div>
     </div>
   </div>
-  <aside class="brand-mark brand-mark--corner" tabindex="0" aria-label="Link Web Development">
+  <aside class="brand-mark brand-mark--corner" tabindex="0" aria-expanded="false" aria-label="Link Web Development">
     <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
     <div class="brand-mark__label">
       <span class="brand-mark__name">Link Web Development</span>
@@ -551,17 +551,6 @@ app.innerHTML = `
             </div>
             <button type="submit" class="contact-form__submit">Send message</button>
             <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
-            <aside class="brand-mark brand-mark--contact" aria-label="Link Web Development">
-              <img class="brand-mark__icon" src="/favicon-light.png" alt="" width="40" height="40" decoding="async" />
-              <div class="brand-mark__label">
-                <span class="brand-mark__name">Link Web Development</span>
-                <span class="brand-mark__meta">
-                  <span class="brand-mark__copy">© 2026</span>
-                  <a class="brand-mark__link" href="/terms.html">Terms</a>
-                  <a class="brand-mark__link" href="/privacy.html">Privacy</a>
-                </span>
-              </div>
-            </aside>
           </form>
           <svg class="contact-form-chevron" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M10 5l7 7-7 7"/>
@@ -731,6 +720,31 @@ const toggleCornerMenu = (event) => {
 menuToggle?.addEventListener('click', toggleCornerMenu)
 settingsToggle?.addEventListener('click', toggleCornerMenu)
 
+const brandMarkCorner = document.querySelector('.brand-mark--corner')
+
+const setBrandMarkOpen = (open) => {
+  if (!brandMarkCorner) return
+  const next = Boolean(open) && mobileMenuMq.matches && app.dataset.screen !== 'play'
+  brandMarkCorner.setAttribute('aria-expanded', next ? 'true' : 'false')
+}
+
+const closeBrandMark = () => setBrandMarkOpen(false)
+
+brandMarkCorner?.addEventListener('click', (event) => {
+  if (!mobileMenuMq.matches) return
+  if (event.target instanceof Element && event.target.closest('a')) return
+  event.stopPropagation()
+  setBrandMarkOpen(brandMarkCorner.getAttribute('aria-expanded') !== 'true')
+})
+
+brandMarkCorner?.addEventListener('keydown', (event) => {
+  if (!mobileMenuMq.matches) return
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  if (event.target !== brandMarkCorner) return
+  event.preventDefault()
+  setBrandMarkOpen(brandMarkCorner.getAttribute('aria-expanded') !== 'true')
+})
+
 document.addEventListener('pointerdown', (event) => {
   if (app.dataset.cornerMenu !== 'open') return
   const target = event.target
@@ -745,8 +759,17 @@ document.addEventListener('pointerdown', (event) => {
   closeCornerMenu()
 })
 
+document.addEventListener('pointerdown', (event) => {
+  if (brandMarkCorner?.getAttribute('aria-expanded') !== 'true') return
+  const target = event.target
+  if (!(target instanceof Node)) return
+  if (brandMarkCorner.contains(target)) return
+  closeBrandMark()
+})
+
 const onMobileMenuMqChange = () => {
   setCornerMenuOpen(false)
+  closeBrandMark()
 }
 
 if (typeof mobileMenuMq.addEventListener === 'function') {
@@ -1060,6 +1083,11 @@ document.addEventListener('keydown', (event) => {
     closeCornerMenu()
     const focusToggle = mobileMenuMq.matches ? menuToggle : settingsToggle
     focusToggle?.focus({ preventScroll: true })
+    return
+  }
+  if (brandMarkCorner?.getAttribute('aria-expanded') === 'true') {
+    closeBrandMark()
+    brandMarkCorner.focus({ preventScroll: true })
   }
 })
 
@@ -1256,6 +1284,7 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
 
   app.dataset.screen = screen
   closeCornerMenu()
+  closeBrandMark()
   app.style.setProperty('--work-swipe', '0px')
   syncNavLabels(screen, project)
   syncStageMap(screen)

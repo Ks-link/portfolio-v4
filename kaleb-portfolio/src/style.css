@@ -2148,16 +2148,16 @@ body {
   outline-offset: 3px;
 }
 
-/* Desktop: fixed corner, expands on hover */
+/* Fixed corner: hover on desktop, tap-to-expand on mobile */
 .brand-mark--corner {
   position: fixed;
   z-index: 10;
   left: max(1.25rem, env(safe-area-inset-left));
-  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  bottom: calc(max(1.25rem, env(safe-area-inset-bottom)) - 4px);
   gap: 0;
-  max-width: 2.5rem;
+  max-width: 1.75rem;
   overflow: hidden;
-  border-radius: 0.55rem;
+  border-radius: 0.4rem;
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   transition:
     max-width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
@@ -2173,7 +2173,7 @@ body {
 #app[data-cookie-banner="open"]:not([data-screen="play"]) .brand-mark--corner {
   bottom: calc(
     var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
-      0.35rem
+      0.35rem - 4px
   );
 }
 
@@ -2187,14 +2187,17 @@ body {
 }
 
 .brand-mark--corner .brand-mark__icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  flex: 0 0 2.5rem;
-  border-radius: 0.55rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 1.75rem;
+  border-radius: 0.4rem;
 }
 
 .brand-mark--corner .brand-mark__label {
   flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
   padding-right: 0;
   opacity: 0;
   transform: translateX(-0.35rem);
@@ -2205,29 +2208,49 @@ body {
   pointer-events: none;
 }
 
-.brand-mark--corner:hover,
-.brand-mark--corner:focus-within {
-  max-width: 18rem;
-  gap: 0.65rem;
+.brand-mark--corner .brand-mark__name {
+  font-size: 0.72rem;
+}
+
+.brand-mark--corner .brand-mark__meta {
+  font-size: 0.62rem;
+  gap: 0.4rem;
+}
+
+.brand-mark--corner[aria-expanded="true"] {
+  z-index: 11;
+  max-width: 22rem;
+  gap: 0.5rem;
   padding-right: 0.15rem;
+}
+
+.brand-mark--corner[aria-expanded="true"] .brand-mark__label {
+  opacity: 1;
+  transform: translateX(0);
+  padding-right: 0.55rem;
+  pointer-events: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .brand-mark--corner:hover,
+  .brand-mark--corner:focus-within {
+    max-width: 22rem;
+    gap: 0.5rem;
+    padding-right: 0.15rem;
+  }
+
+  .brand-mark--corner:hover .brand-mark__label,
+  .brand-mark--corner:focus-within .brand-mark__label {
+    opacity: 1;
+    transform: translateX(0);
+    padding-right: 0.55rem;
+    pointer-events: auto;
+  }
 }
 
 .brand-mark--corner:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-}
-
-.brand-mark--corner:hover .brand-mark__label,
-.brand-mark--corner:focus-within .brand-mark__label {
-  opacity: 1;
-  transform: translateX(0);
-  padding-right: 0.7rem;
-  pointer-events: auto;
-}
-
-/* Contact form mark: reserved; currently unused (desktop uses corner) */
-.brand-mark--contact {
-  display: none;
 }
 
 .name {
@@ -3811,7 +3834,14 @@ body {
   }
 
   .brand-mark--corner {
-    display: none;
+    z-index: 11;
+  }
+
+  .brand-mark--corner[aria-expanded="true"] {
+    max-width: calc(
+      100vw - max(1.25rem, env(safe-area-inset-left)) -
+        max(1.25rem, env(safe-area-inset-right))
+    );
   }
 
   .swipe-hints__set {
