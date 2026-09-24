@@ -2225,7 +2225,7 @@ body {
   pointer-events: auto;
 }
 
-/* Mobile contact form: always expanded; hidden on desktop */
+/* Contact form mark: reserved; currently unused (desktop uses corner) */
 .brand-mark--contact {
   display: none;
 }
@@ -3812,20 +3812,6 @@ body {
 
   .brand-mark--corner {
     display: none;
-  }
-
-  .brand-mark--contact {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.65rem;
-    margin: 0.35rem 0 0;
-    max-width: none;
-  }
-
-  .brand-mark--contact .brand-mark__icon {
-    width: 2.25rem;
-    height: 2.25rem;
-    flex: 0 0 2.25rem;
   }
 
   .swipe-hints__set {
