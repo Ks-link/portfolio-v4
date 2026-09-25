@@ -111,6 +111,23 @@
             ? 'dark'
             : 'light'
       document.documentElement.setAttribute('data-theme', theme)
+
+      const accents = [
+        '#ee7330',
+        '#5c8f76',
+        '#c45c5c',
+        '#5c7ec4',
+        '#a56bb8',
+        '#c49a4a',
+        '#4aa3b5',
+        '#c46b8a',
+        '#7d9a4a',
+      ]
+      const accent = localStorage.getItem('accent')
+      if (accents.includes(accent)) {
+        document.documentElement.style.setProperty('--accent', accent)
+        document.documentElement.style.setProperty('--cursor-blob', accent)
+      }
     })()
   </script>
 </head>

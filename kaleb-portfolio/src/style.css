@@ -1161,6 +1161,59 @@ body {
   display: none;
 }
 
+.corner-menu__item--accent {
+  position: relative;
+}
+
+.accent-picker {
+  position: absolute;
+  right: calc(100% + 0.35rem);
+  bottom: 0;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: repeat(3, 1.15rem);
+  gap: 0.3rem;
+  padding: 0.45rem;
+  background: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
+  border-radius: 0.65rem;
+  box-shadow: 0 0.4rem 1.1rem color-mix(in srgb, var(--text) 12%, transparent);
+  transform-origin: bottom right;
+}
+
+.accent-picker[hidden] {
+  display: none !important;
+}
+
+.accent-swatch {
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border: 1.5px solid color-mix(in srgb, var(--text) 22%, transparent);
+  border-radius: 50%;
+  background: var(--swatch);
+  cursor: pointer;
+  appearance: none;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.accent-swatch:hover,
+.accent-swatch:focus-visible {
+  transform: scale(1.12);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--text);
+}
+
+@media (max-width: 48rem) {
+  .accent-picker {
+    top: 0;
+    bottom: auto;
+    transform-origin: top right;
+  }
+}
+
 @media (max-width: 48rem) {
   .corner-cluster--controls {
     top: max(1.25rem, env(safe-area-inset-top));
@@ -1274,10 +1327,6 @@ body {
     display: inline-flex;
   }
 
-  #app[data-screen="play"] .corner-menu__item--blobs {
-    display: none;
-  }
-
   /* Play: theme sits in the corner; no hamburger / map menu.
      visibility inherits through display:contents, so force it visible
      for the flattened theme button — but leave opacity/transform alone
@@ -1298,7 +1347,9 @@ body {
     pointer-events: auto;
   }
 
-  #app[data-screen="play"] .corner-menu__item--map {
+  #app[data-screen="play"] .corner-menu__item--map,
+  #app[data-screen="play"] .corner-menu__item--blobs,
+  #app[data-screen="play"] .corner-menu__item--accent {
     display: none;
   }
 
@@ -1311,7 +1362,8 @@ body {
 
 @media (min-width: 48rem) {
   .blobs-toggle,
-  .theme-toggle {
+  .theme-toggle,
+  .accent-toggle {
     position: static;
     transition:
       color 0.25s ease,
@@ -1320,7 +1372,8 @@ body {
 
   /* Match gear’s optical nudge so the column reads evenly */
   .corner-cluster--controls .theme-toggle .theme-icon,
-  .corner-cluster--controls .blobs-toggle .theme-icon {
+  .corner-cluster--controls .blobs-toggle .theme-icon,
+  .corner-cluster--controls .accent-toggle .theme-icon {
     transform: translateY(0.2rem);
   }
 }

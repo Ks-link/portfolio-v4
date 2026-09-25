@@ -1,6 +1,7 @@
 import './style.css'
 import { createMetaballs, parseCssColor } from './metaballs.js'
 import { mountPlay } from './play.js'
+import { ACCENT_PALETTE, DEFAULT_ACCENT } from './blob-colors.js'
 
 const sunIcon = `
   <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -88,6 +89,27 @@ const mapGridIcon = `
     <circle cx="18" cy="18" r="1.85" fill="currentColor"/>
   </svg>
 `
+
+const accentIcon = `
+  <svg class="theme-icon accent-toggle__icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="7" fill="var(--accent)"/>
+    <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.75"/>
+  </svg>
+`
+
+const accentPickerMarkup = ACCENT_PALETTE.map(
+  (color) => `
+    <button
+      type="button"
+      class="accent-swatch"
+      role="option"
+      data-accent="${color}"
+      style="--swatch: ${color}"
+      aria-label="Accent ${color}"
+      aria-selected="false"
+    ></button>
+  `,
+).join('')
 
 const BLOB_COUNT = 12
 const VISIBLE_MIN = 5
@@ -290,6 +312,26 @@ app.innerHTML = `
           <button type="button" class="corner-btn theme-toggle" aria-label="Toggle dark mode">
             ${moonIcon}
           </button>
+        </div>
+        <div class="corner-menu__item corner-menu__item--accent">
+          <button
+            type="button"
+            class="corner-btn accent-toggle"
+            aria-label="Choose accent colour"
+            aria-expanded="false"
+            aria-controls="accent-picker"
+          >
+            ${accentIcon}
+          </button>
+          <div
+            id="accent-picker"
+            class="accent-picker"
+            role="listbox"
+            aria-label="Accent colours"
+            hidden
+          >
+            ${accentPickerMarkup}
+          </div>
         </div>
         <div class="corner-menu__item corner-menu__item--blobs">
           <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
@@ -1003,10 +1045,69 @@ blobsToggle.addEventListener('click', () => {
   applyBlobs(app.dataset.blobs === 'off' ? 'on' : 'off')
 })
 
+const accentToggle = document.querySelector('.accent-toggle')
+const accentPicker = document.querySelector('#accent-picker')
+const accentSwatches = [...document.querySelectorAll('.accent-swatch')]
+
+const getPreferredAccent = () => {
+  const stored = localStorage.getItem('accent')
+  if (stored && ACCENT_PALETTE.includes(stored)) return stored
+  return DEFAULT_ACCENT
+}
+
+const setAccentPickerOpen = (open) => {
+  const next = Boolean(open)
+  if (accentPicker) {
+    accentPicker.hidden = !next
+    accentPicker.classList.toggle('is-open', next)
+  }
+  accentToggle?.setAttribute('aria-expanded', next ? 'true' : 'false')
+  accentToggle?.setAttribute(
+    'aria-label',
+    next ? 'Close accent colours' : 'Choose accent colour',
+  )
+}
+
+const closeAccentPicker = () => setAccentPickerOpen(false)
+
+const applyAccent = (color) => {
+  const next = ACCENT_PALETTE.includes(color) ? color : DEFAULT_ACCENT
+  root.style.setProperty('--accent', next)
+  root.style.setProperty('--cursor-blob', next)
+  localStorage.setItem('accent', next)
+  accentSwatches.forEach((swatch) => {
+    const selected = swatch.dataset.accent === next
+    swatch.setAttribute('aria-selected', selected ? 'true' : 'false')
+    swatch.classList.toggle('is-selected', selected)
+  })
+}
+
+applyAccent(getPreferredAccent())
+
+accentToggle?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  setAccentPickerOpen(Boolean(accentPicker?.hidden))
+})
+
+accentPicker?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  const swatch =
+    event.target instanceof Element ? event.target.closest('.accent-swatch') : null
+  if (!swatch?.dataset.accent) return
+  applyAccent(swatch.dataset.accent)
+  closeAccentPicker()
+})
+
 const menuToggle = document.querySelector('.menu-toggle')
 const settingsToggle = document.querySelector('.settings-toggle')
 const cornerMenu = document.querySelector('.corner-menu')
 const mobileMenuMq = window.matchMedia('(max-width: 48rem)')
+
+cornerMenu?.addEventListener('click', (event) => {
+  if (!(event.target instanceof Element)) return
+  if (event.target.closest('.accent-toggle, .accent-picker')) return
+  closeAccentPicker()
+})
 
 /** Extra px beyond each control’s visual radius for forgiving mobile taps. */
 const MOBILE_TAP_HIT_PAD = 36
@@ -1046,6 +1147,7 @@ const setCornerMenuOpen = (open) => {
   if (next) app.dataset.cornerMenu = 'open'
   else delete app.dataset.cornerMenu
   cornerMenu?.classList.toggle('is-open', next)
+  if (!next) closeAccentPicker()
   if (cornerMenu) {
     // Play mobile shows theme inline; elsewhere hide closed overlay from a11y.
     const a11yHidden = !next && !onPlayMobile
@@ -1464,6 +1566,11 @@ document.querySelector('.play-root')?.addEventListener('playchange', () => {
 
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return
+  if (accentPicker && !accentPicker.hidden) {
+    closeAccentPicker()
+    accentToggle?.focus({ preventScroll: true })
+    return
+  }
   if (app.dataset.stageMap === 'open') {
     closeStageMap()
     return
