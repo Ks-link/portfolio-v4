@@ -91,10 +91,7 @@ const mapGridIcon = `
 `
 
 const accentIcon = `
-  <svg class="theme-icon accent-toggle__icon" viewBox="0 0 24 24" aria-hidden="true">
-    <circle cx="12" cy="12" r="7" fill="var(--accent)"/>
-    <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.75"/>
-  </svg>
+  <span class="theme-icon accent-toggle__blob" aria-hidden="true"></span>
 `
 
 const accentPickerMarkup = ACCENT_PALETTE.map(
@@ -330,7 +327,12 @@ app.innerHTML = `
             aria-label="Accent colours"
             hidden
           >
-            ${accentPickerMarkup}
+            <div class="accent-picker__easel" aria-hidden="true">
+              <span class="accent-picker__blob"></span>
+            </div>
+            <div class="accent-picker__canvas">
+              ${accentPickerMarkup}
+            </div>
           </div>
         </div>
         <div class="corner-menu__item corner-menu__item--blobs">
@@ -1095,7 +1097,6 @@ accentPicker?.addEventListener('click', (event) => {
     event.target instanceof Element ? event.target.closest('.accent-swatch') : null
   if (!swatch?.dataset.accent) return
   applyAccent(swatch.dataset.accent)
-  closeAccentPicker()
 })
 
 const menuToggle = document.querySelector('.menu-toggle')
@@ -1103,9 +1104,11 @@ const settingsToggle = document.querySelector('.settings-toggle')
 const cornerMenu = document.querySelector('.corner-menu')
 const mobileMenuMq = window.matchMedia('(max-width: 48rem)')
 
-cornerMenu?.addEventListener('click', (event) => {
-  if (!(event.target instanceof Element)) return
-  if (event.target.closest('.accent-toggle, .accent-picker')) return
+document.addEventListener('pointerdown', (event) => {
+  if (!accentPicker || accentPicker.hidden) return
+  const target = event.target
+  if (!(target instanceof Node)) return
+  if (accentPicker.contains(target) || accentToggle?.contains(target)) return
   closeAccentPicker()
 })
 
@@ -1231,7 +1234,7 @@ document.addEventListener(
       !hit &&
       event.target instanceof Element &&
       event.target.closest(
-        'a, button, input, textarea, select, label, .stage-map__cell',
+        'a, button, input, textarea, select, label, .stage-map__cell, .accent-picker',
       )
     ) {
       return

@@ -1167,17 +1167,15 @@ body {
 
 .accent-picker {
   position: absolute;
-  right: calc(100% + 0.35rem);
-  bottom: 0;
+  right: calc(100% + 0.45rem);
+  bottom: -0.55rem;
   z-index: 12;
-  display: grid;
-  grid-template-columns: repeat(3, 1.15rem);
-  gap: 0.3rem;
-  padding: 0.45rem;
-  background: var(--bg);
-  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
-  border-radius: 0.65rem;
-  box-shadow: 0 0.4rem 1.1rem color-mix(in srgb, var(--text) 12%, transparent);
+  width: 8.3rem;
+  height: 8.1rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
   transform-origin: bottom right;
 }
 
@@ -1185,32 +1183,124 @@ body {
   display: none !important;
 }
 
+.accent-picker__easel {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.accent-picker__blob {
+  position: absolute;
+  inset: 0.1rem;
+  background: var(--nav-blob);
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  animation: blob-morph 8s ease-in-out infinite;
+}
+
+.accent-picker__canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.accent-toggle .accent-toggle__blob {
+  width: 1.1rem;
+  height: 1.1rem;
+  background: var(--accent);
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  box-shadow: 0 0 0 0.1rem var(--text);
+  animation: blob-morph 7s ease-in-out infinite;
+  transition:
+    background-color 0.25s ease,
+    scale 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.accent-toggle:hover .accent-toggle__blob,
+.accent-toggle[aria-expanded="true"] .accent-toggle__blob {
+  scale: 1.12;
+}
+
 .accent-swatch {
-  width: 1.15rem;
-  height: 1.15rem;
+  --x: 0rem;
+  --y: 0rem;
+  --s: 1.2rem;
+  position: absolute;
+  left: calc(50% + var(--x) - var(--s) / 2);
+  top: calc(50% + var(--y) - var(--s) / 2);
+  width: var(--s);
+  height: var(--s);
   padding: 0;
-  border: 1.5px solid color-mix(in srgb, var(--text) 22%, transparent);
-  border-radius: 50%;
+  border: none;
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
   background: var(--swatch);
   cursor: pointer;
   appearance: none;
+  animation: blob-morph 7s ease-in-out infinite;
   transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.2s ease,
+    opacity 0.2s ease;
 }
+
+.accent-swatch:nth-child(3n + 1) {
+  animation-delay: -0.6s;
+  border-radius: 44% 56% 40% 60% / 54% 40% 60% 44%;
+}
+
+.accent-swatch:nth-child(3n + 2) {
+  animation-delay: -2.1s;
+  border-radius: 52% 44% 60% 40% / 40% 58% 44% 56%;
+}
+
+.accent-swatch:nth-child(3n) {
+  animation-delay: -3.8s;
+  border-radius: 60% 40% 48% 52% / 46% 55% 45% 54%;
+}
+
+/* Offsets from the blob centre; kept inside the blob's inner ellipse. */
+.accent-swatch:nth-child(1) { --x: -1.85rem; --y: -1.8rem; --s: 1.3rem; }
+.accent-swatch:nth-child(2) { --x: 0.05rem; --y: -1.95rem; --s: 1.15rem; }
+.accent-swatch:nth-child(3) { --x: 1.85rem; --y: -1.65rem; --s: 1.2rem; }
+.accent-swatch:nth-child(4) { --x: -1.75rem; --y: 0.05rem; --s: 1.15rem; }
+.accent-swatch:nth-child(5) { --x: 0.1rem; --y: -0.05rem; --s: 1.3rem; }
+.accent-swatch:nth-child(6) { --x: 1.95rem; --y: 0.15rem; --s: 1.1rem; }
+.accent-swatch:nth-child(7) { --x: -1.9rem; --y: 1.85rem; --s: 1.2rem; }
+.accent-swatch:nth-child(8) { --x: -0.05rem; --y: 1.75rem; --s: 1.15rem; }
+.accent-swatch:nth-child(9) { --x: 1.8rem; --y: 1.9rem; --s: 1.2rem; }
 
 .accent-swatch:hover,
 .accent-swatch:focus-visible {
-  transform: scale(1.12);
+  transform: scale(1.22);
   outline: none;
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--text);
+  filter: brightness(1.08);
+}
+
+.accent-swatch.is-selected,
+.accent-swatch[aria-selected="true"] {
+  transform: scale(1.28);
+  box-shadow: 0 0 0 0.1rem var(--text);
+}
+
+.accent-swatch.is-selected:hover,
+.accent-swatch.is-selected:focus-visible,
+.accent-swatch[aria-selected="true"]:hover,
+.accent-swatch[aria-selected="true"]:focus-visible {
+  transform: scale(1.32);
 }
 
 @media (max-width: 48rem) {
   .accent-picker {
-    top: 0;
+    top: -0.55rem;
     bottom: auto;
     transform-origin: top right;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accent-picker__blob,
+  .accent-toggle__blob,
+  .accent-swatch {
+    animation: none;
   }
 }
 
