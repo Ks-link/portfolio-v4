@@ -5,7 +5,7 @@ export const AI_COLORS = [
   '#c45c5c',
   '#5c7ec4',
   '#a56bb8',
-  '#c49a4a',
+  '#deb24c',
   '#4aa3b5',
   '#c46b8a',
   '#7d9a4a',
