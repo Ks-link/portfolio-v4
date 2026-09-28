@@ -1,6 +1,7 @@
 import './style.css'
 import { createMetaballs, parseCssColor } from './metaballs.js'
 import { mountPlay } from './play.js'
+import { ACCENT_PALETTE, DEFAULT_ACCENT } from './blob-colors.js'
 
 const sunIcon = `
   <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -37,8 +38,8 @@ const lavaLampOnIcon = `
       d="M8.55 2.5a1.2 1.2 0 0 1 1.2-1.2h4.5a1.2 1.2 0 0 1 0 2.4h-4.5a1.2 1.2 0 0 1-1.2-1.2z"/>
     <path fill="currentColor" fill-rule="evenodd"
       d="M9.5 4.15h5L16.95 15.2H7.05z
-         M12.85 7.55a.95 .95 0 1 0 1.9 0a.95 .95 0 1 0-1.9 0z
-         M8.85 11.35c.85-.7 2.55-.55 3.55.25.7.55.7 1.4 0 1.75-1.05.55-2.7.3-3.45-.5-.55-.55-.6-1-.1-1.5z"/>
+         M12.3 7.6a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0-2.4 0z
+         M8.83 11.17c1.02-.84 3.06-.66 4.26.3.84.66.84 1.68 0 2.1-1.26.66-3.24.36-4.14-.6-.66-.66-.72-1.2-.12-1.8z"/>
     <path fill="currentColor"
       d="M7.2 16.4h9.6l-2.05 2.45 2.7 3.9H6.55l2.7-3.9z"/>
   </svg>
@@ -88,6 +89,87 @@ const mapGridIcon = `
     <circle cx="18" cy="18" r="1.85" fill="currentColor"/>
   </svg>
 `
+
+const accentIcon = `
+  <span class="theme-icon accent-toggle__blob" aria-hidden="true"></span>
+`
+
+const accentPickerMarkup = ACCENT_PALETTE.map(
+  (color, index) => `
+    <button
+      type="button"
+      class="accent-swatch"
+      role="option"
+      data-accent="${color}"
+      style="--swatch: ${color}; --i: ${ACCENT_PALETTE.length - 1 - index}"
+      aria-label="Accent ${color}"
+      aria-selected="false"
+    ></button>
+  `,
+).join('')
+
+const cursorIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true"
+    fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.07 13.9V4.23a1.68 1.68 0 0 1 3.36 0V9.7"/>
+    <path d="M12.43 7.8a1.26 1.26 0 0 1 2.52 0v2.5"/>
+    <path d="M14.95 9.46a1.26 1.26 0 0 1 2.52 0v2.14"/>
+    <path d="M17.47 10.64a1.155 1.155 0 0 1 2.31 0V15q0 1.3-.68 2.3l-.7 1.1q-.5.7-.5 1.6v1.24H9.7V20.1q0-.7-.5-1.4L4.2 11.9a1.5 1.5 0 0 1 2.1-1.8l2.77 2.53"/>
+    <path d="M14.74 14.1v2.5M17.26 14.94v1.66"/>
+  </svg>
+`
+
+const faviconArrowPath = 'M3 2.5 19.1 10.9 11.05 13.8 7.4 20.1Z'
+
+/* Click lines are drawn from the inner end outward so the dash animation bursts away from the tip. */
+const faviconArrowSvg = (className, { clicks = true } = {}) => `
+  <svg class="${className}" viewBox="0 0 24 24" aria-hidden="true">
+    ${clicks ? `
+    <g class="cursor-arrow-clicks">
+      <path d="M-2.5 4.8-6 4.5" pathLength="10"/>
+      <path d="M.35-1.2-1.6-3.25" pathLength="10"/>
+      <path d="M6.2-3 6.7-6.1" pathLength="10"/>
+    </g>` : ''}
+    <path d="${faviconArrowPath}" fill="currentColor" stroke="currentColor"
+      stroke-width="3.5" stroke-linejoin="round"/>
+  </svg>
+`
+
+const CURSOR_STYLES = ['blob', 'favicon', 'ring', 'system']
+const DEFAULT_CURSOR_STYLE = 'blob'
+
+const cursorStyleLabels = {
+  blob: 'Blob cursor',
+  favicon: 'Arrow cursor',
+  ring: 'Ring cursor',
+  system: 'System cursor',
+}
+
+const cursorStylePreviews = {
+  blob: '<span class="cursor-swatch__blob"></span>',
+  favicon: faviconArrowSvg('cursor-swatch__arrow', { clicks: false }),
+  ring: '<span class="cursor-swatch__ring"></span>',
+  system: `
+    <svg class="cursor-swatch__icon" viewBox="0 0 24 24">
+      <path d="M5 2.5v16.2l4.1-3.9 2.7 6.2 2.9-1.3-2.7-6h5.9z"
+        fill="currentColor" stroke="var(--bg)" stroke-width="1.25" stroke-linejoin="round"/>
+    </svg>
+  `,
+}
+
+const cursorPickerMarkup = CURSOR_STYLES.map(
+  (style, index) => `
+    <button
+      type="button"
+      class="cursor-swatch"
+      role="option"
+      data-cursor-style="${style}"
+      style="--i: ${CURSOR_STYLES.length - 1 - index}"
+      aria-label="${cursorStyleLabels[style]}"
+      aria-selected="false"
+    >${cursorStylePreviews[style]}</button>
+  `,
+).join('')
 
 const BLOB_COUNT = 12
 const VISIBLE_MIN = 5
@@ -237,6 +319,7 @@ app.innerHTML = `
   <div class="blob-cursor" aria-hidden="true">
     <span class="blob-cursor-motion">
       <span class="blob-cursor-shape"></span>
+      ${faviconArrowSvg('blob-cursor-arrow')}
     </span>
   </div>
   <div class="grain" aria-hidden="true"></div>
@@ -291,6 +374,50 @@ app.innerHTML = `
             ${moonIcon}
           </button>
         </div>
+        <div class="corner-menu__item corner-menu__item--accent">
+          <button
+            type="button"
+            class="corner-btn accent-toggle"
+            aria-label="Choose accent colour"
+            aria-expanded="false"
+            aria-controls="accent-picker"
+          >
+            ${accentIcon}
+          </button>
+          <div
+            id="accent-picker"
+            class="accent-picker"
+            role="listbox"
+            aria-label="Accent colours"
+            hidden
+          >
+            <div class="accent-picker__canvas" style="--count: ${ACCENT_PALETTE.length}">
+              ${accentPickerMarkup}
+            </div>
+          </div>
+        </div>
+        <div class="corner-menu__item corner-menu__item--cursor">
+          <button
+            type="button"
+            class="corner-btn cursor-toggle"
+            aria-label="Choose cursor style"
+            aria-expanded="false"
+            aria-controls="cursor-picker"
+          >
+            ${cursorIcon}
+          </button>
+          <div
+            id="cursor-picker"
+            class="cursor-picker"
+            role="listbox"
+            aria-label="Cursor styles"
+            hidden
+          >
+            <div class="cursor-picker__canvas" style="--count: ${CURSOR_STYLES.length}">
+              ${cursorPickerMarkup}
+            </div>
+          </div>
+        </div>
         <div class="corner-menu__item corner-menu__item--blobs">
           <button type="button" class="corner-btn blobs-toggle" aria-label="Stop creating blobs" aria-pressed="true">
             ${lavaLampOnIcon}
@@ -339,7 +466,7 @@ app.innerHTML = `
           ${stageMapSelectArrow}
           <span class="stage-map__label">work</span>
         </button>
-        <span class="stage-map__slot" aria-hidden="true"></span>
+        <span class="stage-map__slot" data-to="terms" aria-hidden="true"></span>
         <button type="button" class="stage-map__cell" data-to="about" aria-label="About">
           ${stageMapSelectArrow}
           <span class="stage-map__label">about</span>
@@ -348,7 +475,7 @@ app.innerHTML = `
           ${stageMapSelectArrow}
           <span class="stage-map__label">experience</span>
         </button>
-        <span class="stage-map__slot" aria-hidden="true"></span>
+        <span class="stage-map__slot" data-to="privacy" aria-hidden="true"></span>
         <button type="button" class="stage-map__cell" data-to="contact" aria-label="Get In Touch">
           ${stageMapSelectArrow}
           <span class="stage-map__label">contact</span>
@@ -1003,10 +1130,171 @@ blobsToggle.addEventListener('click', () => {
   applyBlobs(app.dataset.blobs === 'off' ? 'on' : 'off')
 })
 
+const accentToggle = document.querySelector('.accent-toggle')
+const accentPicker = document.querySelector('#accent-picker')
+const accentSwatches = [...document.querySelectorAll('.accent-swatch')]
+
+const getPreferredAccent = () => {
+  const stored = localStorage.getItem('accent')
+  if (stored && ACCENT_PALETTE.includes(stored)) return stored
+  return DEFAULT_ACCENT
+}
+
+const isAccentPickerOpen = () => Boolean(accentPicker?.classList.contains('is-open'))
+
+let accentPickerCloseToken = 0
+
+const setAccentPickerOpen = (open) => {
+  const next = Boolean(open)
+  if (accentPicker && next !== isAccentPickerOpen()) {
+    const token = ++accentPickerCloseToken
+    accentPicker.classList.toggle('is-open', next)
+    accentPicker.classList.toggle('is-closing', !next)
+    if (next) {
+      accentPicker.hidden = false
+    } else {
+      const exits = accentPicker
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation.animationName === 'accent-swatch-out')
+      Promise.all(exits.map((animation) => animation.finished))
+        .catch(() => {})
+        .then(() => {
+          if (token !== accentPickerCloseToken) return
+          accentPicker.hidden = true
+          accentPicker.classList.remove('is-closing')
+        })
+    }
+  }
+  accentToggle?.setAttribute('aria-expanded', next ? 'true' : 'false')
+  accentToggle?.setAttribute(
+    'aria-label',
+    next ? 'Close accent colours' : 'Choose accent colour',
+  )
+}
+
+const closeAccentPicker = () => setAccentPickerOpen(false)
+
+const applyAccent = (color) => {
+  const next = ACCENT_PALETTE.includes(color) ? color : DEFAULT_ACCENT
+  root.style.setProperty('--accent', next)
+  root.style.setProperty('--cursor-blob', next)
+  localStorage.setItem('accent', next)
+  accentSwatches.forEach((swatch) => {
+    const selected = swatch.dataset.accent === next
+    swatch.setAttribute('aria-selected', selected ? 'true' : 'false')
+    swatch.classList.toggle('is-selected', selected)
+  })
+}
+
+applyAccent(getPreferredAccent())
+
+accentToggle?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  setAccentPickerOpen(!isAccentPickerOpen())
+})
+
+accentPicker?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  const swatch =
+    event.target instanceof Element ? event.target.closest('.accent-swatch') : null
+  if (!swatch?.dataset.accent) return
+  applyAccent(swatch.dataset.accent)
+})
+
+const cursorToggle = document.querySelector('.cursor-toggle')
+const cursorPicker = document.querySelector('#cursor-picker')
+const cursorSwatches = [...document.querySelectorAll('.cursor-swatch')]
+
+/** Replaced by the cursor follower once it is set up. */
+let syncCursorStyle = () => { }
+
+const getPreferredCursorStyle = () => {
+  const stored = localStorage.getItem('cursorStyle')
+  if (CURSOR_STYLES.includes(stored)) return stored
+  return DEFAULT_CURSOR_STYLE
+}
+
+const isCursorPickerOpen = () => Boolean(cursorPicker?.classList.contains('is-open'))
+
+let cursorPickerCloseToken = 0
+
+const setCursorPickerOpen = (open) => {
+  const next = Boolean(open)
+  if (cursorPicker && next !== isCursorPickerOpen()) {
+    const token = ++cursorPickerCloseToken
+    cursorPicker.classList.toggle('is-open', next)
+    cursorPicker.classList.toggle('is-closing', !next)
+    if (next) {
+      cursorPicker.hidden = false
+    } else {
+      const exits = cursorPicker
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation.animationName === 'accent-swatch-out')
+      Promise.all(exits.map((animation) => animation.finished))
+        .catch(() => {})
+        .then(() => {
+          if (token !== cursorPickerCloseToken) return
+          cursorPicker.hidden = true
+          cursorPicker.classList.remove('is-closing')
+        })
+    }
+  }
+  cursorToggle?.setAttribute('aria-expanded', next ? 'true' : 'false')
+  cursorToggle?.setAttribute(
+    'aria-label',
+    next ? 'Close cursor styles' : 'Choose cursor style',
+  )
+}
+
+const closeCursorPicker = () => setCursorPickerOpen(false)
+
+const applyCursorStyle = (style) => {
+  const next = CURSOR_STYLES.includes(style) ? style : DEFAULT_CURSOR_STYLE
+  root.dataset.cursor = next
+  localStorage.setItem('cursorStyle', next)
+  cursorSwatches.forEach((swatch) => {
+    const selected = swatch.dataset.cursorStyle === next
+    swatch.setAttribute('aria-selected', selected ? 'true' : 'false')
+    swatch.classList.toggle('is-selected', selected)
+  })
+  syncCursorStyle()
+}
+
+applyCursorStyle(getPreferredCursorStyle())
+
+cursorToggle?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  setCursorPickerOpen(!isCursorPickerOpen())
+})
+
+cursorPicker?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  const swatch =
+    event.target instanceof Element ? event.target.closest('.cursor-swatch') : null
+  if (!swatch?.dataset.cursorStyle) return
+  applyCursorStyle(swatch.dataset.cursorStyle)
+})
+
 const menuToggle = document.querySelector('.menu-toggle')
 const settingsToggle = document.querySelector('.settings-toggle')
 const cornerMenu = document.querySelector('.corner-menu')
 const mobileMenuMq = window.matchMedia('(max-width: 48rem)')
+
+document.addEventListener('pointerdown', (event) => {
+  if (!isAccentPickerOpen()) return
+  const target = event.target
+  if (!(target instanceof Node)) return
+  if (accentPicker.contains(target) || accentToggle?.contains(target)) return
+  closeAccentPicker()
+})
+
+document.addEventListener('pointerdown', (event) => {
+  if (!isCursorPickerOpen()) return
+  const target = event.target
+  if (!(target instanceof Node)) return
+  if (cursorPicker.contains(target) || cursorToggle?.contains(target)) return
+  closeCursorPicker()
+})
 
 /** Extra px beyond each control’s visual radius for forgiving mobile taps. */
 const MOBILE_TAP_HIT_PAD = 36
@@ -1046,6 +1334,10 @@ const setCornerMenuOpen = (open) => {
   if (next) app.dataset.cornerMenu = 'open'
   else delete app.dataset.cornerMenu
   cornerMenu?.classList.toggle('is-open', next)
+  if (!next) {
+    closeAccentPicker()
+    closeCursorPicker()
+  }
   if (cornerMenu) {
     // Play mobile shows theme inline; elsewhere hide closed overlay from a11y.
     const a11yHidden = !next && !onPlayMobile
@@ -1129,7 +1421,7 @@ document.addEventListener(
       !hit &&
       event.target instanceof Element &&
       event.target.closest(
-        'a, button, input, textarea, select, label, .stage-map__cell',
+        'a, button, input, textarea, select, label, .stage-map__cell, .accent-picker, .cursor-picker',
       )
     ) {
       return
@@ -1397,12 +1689,11 @@ const toggleStageMap = () => {
 /** Extra px beyond each blob’s visual radius for forgiving mobile taps. */
 const STAGE_MAP_HIT_PAD = MOBILE_TAP_HIT_PAD
 
-const nearestStageMapDest = (clientX, clientY) => {
-  let bestDest = null
+const nearestStageMapBlob = (clientX, clientY) => {
+  let best = null
   let bestDist = Infinity
   for (const blob of stageMapBlobs) {
-    const dest = blob.dataset.to
-    if (!dest || lockedScreens.has(dest)) continue
+    if (!blob.dataset.to) continue
     const rect = blob.getBoundingClientRect()
     const cx = rect.left + rect.width / 2
     const cy = rect.top + rect.height / 2
@@ -1410,10 +1701,29 @@ const nearestStageMapDest = (clientX, clientY) => {
     const hitR = Math.max(rect.width, rect.height) / 2 + STAGE_MAP_HIT_PAD
     if (dist <= hitR && dist < bestDist) {
       bestDist = dist
-      bestDest = dest
+      best = blob
     }
   }
-  return bestDest
+  return best
+}
+
+const nearestStageMapDest = (clientX, clientY) => {
+  const dest = nearestStageMapBlob(clientX, clientY)?.dataset.to
+  return dest && !lockedScreens.has(dest) ? dest : null
+}
+
+const pulseLockedStageMapBlob = (dest) => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const blob = stageMapBlobs.find((b) => b.dataset.to === dest)
+  if (!blob) return
+  blob.getAnimations().forEach((anim) => {
+    if (anim.id === 'stage-map-locked-pulse') anim.cancel()
+  })
+  const anim = blob.animate(
+    [{ scale: 1 }, { scale: 1.32, offset: 0.4 }, { scale: 0.94, offset: 0.75 }, { scale: 1 }],
+    { duration: 420, easing: 'ease-out' },
+  )
+  anim.id = 'stage-map-locked-pulse'
 }
 
 const activateStageMapDest = (dest) => {
@@ -1439,19 +1749,25 @@ document.addEventListener('pointerdown', (event) => {
   if (!(target instanceof Element)) return
   if (target.closest('.corner-cluster')) return
   // Keep open when tapping a blob or within its hit radius.
-  if (nearestStageMapDest(event.clientX, event.clientY)) return
+  if (nearestStageMapBlob(event.clientX, event.clientY)) return
   if (target.closest('.stage-map__cell')) return
   closeStageMap()
 })
 
 stageMap?.querySelector('.stage-map__scale')?.addEventListener('click', (event) => {
-  if (!isStageMapOpen()) return
+  const target = event.target instanceof Element ? event.target : null
+  if (!isStageMapOpen()) {
+    const slot = target?.closest('.stage-map__slot[data-to]')
+    if (slot && lockedScreens.has(slot.dataset.to)) pulseLockedStageMapBlob(slot.dataset.to)
+    return
+  }
   // Direct cell hits are handled below; this catches near-misses on slots/gaps.
-  if (event.target instanceof Element && event.target.closest('.stage-map__cell')) return
-  const dest = nearestStageMapDest(event.clientX, event.clientY)
+  if (target?.closest('.stage-map__cell')) return
+  const dest = nearestStageMapBlob(event.clientX, event.clientY)?.dataset.to
   if (!dest) return
   event.preventDefault()
-  activateStageMapDest(dest)
+  if (lockedScreens.has(dest)) pulseLockedStageMapBlob(dest)
+  else activateStageMapDest(dest)
 })
 
 const routeEffects = {
@@ -1464,6 +1780,16 @@ document.querySelector('.play-root')?.addEventListener('playchange', () => {
 
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return
+  if (isAccentPickerOpen()) {
+    closeAccentPicker()
+    accentToggle?.focus({ preventScroll: true })
+    return
+  }
+  if (isCursorPickerOpen()) {
+    closeCursorPicker()
+    cursorToggle?.focus({ preventScroll: true })
+    return
+  }
   if (app.dataset.stageMap === 'open') {
     closeStageMap()
     return
@@ -3835,10 +4161,14 @@ const blobCursorMotion = document.querySelector('.blob-cursor-motion')
 const finePointerMq = window.matchMedia('(hover: hover) and (pointer: fine)')
 const cursorInteractive = 'a, button, [role="button"], summary, label, input, textarea, select, .profile-blob-shape'
 
-if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
+// Blob relies on motion, so reduced motion falls back to the system cursor for it.
+const followerCursorStyles = new Set(reduceMotion ? ['favicon', 'ring'] : ['blob', 'favicon', 'ring'])
+
+if (blobCursorRoot && blobCursorMotion) {
   const cursor = {
     visible: false,
     enabled: false,
+    style: root.dataset.cursor,
     moving: false,
     angle: 0,
     lastT: 0,
@@ -3854,16 +4184,6 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
     blobCursorMotion.style.transform = restMotion()
   }
 
-  const syncCursorMode = () => {
-    cursor.enabled = finePointerMq.matches
-    root.classList.toggle('has-blob-cursor', cursor.enabled)
-    if (!cursor.enabled) {
-      cursor.visible = false
-      blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving', 'is-melted')
-      blobCursorMotion.style.transform = ''
-    }
-  }
-
   const hideCursor = () => {
     cursor.visible = false
     cursor.moving = false
@@ -3871,12 +4191,28 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
       clearTimeout(cursor.settleTimer)
       cursor.settleTimer = 0
     }
-    blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving', 'is-melted')
+    blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving', 'is-melted', 'is-clicking')
     blobCursorMotion.style.transform = ''
+  }
+
+  const syncCursorMode = () => {
+    const style = root.dataset.cursor
+    cursor.enabled = finePointerMq.matches && followerCursorStyles.has(style)
+    root.classList.toggle('has-blob-cursor', cursor.enabled)
+    if (!cursor.enabled) {
+      hideCursor()
+    } else if (style !== cursor.style) {
+      cursor.angle = 0
+      cursor.moving = false
+      blobCursorRoot.classList.remove('is-moving', 'is-clicking')
+      blobCursorMotion.style.transform = ''
+    }
+    cursor.style = style
   }
 
   syncCursorMode()
   routeEffects.syncCursor = syncCursorMode
+  syncCursorStyle = syncCursorMode
   finePointerMq.addEventListener('change', syncCursorMode)
 
   window.addEventListener(
@@ -3888,7 +4224,8 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
         return
       }
 
-      const overNavBlob = Boolean(e.target?.closest?.('.nav-blob'))
+      const isBlob = cursor.style === 'blob'
+      const overNavBlob = isBlob && Boolean(e.target?.closest?.('.nav-blob'))
       const hovering = Boolean(e.target?.closest?.(cursorInteractive))
       blobCursorRoot.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`
       blobCursorRoot.classList.toggle('is-hover', hovering && !overNavBlob)
@@ -3900,6 +4237,8 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
         blobCursorRoot.classList.add('is-on')
         return
       }
+
+      if (!isBlob) return
 
       const dt = Math.max(8, e.timeStamp - cursor.lastT)
       cursor.lastT = e.timeStamp
@@ -3922,7 +4261,14 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
   )
 
   window.addEventListener('pointerdown', (e) => {
-    if (cursor.enabled && e.pointerType !== 'touch') blobCursorRoot.classList.add('is-down')
+    if (!cursor.enabled || e.pointerType === 'touch') return
+    blobCursorRoot.classList.add('is-down')
+    if (cursor.style === 'favicon') {
+      // Restart the click burst even on rapid repeat clicks.
+      blobCursorRoot.classList.remove('is-clicking')
+      void blobCursorRoot.offsetWidth
+      blobCursorRoot.classList.add('is-clicking')
+    }
   })
 
   window.addEventListener('pointerup', () => {

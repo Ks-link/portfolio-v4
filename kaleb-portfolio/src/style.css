@@ -237,7 +237,7 @@ body {
 }
 
 .play-leaderboard li:nth-child(7n + 6) {
-  color: #c49a4a;
+  color: #deb24c;
 }
 
 .play-leaderboard li:nth-child(7n) {
@@ -1053,6 +1053,133 @@ body {
   transform: scale(0);
 }
 
+.blob-cursor-arrow {
+  display: none;
+}
+
+html[data-cursor="favicon"] .blob-cursor,
+html[data-cursor="ring"] .blob-cursor {
+  mix-blend-mode: normal;
+}
+
+/* Hotspot sits on the arrow tip (3, 2.5 in the 24-unit viewBox). */
+html[data-cursor="favicon"] .blob-cursor {
+  --arrow-size: 18px;
+  width: var(--arrow-size);
+  height: var(--arrow-size);
+  margin: calc(var(--arrow-size) * -2.5 / 24) 0 0 calc(var(--arrow-size) * -3 / 24);
+}
+
+html[data-cursor="favicon"] .blob-cursor-shape {
+  display: none;
+}
+
+html[data-cursor="favicon"] .blob-cursor-arrow {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: var(--cursor-blob);
+  transform-origin: calc(100% * 3 / 24) calc(100% * 2.5 / 24);
+  filter: drop-shadow(0 0 1px var(--bg));
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.25s ease;
+}
+
+html[data-cursor="favicon"] .blob-cursor.is-hover .blob-cursor-arrow {
+  transform: scale(1.2);
+}
+
+html[data-cursor="favicon"] .blob-cursor.is-down .blob-cursor-arrow {
+  transform: scale(0.85);
+}
+
+.cursor-arrow-clicks {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+
+.blob-cursor-arrow .cursor-arrow-clicks path {
+  opacity: 0;
+  stroke-dasharray: 10 10;
+  stroke-dashoffset: 10;
+}
+
+html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path {
+  animation: cursor-click-burst 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path:nth-child(2) {
+  animation-delay: 0.03s;
+}
+
+html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path:nth-child(3) {
+  animation-delay: 0.06s;
+}
+
+/* Dash grows out from the inner end, then retreats past the outer end. */
+@keyframes cursor-click-burst {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 10;
+  }
+  10% {
+    opacity: 1;
+  }
+  45% {
+    stroke-dashoffset: 0;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -10;
+  }
+}
+
+html[data-cursor="ring"] .blob-cursor {
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+}
+
+html[data-cursor="ring"] .blob-cursor-shape {
+  position: relative;
+  background: transparent;
+  border: 2px solid var(--cursor-blob);
+  border-radius: 50%;
+  animation: none;
+}
+
+html[data-cursor="ring"] .blob-cursor-shape::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: var(--cursor-blob);
+  transition: opacity 0.18s ease;
+}
+
+html[data-cursor="ring"] .blob-cursor.is-hover .blob-cursor-shape {
+  transform: scale(1.8);
+}
+
+html[data-cursor="ring"] .blob-cursor.is-hover .blob-cursor-shape::after {
+  opacity: 0;
+}
+
+html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
+  transform: scale(0.7);
+}
+
 @media (hover: hover) and (pointer: fine) {
   html.has-blob-cursor,
   html.has-blob-cursor * {
@@ -1159,6 +1286,259 @@ body {
 
 .corner-menu__item--map {
   display: none;
+}
+
+.corner-menu__item--accent {
+  position: relative;
+}
+
+.accent-picker {
+  position: absolute;
+  right: calc(100% + 0.35rem);
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 12;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.accent-picker[hidden] {
+  display: none !important;
+}
+
+.accent-picker__canvas {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem;
+}
+
+@keyframes accent-swatch-in {
+  from {
+    translate: calc(var(--i) * 1.7rem + 1.5rem) 0;
+    opacity: 0;
+  }
+  to {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+
+@keyframes accent-swatch-out {
+  from {
+    translate: 0 0;
+    opacity: 1;
+  }
+  to {
+    translate: calc(var(--i) * 1.7rem + 1.5rem) 0;
+    opacity: 0;
+  }
+}
+
+.accent-toggle .accent-toggle__blob {
+  width: 1.1rem;
+  height: 1.1rem;
+  background: var(--accent);
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  box-shadow: 0 0 0 0.1rem var(--text);
+  animation: blob-morph 7s ease-in-out infinite;
+  transition:
+    background-color 0.25s ease,
+    scale 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.accent-toggle:hover .accent-toggle__blob,
+.accent-toggle[aria-expanded="true"] .accent-toggle__blob {
+  scale: 1.12;
+}
+
+.accent-swatch {
+  --i: 0;
+  --morph-delay: 0s;
+  flex: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  border: none;
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  background: var(--swatch);
+  cursor: pointer;
+  appearance: none;
+  animation:
+    accent-swatch-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * 0.025s) both,
+    blob-morph 7s ease-in-out var(--morph-delay) infinite;
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.accent-picker.is-closing {
+  pointer-events: none;
+}
+
+.accent-picker.is-closing .accent-swatch {
+  animation:
+    accent-swatch-out 0.35s cubic-bezier(0.64, 0, 0.78, 0)
+      calc((var(--count) - 1 - var(--i)) * 0.025s) both,
+    blob-morph 7s ease-in-out var(--morph-delay) infinite;
+}
+
+.accent-swatch:nth-child(3n + 1) {
+  --morph-delay: -0.6s;
+  border-radius: 44% 56% 40% 60% / 54% 40% 60% 44%;
+}
+
+.accent-swatch:nth-child(3n + 2) {
+  --morph-delay: -2.1s;
+  border-radius: 52% 44% 60% 40% / 40% 58% 44% 56%;
+}
+
+.accent-swatch:nth-child(3n) {
+  --morph-delay: -3.8s;
+  border-radius: 60% 40% 48% 52% / 46% 55% 45% 54%;
+}
+
+.accent-swatch:hover,
+.accent-swatch:focus-visible {
+  transform: scale(1.22);
+  outline: none;
+  filter: brightness(1.08);
+}
+
+.accent-swatch.is-selected,
+.accent-swatch[aria-selected="true"] {
+  transform: scale(1.28);
+  box-shadow: 0 0 0 0.1rem var(--text);
+}
+
+.accent-swatch.is-selected:hover,
+.accent-swatch.is-selected:focus-visible,
+.accent-swatch[aria-selected="true"]:hover,
+.accent-swatch[aria-selected="true"]:focus-visible {
+  transform: scale(1.32);
+}
+
+.corner-menu__item--cursor {
+  position: relative;
+}
+
+.cursor-picker {
+  position: absolute;
+  right: calc(100% + 0.35rem);
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 12;
+}
+
+.cursor-picker[hidden] {
+  display: none !important;
+}
+
+.cursor-picker__canvas {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem;
+}
+
+.cursor-swatch {
+  --i: 0;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 8%, var(--bg));
+  color: var(--text);
+  cursor: pointer;
+  appearance: none;
+  animation: accent-swatch-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * 0.025s) both;
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.2s ease;
+}
+
+.cursor-picker.is-closing {
+  pointer-events: none;
+}
+
+.cursor-picker.is-closing .cursor-swatch {
+  animation: accent-swatch-out 0.35s cubic-bezier(0.64, 0, 0.78, 0)
+    calc((var(--count) - 1 - var(--i)) * 0.025s) both;
+}
+
+.cursor-swatch:hover,
+.cursor-swatch:focus-visible {
+  transform: scale(1.12);
+  background: color-mix(in srgb, var(--text) 14%, var(--bg));
+}
+
+.cursor-swatch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cursor-swatch.is-selected,
+.cursor-swatch[aria-selected="true"] {
+  box-shadow: 0 0 0 0.1rem var(--text);
+}
+
+.cursor-swatch__blob,
+.cursor-swatch__ring {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.cursor-swatch__blob {
+  background: var(--accent);
+  border-radius: 58% 42% 50% 46% / 44% 52% 42% 58%;
+  animation: blob-morph 6.5s ease-in-out infinite;
+}
+
+.cursor-swatch__ring {
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+}
+
+.cursor-swatch__arrow,
+.cursor-swatch__icon {
+  width: 1rem;
+  height: 1rem;
+  overflow: visible;
+}
+
+.cursor-swatch__arrow {
+  color: var(--accent);
+}
+
+/* Arrow icons carry their visual mass left of their box; optically centre them in the chip. */
+.cursor-swatch__arrow,
+.cursor-swatch[data-cursor-style="system"] .cursor-swatch__icon {
+  translate: 0.08rem 0;
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 48rem) {
+  .corner-menu__item--cursor {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accent-toggle__blob,
+  .accent-swatch,
+  .accent-picker.is-closing .accent-swatch,
+  .cursor-swatch,
+  .cursor-picker.is-closing .cursor-swatch,
+  .cursor-swatch__blob {
+    animation: none;
+  }
 }
 
 @media (max-width: 48rem) {
@@ -1274,10 +1654,6 @@ body {
     display: inline-flex;
   }
 
-  #app[data-screen="play"] .corner-menu__item--blobs {
-    display: none;
-  }
-
   /* Play: theme sits in the corner; no hamburger / map menu.
      visibility inherits through display:contents, so force it visible
      for the flattened theme button — but leave opacity/transform alone
@@ -1298,7 +1674,10 @@ body {
     pointer-events: auto;
   }
 
-  #app[data-screen="play"] .corner-menu__item--map {
+  #app[data-screen="play"] .corner-menu__item--map,
+  #app[data-screen="play"] .corner-menu__item--blobs,
+  #app[data-screen="play"] .corner-menu__item--accent,
+  #app[data-screen="play"] .corner-menu__item--cursor {
     display: none;
   }
 
@@ -1311,7 +1690,9 @@ body {
 
 @media (min-width: 48rem) {
   .blobs-toggle,
-  .theme-toggle {
+  .theme-toggle,
+  .accent-toggle,
+  .cursor-toggle {
     position: static;
     transition:
       color 0.25s ease,
@@ -1320,8 +1701,15 @@ body {
 
   /* Match gear’s optical nudge so the column reads evenly */
   .corner-cluster--controls .theme-toggle .theme-icon,
-  .corner-cluster--controls .blobs-toggle .theme-icon {
+  .corner-cluster--controls .blobs-toggle .theme-icon,
+  .corner-cluster--controls .accent-toggle .theme-icon,
+  .corner-cluster--controls .cursor-toggle .theme-icon {
     transform: translateY(0.2rem);
+  }
+
+  .accent-picker,
+  .cursor-picker {
+    translate: 0 calc(-50% + 0.2rem);
   }
 }
 
@@ -4004,8 +4392,17 @@ body {
     border-radius: 54% 50% 52% 48% / 50% 54% 48% 52%;
   }
 
-  .blob-cursor {
+  html[data-cursor="blob"] .blob-cursor {
     display: none;
+  }
+
+  html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path {
+    animation: none;
+  }
+
+  html[data-cursor="favicon"] .blob-cursor.is-down .cursor-arrow-clicks path {
+    opacity: 1;
+    stroke-dashoffset: 0;
   }
 
   .work-detail-live-arm-shape,

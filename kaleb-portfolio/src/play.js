@@ -20,6 +20,7 @@ import {
   unpackCells,
   unpackFood,
 } from './play-net.js'
+import { AI_COLORS, DEFAULT_ACCENT, FOOD_PALETTE } from './blob-colors.js'
 
 const GRID = 88
 const WORLD = GRID * 48
@@ -53,25 +54,6 @@ const AI_LAUNCH_THREAT_PAD = 140
 const AI_REACT_MIN = 0.1
 const AI_REACT_MAX = 0.4
 const SPAWN_PROTECT = 5
-
-const AI_COLORS = [
-  '#5c8f76',
-  '#c45c5c',
-  '#5c7ec4',
-  '#a56bb8',
-  '#c49a4a',
-  '#4aa3b5',
-  '#c46b8a',
-  '#7d9a4a',
-  '#8f6b5c',
-  '#6a7d9e',
-  '#b85c8a',
-  '#7a6bc4',
-  '#c4784a',
-  '#4a8f8a',
-  '#8b5ea8',
-]
-const FOOD_PALETTE = ['#ee7330', ...AI_COLORS]
 const CELL_PUB_MS = 80
 const FOOD_PUB_MS = 500
 const INPUT_PUB_MS = 50
@@ -163,7 +145,7 @@ const readTheme = () => {
   return {
     bg: s.getPropertyValue('--bg').trim() || '#fffff4',
     text: s.getPropertyValue('--text').trim() || '#322f2f',
-    accent: s.getPropertyValue('--accent').trim() || '#ee7330',
+    accent: s.getPropertyValue('--accent').trim() || DEFAULT_ACCENT,
   }
 }
 
@@ -354,7 +336,7 @@ export const mountPlay = (root) => {
   let slotDiffEnabled = false
   let emptyLobby = false
 
-  const theme = { bg: '#fffff4', text: '#322f2f', accent: '#ee7330' }
+  const theme = { bg: '#fffff4', text: '#322f2f', accent: DEFAULT_ACCENT }
 
   const syncTheme = () => Object.assign(theme, readTheme())
 
