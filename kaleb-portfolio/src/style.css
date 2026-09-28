@@ -1062,11 +1062,12 @@ html[data-cursor="ring"] .blob-cursor {
   mix-blend-mode: normal;
 }
 
-/* Hotspot sits on the arrow tip (3, 2.5 in the 24px viewBox). */
+/* Hotspot sits on the arrow tip (3, 2.5 in the 24-unit viewBox). */
 html[data-cursor="favicon"] .blob-cursor {
-  width: 24px;
-  height: 24px;
-  margin: -2.5px 0 0 -3px;
+  --arrow-size: 18px;
+  width: var(--arrow-size);
+  height: var(--arrow-size);
+  margin: calc(var(--arrow-size) * -2.5 / 24) 0 0 calc(var(--arrow-size) * -3 / 24);
 }
 
 html[data-cursor="favicon"] .blob-cursor-shape {
@@ -1079,7 +1080,7 @@ html[data-cursor="favicon"] .blob-cursor-arrow {
   height: 100%;
   overflow: visible;
   color: var(--cursor-blob);
-  transform-origin: 3px 2.5px;
+  transform-origin: calc(100% * 3 / 24) calc(100% * 2.5 / 24);
   filter: drop-shadow(0 0 1px var(--bg));
   transition:
     transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
@@ -1092,6 +1093,52 @@ html[data-cursor="favicon"] .blob-cursor.is-hover .blob-cursor-arrow {
 
 html[data-cursor="favicon"] .blob-cursor.is-down .blob-cursor-arrow {
   transform: scale(0.85);
+}
+
+.cursor-arrow-clicks {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+
+.blob-cursor-arrow .cursor-arrow-clicks path {
+  opacity: 0;
+  stroke-dasharray: 10 10;
+  stroke-dashoffset: 10;
+}
+
+html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path {
+  animation: cursor-click-burst 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path:nth-child(2) {
+  animation-delay: 0.03s;
+}
+
+html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path:nth-child(3) {
+  animation-delay: 0.06s;
+}
+
+/* Dash grows out from the inner end, then retreats past the outer end. */
+@keyframes cursor-click-burst {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 10;
+  }
+  10% {
+    opacity: 1;
+  }
+  45% {
+    stroke-dashoffset: 0;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -10;
+  }
 }
 
 html[data-cursor="ring"] .blob-cursor {
@@ -1137,11 +1184,6 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   html.has-blob-cursor,
   html.has-blob-cursor * {
     cursor: none !important;
-  }
-
-  html[data-cursor="hand"],
-  html[data-cursor="hand"] * {
-    cursor: pointer !important;
   }
 }
 
@@ -1474,6 +1516,12 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
 
 .cursor-swatch__arrow {
   color: var(--accent);
+}
+
+/* Arrow icons carry their visual mass left of their box; optically centre them in the chip. */
+.cursor-swatch__arrow,
+.cursor-swatch[data-cursor-style="system"] .cursor-swatch__icon {
+  translate: 0.08rem 0;
 }
 
 @media (hover: none), (pointer: coarse), (max-width: 48rem) {
@@ -4346,6 +4394,15 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
 
   html[data-cursor="blob"] .blob-cursor {
     display: none;
+  }
+
+  html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path {
+    animation: none;
+  }
+
+  html[data-cursor="favicon"] .blob-cursor.is-down .cursor-arrow-clicks path {
+    opacity: 1;
+    stroke-dashoffset: 0;
   }
 
   .work-detail-live-arm-shape,

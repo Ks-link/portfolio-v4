@@ -110,21 +110,32 @@ const accentPickerMarkup = ACCENT_PALETTE.map(
 
 const cursorIcon = `
   <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true"
-    fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round">
-    <path d="M4.04 4.69a.5.5 0 0 1 .65-.65l16 6.5a.5.5 0 0 1-.06.95l-6.12 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.12a.5.5 0 0 1-.95.06z"/>
+    fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.07 13.9V4.23a1.68 1.68 0 0 1 3.36 0V9.7"/>
+    <path d="M12.43 7.8a1.26 1.26 0 0 1 2.52 0v2.5"/>
+    <path d="M14.95 9.46a1.26 1.26 0 0 1 2.52 0v2.14"/>
+    <path d="M17.47 10.64a1.155 1.155 0 0 1 2.31 0V15q0 1.3-.68 2.3l-.7 1.1q-.5.7-.5 1.6v1.24H9.7V20.1q0-.7-.5-1.4L4.2 11.9a1.5 1.5 0 0 1 2.1-1.8l2.77 2.53"/>
+    <path d="M14.74 14.1v2.5M17.26 14.94v1.66"/>
   </svg>
 `
 
-const faviconArrowPath = 'M3 2.5 19.1 12.3 12.8 15.7 8.75 21.8Z'
+const faviconArrowPath = 'M3 2.5 19.1 10.9 11.05 13.8 7.4 20.1Z'
 
-const faviconArrowSvg = (className) => `
+/* Click lines are drawn from the inner end outward so the dash animation bursts away from the tip. */
+const faviconArrowSvg = (className, { clicks = true } = {}) => `
   <svg class="${className}" viewBox="0 0 24 24" aria-hidden="true">
+    ${clicks ? `
+    <g class="cursor-arrow-clicks">
+      <path d="M-2.5 4.8-6 4.5" pathLength="10"/>
+      <path d="M.35-1.2-1.6-3.25" pathLength="10"/>
+      <path d="M6.2-3 6.7-6.1" pathLength="10"/>
+    </g>` : ''}
     <path d="${faviconArrowPath}" fill="currentColor" stroke="currentColor"
       stroke-width="3.5" stroke-linejoin="round"/>
   </svg>
 `
 
-const CURSOR_STYLES = ['blob', 'favicon', 'ring', 'system', 'hand']
+const CURSOR_STYLES = ['blob', 'favicon', 'ring', 'system']
 const DEFAULT_CURSOR_STYLE = 'blob'
 
 const cursorStyleLabels = {
@@ -132,27 +143,16 @@ const cursorStyleLabels = {
   favicon: 'Arrow cursor',
   ring: 'Ring cursor',
   system: 'System cursor',
-  hand: 'Hand cursor',
 }
 
 const cursorStylePreviews = {
   blob: '<span class="cursor-swatch__blob"></span>',
-  favicon: faviconArrowSvg('cursor-swatch__arrow'),
+  favicon: faviconArrowSvg('cursor-swatch__arrow', { clicks: false }),
   ring: '<span class="cursor-swatch__ring"></span>',
   system: `
     <svg class="cursor-swatch__icon" viewBox="0 0 24 24">
       <path d="M5 2.5v16.2l4.1-3.9 2.7 6.2 2.9-1.3-2.7-6h5.9z"
         fill="currentColor" stroke="var(--bg)" stroke-width="1.25" stroke-linejoin="round"/>
-    </svg>
-  `,
-  hand: `
-    <svg class="cursor-swatch__icon" viewBox="0 0 24 24"
-      fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M22 14a8 8 0 0 1-8 8"/>
-      <path d="M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/>
-      <path d="M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1"/>
-      <path d="M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10"/>
-      <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
     </svg>
   `,
 }
@@ -4191,7 +4191,7 @@ if (blobCursorRoot && blobCursorMotion) {
       clearTimeout(cursor.settleTimer)
       cursor.settleTimer = 0
     }
-    blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving', 'is-melted')
+    blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving', 'is-melted', 'is-clicking')
     blobCursorMotion.style.transform = ''
   }
 
@@ -4204,7 +4204,7 @@ if (blobCursorRoot && blobCursorMotion) {
     } else if (style !== cursor.style) {
       cursor.angle = 0
       cursor.moving = false
-      blobCursorRoot.classList.remove('is-moving')
+      blobCursorRoot.classList.remove('is-moving', 'is-clicking')
       blobCursorMotion.style.transform = ''
     }
     cursor.style = style
@@ -4261,7 +4261,14 @@ if (blobCursorRoot && blobCursorMotion) {
   )
 
   window.addEventListener('pointerdown', (e) => {
-    if (cursor.enabled && e.pointerType !== 'touch') blobCursorRoot.classList.add('is-down')
+    if (!cursor.enabled || e.pointerType === 'touch') return
+    blobCursorRoot.classList.add('is-down')
+    if (cursor.style === 'favicon') {
+      // Restart the click burst even on rapid repeat clicks.
+      blobCursorRoot.classList.remove('is-clicking')
+      void blobCursorRoot.offsetWidth
+      blobCursorRoot.classList.add('is-clicking')
+    }
   })
 
   window.addEventListener('pointerup', () => {
