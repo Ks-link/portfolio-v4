@@ -567,7 +567,8 @@ body {
   pointer-events: none;
 }
 
-.play-shoot {
+.play-shoot,
+.play-eject {
   position: absolute;
   left: 0;
   bottom: 0;
@@ -575,17 +576,25 @@ body {
   align-items: flex-end;
   justify-content: flex-start;
   margin: 0;
-  padding: 3.25rem 3.5rem max(1rem, env(safe-area-inset-bottom))
+  padding: 0.45rem 3.5rem max(1rem, env(safe-area-inset-bottom))
     max(1rem, env(safe-area-inset-left));
   border: 0;
   background: transparent;
   pointer-events: auto;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
   user-select: none;
 }
 
-.play-shoot-shape {
+.play-eject {
+  bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 3.75rem + 0.45rem);
+  padding: 3.25rem 3.5rem 0.45rem max(1rem, env(safe-area-inset-left));
+  touch-action: none;
+}
+
+.play-shoot-shape,
+.play-eject-shape {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -602,7 +611,13 @@ body {
     opacity 0.2s ease;
 }
 
-.play-shoot-label {
+.play-eject-shape {
+  border-radius: 46% 54% 42% 58% / 56% 44% 58% 42%;
+  animation-delay: -5.6s;
+}
+
+.play-shoot-label,
+.play-eject-label {
   font-family: var(--sans);
   font-weight: 500;
   font-size: 0.55rem;
@@ -615,16 +630,20 @@ body {
 }
 
 .play-shoot:active .play-shoot-shape,
-.play-shoot.is-pressed .play-shoot-shape {
+.play-shoot.is-pressed .play-shoot-shape,
+.play-eject:active .play-eject-shape,
+.play-eject.is-pressed .play-eject-shape {
   transform: scale(0.9);
   opacity: 1;
 }
 
-.play-shoot:focus-visible {
+.play-shoot:focus-visible,
+.play-eject:focus-visible {
   outline: none;
 }
 
-.play-shoot:focus-visible .play-shoot-shape {
+.play-shoot:focus-visible .play-shoot-shape,
+.play-eject:focus-visible .play-eject-shape {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
@@ -671,17 +690,24 @@ body {
   .play-shoot {
     left: 0;
     bottom: 0;
-    padding: 2.6rem 2.8rem max(0.7rem, env(safe-area-inset-bottom))
+    padding: 0.4rem 2.8rem max(0.7rem, env(safe-area-inset-bottom))
       max(0.7rem, env(safe-area-inset-left));
   }
 
-  .play-shoot-shape {
+  .play-eject {
+    bottom: calc(max(0.7rem, env(safe-area-inset-bottom)) + 3.05rem + 0.4rem);
+    padding: 2.6rem 2.8rem 0.4rem max(0.7rem, env(safe-area-inset-left));
+  }
+
+  .play-shoot-shape,
+  .play-eject-shape {
     width: 3.05rem;
     height: 3.05rem;
     padding: 0.28rem;
   }
 
-  .play-shoot-label {
+  .play-shoot-label,
+  .play-eject-label {
     font-size: 0.48rem;
   }
 
