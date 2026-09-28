@@ -108,6 +108,69 @@ const accentPickerMarkup = ACCENT_PALETTE.map(
   `,
 ).join('')
 
+const cursorIcon = `
+  <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true"
+    fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round">
+    <path d="M4.04 4.69a.5.5 0 0 1 .65-.65l16 6.5a.5.5 0 0 1-.06.95l-6.12 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.12a.5.5 0 0 1-.95.06z"/>
+  </svg>
+`
+
+const faviconArrowPath = 'M3 2.5 19.1 12.3 12.8 15.7 8.75 21.8Z'
+
+const faviconArrowSvg = (className) => `
+  <svg class="${className}" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="${faviconArrowPath}" fill="currentColor" stroke="currentColor"
+      stroke-width="3.5" stroke-linejoin="round"/>
+  </svg>
+`
+
+const CURSOR_STYLES = ['blob', 'favicon', 'ring', 'system', 'hand']
+const DEFAULT_CURSOR_STYLE = 'blob'
+
+const cursorStyleLabels = {
+  blob: 'Blob cursor',
+  favicon: 'Arrow cursor',
+  ring: 'Ring cursor',
+  system: 'System cursor',
+  hand: 'Hand cursor',
+}
+
+const cursorStylePreviews = {
+  blob: '<span class="cursor-swatch__blob"></span>',
+  favicon: faviconArrowSvg('cursor-swatch__arrow'),
+  ring: '<span class="cursor-swatch__ring"></span>',
+  system: `
+    <svg class="cursor-swatch__icon" viewBox="0 0 24 24">
+      <path d="M5 2.5v16.2l4.1-3.9 2.7 6.2 2.9-1.3-2.7-6h5.9z"
+        fill="currentColor" stroke="var(--bg)" stroke-width="1.25" stroke-linejoin="round"/>
+    </svg>
+  `,
+  hand: `
+    <svg class="cursor-swatch__icon" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 14a8 8 0 0 1-8 8"/>
+      <path d="M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/>
+      <path d="M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1"/>
+      <path d="M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10"/>
+      <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+    </svg>
+  `,
+}
+
+const cursorPickerMarkup = CURSOR_STYLES.map(
+  (style, index) => `
+    <button
+      type="button"
+      class="cursor-swatch"
+      role="option"
+      data-cursor-style="${style}"
+      style="--i: ${CURSOR_STYLES.length - 1 - index}"
+      aria-label="${cursorStyleLabels[style]}"
+      aria-selected="false"
+    >${cursorStylePreviews[style]}</button>
+  `,
+).join('')
+
 const BLOB_COUNT = 12
 const VISIBLE_MIN = 5
 const VISIBLE_MAX = 8
@@ -256,6 +319,7 @@ app.innerHTML = `
   <div class="blob-cursor" aria-hidden="true">
     <span class="blob-cursor-motion">
       <span class="blob-cursor-shape"></span>
+      ${faviconArrowSvg('blob-cursor-arrow')}
     </span>
   </div>
   <div class="grain" aria-hidden="true"></div>
@@ -329,6 +393,28 @@ app.innerHTML = `
           >
             <div class="accent-picker__canvas" style="--count: ${ACCENT_PALETTE.length}">
               ${accentPickerMarkup}
+            </div>
+          </div>
+        </div>
+        <div class="corner-menu__item corner-menu__item--cursor">
+          <button
+            type="button"
+            class="corner-btn cursor-toggle"
+            aria-label="Choose cursor style"
+            aria-expanded="false"
+            aria-controls="cursor-picker"
+          >
+            ${cursorIcon}
+          </button>
+          <div
+            id="cursor-picker"
+            class="cursor-picker"
+            role="listbox"
+            aria-label="Cursor styles"
+            hidden
+          >
+            <div class="cursor-picker__canvas" style="--count: ${CURSOR_STYLES.length}">
+              ${cursorPickerMarkup}
             </div>
           </div>
         </div>
@@ -1115,6 +1201,80 @@ accentPicker?.addEventListener('click', (event) => {
   applyAccent(swatch.dataset.accent)
 })
 
+const cursorToggle = document.querySelector('.cursor-toggle')
+const cursorPicker = document.querySelector('#cursor-picker')
+const cursorSwatches = [...document.querySelectorAll('.cursor-swatch')]
+
+/** Replaced by the cursor follower once it is set up. */
+let syncCursorStyle = () => { }
+
+const getPreferredCursorStyle = () => {
+  const stored = localStorage.getItem('cursorStyle')
+  if (CURSOR_STYLES.includes(stored)) return stored
+  return DEFAULT_CURSOR_STYLE
+}
+
+const isCursorPickerOpen = () => Boolean(cursorPicker?.classList.contains('is-open'))
+
+let cursorPickerCloseToken = 0
+
+const setCursorPickerOpen = (open) => {
+  const next = Boolean(open)
+  if (cursorPicker && next !== isCursorPickerOpen()) {
+    const token = ++cursorPickerCloseToken
+    cursorPicker.classList.toggle('is-open', next)
+    cursorPicker.classList.toggle('is-closing', !next)
+    if (next) {
+      cursorPicker.hidden = false
+    } else {
+      const exits = cursorPicker
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation.animationName === 'accent-swatch-out')
+      Promise.all(exits.map((animation) => animation.finished))
+        .catch(() => {})
+        .then(() => {
+          if (token !== cursorPickerCloseToken) return
+          cursorPicker.hidden = true
+          cursorPicker.classList.remove('is-closing')
+        })
+    }
+  }
+  cursorToggle?.setAttribute('aria-expanded', next ? 'true' : 'false')
+  cursorToggle?.setAttribute(
+    'aria-label',
+    next ? 'Close cursor styles' : 'Choose cursor style',
+  )
+}
+
+const closeCursorPicker = () => setCursorPickerOpen(false)
+
+const applyCursorStyle = (style) => {
+  const next = CURSOR_STYLES.includes(style) ? style : DEFAULT_CURSOR_STYLE
+  root.dataset.cursor = next
+  localStorage.setItem('cursorStyle', next)
+  cursorSwatches.forEach((swatch) => {
+    const selected = swatch.dataset.cursorStyle === next
+    swatch.setAttribute('aria-selected', selected ? 'true' : 'false')
+    swatch.classList.toggle('is-selected', selected)
+  })
+  syncCursorStyle()
+}
+
+applyCursorStyle(getPreferredCursorStyle())
+
+cursorToggle?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  setCursorPickerOpen(!isCursorPickerOpen())
+})
+
+cursorPicker?.addEventListener('click', (event) => {
+  event.stopPropagation()
+  const swatch =
+    event.target instanceof Element ? event.target.closest('.cursor-swatch') : null
+  if (!swatch?.dataset.cursorStyle) return
+  applyCursorStyle(swatch.dataset.cursorStyle)
+})
+
 const menuToggle = document.querySelector('.menu-toggle')
 const settingsToggle = document.querySelector('.settings-toggle')
 const cornerMenu = document.querySelector('.corner-menu')
@@ -1126,6 +1286,14 @@ document.addEventListener('pointerdown', (event) => {
   if (!(target instanceof Node)) return
   if (accentPicker.contains(target) || accentToggle?.contains(target)) return
   closeAccentPicker()
+})
+
+document.addEventListener('pointerdown', (event) => {
+  if (!isCursorPickerOpen()) return
+  const target = event.target
+  if (!(target instanceof Node)) return
+  if (cursorPicker.contains(target) || cursorToggle?.contains(target)) return
+  closeCursorPicker()
 })
 
 /** Extra px beyond each control’s visual radius for forgiving mobile taps. */
@@ -1166,7 +1334,10 @@ const setCornerMenuOpen = (open) => {
   if (next) app.dataset.cornerMenu = 'open'
   else delete app.dataset.cornerMenu
   cornerMenu?.classList.toggle('is-open', next)
-  if (!next) closeAccentPicker()
+  if (!next) {
+    closeAccentPicker()
+    closeCursorPicker()
+  }
   if (cornerMenu) {
     // Play mobile shows theme inline; elsewhere hide closed overlay from a11y.
     const a11yHidden = !next && !onPlayMobile
@@ -1250,7 +1421,7 @@ document.addEventListener(
       !hit &&
       event.target instanceof Element &&
       event.target.closest(
-        'a, button, input, textarea, select, label, .stage-map__cell, .accent-picker',
+        'a, button, input, textarea, select, label, .stage-map__cell, .accent-picker, .cursor-picker',
       )
     ) {
       return
@@ -1612,6 +1783,11 @@ document.addEventListener('keydown', (event) => {
   if (isAccentPickerOpen()) {
     closeAccentPicker()
     accentToggle?.focus({ preventScroll: true })
+    return
+  }
+  if (isCursorPickerOpen()) {
+    closeCursorPicker()
+    cursorToggle?.focus({ preventScroll: true })
     return
   }
   if (app.dataset.stageMap === 'open') {
@@ -3985,10 +4161,14 @@ const blobCursorMotion = document.querySelector('.blob-cursor-motion')
 const finePointerMq = window.matchMedia('(hover: hover) and (pointer: fine)')
 const cursorInteractive = 'a, button, [role="button"], summary, label, input, textarea, select, .profile-blob-shape'
 
-if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
+// Blob relies on motion, so reduced motion falls back to the system cursor for it.
+const followerCursorStyles = new Set(reduceMotion ? ['favicon', 'ring'] : ['blob', 'favicon', 'ring'])
+
+if (blobCursorRoot && blobCursorMotion) {
   const cursor = {
     visible: false,
     enabled: false,
+    style: root.dataset.cursor,
     moving: false,
     angle: 0,
     lastT: 0,
@@ -4004,16 +4184,6 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
     blobCursorMotion.style.transform = restMotion()
   }
 
-  const syncCursorMode = () => {
-    cursor.enabled = finePointerMq.matches
-    root.classList.toggle('has-blob-cursor', cursor.enabled)
-    if (!cursor.enabled) {
-      cursor.visible = false
-      blobCursorRoot.classList.remove('is-on', 'is-hover', 'is-down', 'is-moving', 'is-melted')
-      blobCursorMotion.style.transform = ''
-    }
-  }
-
   const hideCursor = () => {
     cursor.visible = false
     cursor.moving = false
@@ -4025,8 +4195,24 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
     blobCursorMotion.style.transform = ''
   }
 
+  const syncCursorMode = () => {
+    const style = root.dataset.cursor
+    cursor.enabled = finePointerMq.matches && followerCursorStyles.has(style)
+    root.classList.toggle('has-blob-cursor', cursor.enabled)
+    if (!cursor.enabled) {
+      hideCursor()
+    } else if (style !== cursor.style) {
+      cursor.angle = 0
+      cursor.moving = false
+      blobCursorRoot.classList.remove('is-moving')
+      blobCursorMotion.style.transform = ''
+    }
+    cursor.style = style
+  }
+
   syncCursorMode()
   routeEffects.syncCursor = syncCursorMode
+  syncCursorStyle = syncCursorMode
   finePointerMq.addEventListener('change', syncCursorMode)
 
   window.addEventListener(
@@ -4038,7 +4224,8 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
         return
       }
 
-      const overNavBlob = Boolean(e.target?.closest?.('.nav-blob'))
+      const isBlob = cursor.style === 'blob'
+      const overNavBlob = isBlob && Boolean(e.target?.closest?.('.nav-blob'))
       const hovering = Boolean(e.target?.closest?.(cursorInteractive))
       blobCursorRoot.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`
       blobCursorRoot.classList.toggle('is-hover', hovering && !overNavBlob)
@@ -4050,6 +4237,8 @@ if (blobCursorRoot && blobCursorMotion && !reduceMotion) {
         blobCursorRoot.classList.add('is-on')
         return
       }
+
+      if (!isBlob) return
 
       const dt = Math.max(8, e.timeStamp - cursor.lastT)
       cursor.lastT = e.timeStamp
