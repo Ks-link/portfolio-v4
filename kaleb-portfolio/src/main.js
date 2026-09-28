@@ -380,7 +380,7 @@ app.innerHTML = `
           ${stageMapSelectArrow}
           <span class="stage-map__label">work</span>
         </button>
-        <span class="stage-map__slot" aria-hidden="true"></span>
+        <span class="stage-map__slot" data-to="terms" aria-hidden="true"></span>
         <button type="button" class="stage-map__cell" data-to="about" aria-label="About">
           ${stageMapSelectArrow}
           <span class="stage-map__label">about</span>
@@ -389,7 +389,7 @@ app.innerHTML = `
           ${stageMapSelectArrow}
           <span class="stage-map__label">experience</span>
         </button>
-        <span class="stage-map__slot" aria-hidden="true"></span>
+        <span class="stage-map__slot" data-to="privacy" aria-hidden="true"></span>
         <button type="button" class="stage-map__cell" data-to="contact" aria-label="Get In Touch">
           ${stageMapSelectArrow}
           <span class="stage-map__label">contact</span>
@@ -1518,12 +1518,11 @@ const toggleStageMap = () => {
 /** Extra px beyond each blob’s visual radius for forgiving mobile taps. */
 const STAGE_MAP_HIT_PAD = MOBILE_TAP_HIT_PAD
 
-const nearestStageMapDest = (clientX, clientY) => {
-  let bestDest = null
+const nearestStageMapBlob = (clientX, clientY) => {
+  let best = null
   let bestDist = Infinity
   for (const blob of stageMapBlobs) {
-    const dest = blob.dataset.to
-    if (!dest || lockedScreens.has(dest)) continue
+    if (!blob.dataset.to) continue
     const rect = blob.getBoundingClientRect()
     const cx = rect.left + rect.width / 2
     const cy = rect.top + rect.height / 2
@@ -1531,10 +1530,29 @@ const nearestStageMapDest = (clientX, clientY) => {
     const hitR = Math.max(rect.width, rect.height) / 2 + STAGE_MAP_HIT_PAD
     if (dist <= hitR && dist < bestDist) {
       bestDist = dist
-      bestDest = dest
+      best = blob
     }
   }
-  return bestDest
+  return best
+}
+
+const nearestStageMapDest = (clientX, clientY) => {
+  const dest = nearestStageMapBlob(clientX, clientY)?.dataset.to
+  return dest && !lockedScreens.has(dest) ? dest : null
+}
+
+const pulseLockedStageMapBlob = (dest) => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const blob = stageMapBlobs.find((b) => b.dataset.to === dest)
+  if (!blob) return
+  blob.getAnimations().forEach((anim) => {
+    if (anim.id === 'stage-map-locked-pulse') anim.cancel()
+  })
+  const anim = blob.animate(
+    [{ scale: 1 }, { scale: 1.32, offset: 0.4 }, { scale: 0.94, offset: 0.75 }, { scale: 1 }],
+    { duration: 420, easing: 'ease-out' },
+  )
+  anim.id = 'stage-map-locked-pulse'
 }
 
 const activateStageMapDest = (dest) => {
@@ -1560,19 +1578,25 @@ document.addEventListener('pointerdown', (event) => {
   if (!(target instanceof Element)) return
   if (target.closest('.corner-cluster')) return
   // Keep open when tapping a blob or within its hit radius.
-  if (nearestStageMapDest(event.clientX, event.clientY)) return
+  if (nearestStageMapBlob(event.clientX, event.clientY)) return
   if (target.closest('.stage-map__cell')) return
   closeStageMap()
 })
 
 stageMap?.querySelector('.stage-map__scale')?.addEventListener('click', (event) => {
-  if (!isStageMapOpen()) return
+  const target = event.target instanceof Element ? event.target : null
+  if (!isStageMapOpen()) {
+    const slot = target?.closest('.stage-map__slot[data-to]')
+    if (slot && lockedScreens.has(slot.dataset.to)) pulseLockedStageMapBlob(slot.dataset.to)
+    return
+  }
   // Direct cell hits are handled below; this catches near-misses on slots/gaps.
-  if (event.target instanceof Element && event.target.closest('.stage-map__cell')) return
-  const dest = nearestStageMapDest(event.clientX, event.clientY)
+  if (target?.closest('.stage-map__cell')) return
+  const dest = nearestStageMapBlob(event.clientX, event.clientY)?.dataset.to
   if (!dest) return
   event.preventDefault()
-  activateStageMapDest(dest)
+  if (lockedScreens.has(dest)) pulseLockedStageMapBlob(dest)
+  else activateStageMapDest(dest)
 })
 
 const routeEffects = {
