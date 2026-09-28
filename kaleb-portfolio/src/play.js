@@ -36,6 +36,13 @@ const MERGE_FINISH = 0.24
 const MERGE_PULL = 1.25
 const MERGE_SEEK = 24
 const LAUNCH_SPEED = 960
+const EJECT_RATE = 14
+const EJECT_MIN_MASS = 20
+const EJECT_BOOST = 1.7
+const EJECT_SAFE = 0.6
+const EJECT_SLIDE = 0.18
+const EJECT_SEQ_MAX = 40
+const FOOD_CAP = 2000
 const AI_RESPAWN_WAIT = 2.2
 const TAP_MS = 280
 const TAP_DIST = 16
@@ -228,12 +235,17 @@ export const mountPlay = (root) => {
   const hint = document.createElement('p')
   hint.className = 'play-hint'
   hint.innerHTML = `
-    <span class="play-hint--desktop">space — shoot</span>
+    <span class="play-hint--desktop">space — shoot · click — boost</span>
   `
 
   const hud = document.createElement('div')
   hud.className = 'play-hud'
   hud.innerHTML = `
+    <button type="button" class="play-eject" aria-label="Boost">
+      <span class="play-eject-shape">
+        <span class="play-eject-label">boost</span>
+      </span>
+    </button>
     <button type="button" class="play-shoot" aria-label="Shoot">
       <span class="play-shoot-shape">
         <span class="play-shoot-label">shoot</span>
@@ -265,6 +277,7 @@ export const mountPlay = (root) => {
   const nameScoreEl = welcome.querySelector('.play-name-prompt-score')
   const nameSkip = welcome.querySelector('.play-name-skip')
   const shootBtn = hud.querySelector('.play-shoot')
+  const ejectBtn = hud.querySelector('.play-eject')
   const stickEl = hud.querySelector('.play-stick')
   const stickThumb = hud.querySelector('.play-stick-thumb')
   const statsScore = stats.querySelector('.play-stats-score')
@@ -301,6 +314,9 @@ export const mountPlay = (root) => {
   let aiRespawnAt = new Map()
   let spawnProtectUntil = new Map()
   let launchCool = 0
+  let ejectHeld = false
+  let ejectCarry = 0
+  let boost = 0
   let aiLaunchCool = new Map()
   let kills = 0
   let peakScore = 0
@@ -317,8 +333,10 @@ export const mountPlay = (root) => {
   let netPresence = {}
   let lastSplitSeq = new Map()
   let lastKillSeq = new Map()
+  let lastEjectSeq = new Map()
   let pendingSplitSeq = 0
   let pendingKillSeq = 0
+  let pendingEjectSeq = 0
   let lastInputWrite = 0
   let lastCellPub = 0
   let lastFoodPub = 0
@@ -498,6 +516,34 @@ export const mountPlay = (root) => {
     foodDirty = true
   }
 
+  const ejectPellet = (owner, fromX, fromY, x, y) => {
+    if (food.length >= FOOD_CAP) {
+      const oldest = food.findIndex((p) => p.ejected)
+      if (oldest < 0) return false
+      food.splice(oldest, 1)
+    }
+    const ci = Math.floor(Math.random() * FOOD_PALETTE.length)
+    food.push({
+      x: clamp(x, 24, WORLD - 24),
+      y: clamp(y, 24, WORLD - 24),
+      mass: FOOD_MASS,
+      phase: rand(0, Math.PI * 2),
+      color: FOOD_PALETTE[ci],
+      ci,
+      ejected: true,
+      owner: Number(owner),
+      safeUntil: time + EJECT_SAFE,
+      fromX,
+      fromY,
+      bornAt: time,
+    })
+    foodDirty = true
+    return true
+  }
+
+  const canEatPellet = (cell, pellet) =>
+    !pellet.ejected || pellet.owner !== Number(cell.owner) || time >= pellet.safeUntil
+
   const adoptLocalSpawn = (pos) => {
     camera.x = pos.x
     camera.y = pos.y
@@ -516,6 +562,7 @@ export const mountPlay = (root) => {
     const input = netInputs[uid]
     lastSplitSeq.set(uid, input?.splitSeq || 0)
     lastKillSeq.set(uid, input?.killSeq || 0)
+    lastEjectSeq.set(uid, input?.ejectSeq || 0)
   }
 
   const ownerForRemote = (uid, presence) => {
@@ -949,10 +996,10 @@ export const mountPlay = (root) => {
         if (Math.abs(dx) > reach) continue
         const dy = cell.y - pellet.y
         if (Math.abs(dy) > reach) continue
-        if (hypot(dx, dy) < reach) {
+        if (hypot(dx, dy) < reach && canEatPellet(cell, pellet)) {
           cell.mass += pellet.mass
           food.splice(i, 1)
-          if (anyPresent()) spawnFoodOne()
+          if (!pellet.ejected && anyPresent()) spawnFoodOne()
           else foodDirty = true
         }
       }
@@ -968,7 +1015,7 @@ export const mountPlay = (root) => {
         if (Math.abs(dx) > reach) continue
         const dy = cell.y - pellet.y
         if (Math.abs(dy) > reach) continue
-        if (hypot(dx, dy) < reach) {
+        if (hypot(dx, dy) < reach && canEatPellet(cell, pellet)) {
           cell.mass += pellet.mass
           food.splice(i, 1)
         }
@@ -981,9 +1028,10 @@ export const mountPlay = (root) => {
     for (const cell of ownerCells(owner)) {
       const reach = radiusOf(cell.mass) * 0.92
       for (let i = food.length - 1; i >= 0; i--) {
-        if (hypot(cell.x - food[i].x, cell.y - food[i].y) < reach) {
+        const pellet = food[i]
+        if (hypot(cell.x - pellet.x, cell.y - pellet.y) < reach && canEatPellet(cell, pellet)) {
           food.splice(i, 1)
-          cleared += 1
+          if (!pellet.ejected) cleared += 1
           foodDirty = true
         }
       }
@@ -1303,10 +1351,69 @@ export const mountPlay = (root) => {
     if (localOwner < 0 || !playing) return
     const player = ownerCells(localOwner)
     const aim = localAim(player)
+    const scale = aim.scale * (1 + boost * (EJECT_BOOST - 1))
     for (const cell of player) {
       cell.color = humanColor(localOwner)
-      steerCell(cell, aim.x, aim.y, dt, aim.scale)
+      steerCell(cell, aim.x, aim.y, dt, scale)
     }
+  }
+
+  const behindSpot = (cell, tx, ty) => {
+    let dx = tx - cell.x
+    let dy = ty - cell.y
+    let dist = hypot(dx, dy)
+    if (dist < 1) {
+      dx = cell.vx
+      dy = cell.vy
+      dist = hypot(dx, dy)
+    }
+    if (dist < 0.001) {
+      dx = 1
+      dy = 0
+    }
+    const angle = Math.atan2(-dy, -dx) + rand(-0.35, 0.35)
+    const r = radiusOf(cell.mass)
+    const out = r + rand(14, 40)
+    return {
+      fromX: cell.x + Math.cos(angle) * r * 0.6,
+      fromY: cell.y + Math.sin(angle) * r * 0.6,
+      x: cell.x + Math.cos(angle) * out,
+      y: cell.y + Math.sin(angle) * out,
+    }
+  }
+
+  const ejectBehind = (owner, cell, tx, ty) => {
+    const spot = behindSpot(cell, tx, ty)
+    return ejectPellet(owner, spot.fromX, spot.fromY, spot.x, spot.y)
+  }
+
+  const canEject = (cell) => cell.mass - FOOD_MASS >= EJECT_MIN_MASS
+
+  const tickEject = (dt) => {
+    let ejecting = false
+    if (ejectHeld && playing && localOwner >= 0) {
+      const player = ownerCells(localOwner)
+      if (player.some(canEject)) {
+        ejecting = true
+        ejectCarry += dt * EJECT_RATE
+        const aim = shootAim(player)
+        let shots = 0
+        while (ejectCarry >= 1) {
+          ejectCarry -= 1
+          for (const cell of player) {
+            if (!canEject(cell)) continue
+            cell.mass -= FOOD_MASS
+            ejectBehind(localOwner, cell, aim.x, aim.y)
+            shots += 1
+          }
+        }
+        if (shots && session && !isHost) pendingEjectSeq += shots
+      }
+    }
+    // Primed so the first frame of a press ejects immediately.
+    if (!ejecting) ejectCarry = 1
+    boost = damp(boost, ejecting ? 1 : 0, ejecting ? 10 : 4, dt)
+    if (boost < 0.001) boost = 0
   }
 
   const resolveInputOwner = (uid, input) => {
@@ -1323,6 +1430,7 @@ export const mountPlay = (root) => {
     lastAdoptSig.delete(uid)
     lastSplitSeq.delete(uid)
     lastKillSeq.delete(uid)
+    lastEjectSeq.delete(uid)
   }
 
   const ensureHumanSeat = (owner, uid) => {
@@ -1399,6 +1507,17 @@ export const mountPlay = (root) => {
           launchOwner(owner, input.x, input.y)
         }
       }
+      const ejectSeq = Number(input.ejectSeq) || 0
+      const knownEject = lastEjectSeq.has(uid)
+      const prevEject = lastEjectSeq.get(uid) || 0
+      if (!knownEject || ejectSeq !== prevEject) {
+        lastEjectSeq.set(uid, ejectSeq)
+        const ejectors = knownEject ? ownerCells(owner) : []
+        const count = ejectors.length ? Math.min(EJECT_SEQ_MAX, ejectSeq - prevEject) : 0
+        for (let n = 0; n < count; n++) {
+          ejectBehind(owner, ejectors[n % ejectors.length], input.x, input.y)
+        }
+      }
       const killSeq = Number(input.killSeq) || 0
       if (killSeq && killSeq !== lastKillSeq.get(uid)) {
         cells = cells.filter((c) => Number(c.owner) !== Number(owner))
@@ -1469,6 +1588,7 @@ export const mountPlay = (root) => {
       slot: localOwner,
       splitSeq: pendingSplitSeq,
       killSeq: pendingKillSeq,
+      ejectSeq: pendingEjectSeq,
     }
     if (center.mass) {
       payload.cx = center.x
@@ -1512,6 +1632,7 @@ export const mountPlay = (root) => {
     syncTheme()
     refreshPointer()
     tickLaunchCool(dt)
+    tickEject(dt)
     const simulating = !session || (hostKnown && isHost)
     if (simulating) {
       time += dt
@@ -1611,8 +1732,18 @@ export const mountPlay = (root) => {
   const drawPellet = (item) => {
     const wobble = reduceMotion || isMobileHud() ? 1 : 1 + Math.sin(time * 2.1 + item.phase) * 0.08
     const r = radiusOf(item.mass) * wobble
+    let x = item.x
+    let y = item.y
+    if (item.bornAt != null && !reduceMotion) {
+      const t = clamp((time - item.bornAt) / EJECT_SLIDE, 0, 1)
+      if (t < 1) {
+        const ease = 1 - (1 - t) * (1 - t)
+        x = item.fromX + (item.x - item.fromX) * ease
+        y = item.fromY + (item.y - item.fromY) * ease
+      }
+    }
     ctx.beginPath()
-    ctx.arc(item.x, item.y, r, 0, Math.PI * 2)
+    ctx.arc(x, y, r, 0, Math.PI * 2)
     ctx.fillStyle = item.color || theme.accent
     ctx.globalAlpha = 0.42
     ctx.fill()
@@ -1949,6 +2080,11 @@ export const mountPlay = (root) => {
     window.setTimeout(() => shootBtn.classList.remove('is-pressed'), 140)
   }
 
+  const setEjectHeld = (on) => {
+    ejectHeld = on
+    ejectBtn?.classList.toggle('is-pressed', on)
+  }
+
   const onPointerDown = (e) => {
     if (!running || !playing) return
     if (e.target?.closest?.('button')) return
@@ -1965,6 +2101,7 @@ export const mountPlay = (root) => {
       return
     }
     setPointer(e.clientX, e.clientY)
+    if (e.pointerType === 'mouse' && e.button === 0) setEjectHeld(true)
     tap.id = e.pointerId
     tap.t = e.timeStamp
     tap.x = e.clientX
@@ -1977,6 +2114,7 @@ export const mountPlay = (root) => {
       if (stick.id === e.pointerId) hideStick()
       return
     }
+    if (e.pointerType === 'mouse' && !(e.buttons & 1)) setEjectHeld(false)
     if (tap.id !== e.pointerId) return
     const dt = e.timeStamp - tap.t
     const dist = hypot(e.clientX - tap.x, e.clientY - tap.y)
@@ -2359,6 +2497,8 @@ export const mountPlay = (root) => {
     session?.writePresence({ playing: false })
     root.classList.remove('is-playing')
     tap.id = null
+    setEjectHeld(false)
+    boost = 0
     hideStick()
     heading.alpha = 0
     pointer.valid = false
@@ -2462,6 +2602,7 @@ export const mountPlay = (root) => {
     window.addEventListener('pointercancel', onPointerUp)
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('pagehide', onPageHide)
+    window.addEventListener('blur', onBlur)
     rafId = requestAnimationFrame(tick)
     renderBoard(boardEntries)
     unsubBoard = subscribeTop10(renderBoard, () => renderBoard(boardEntries))
@@ -2472,6 +2613,8 @@ export const mountPlay = (root) => {
   const onPageHide = () => {
     session?.disconnect()
   }
+
+  const onBlur = () => setEjectHeld(false)
 
   const stop = () => {
     if (!running) return
@@ -2490,6 +2633,7 @@ export const mountPlay = (root) => {
     window.removeEventListener('pointercancel', onPointerUp)
     window.removeEventListener('keydown', onKeyDown)
     window.removeEventListener('pagehide', onPageHide)
+    window.removeEventListener('blur', onBlur)
     session?.disconnect()
     session = null
     sessionReady = null
@@ -2503,6 +2647,8 @@ export const mountPlay = (root) => {
     hideNamePrompt()
     setMapFull(false)
     tap.id = null
+    setEjectHeld(false)
+    boost = 0
     hideStick()
     heading.alpha = 0
     root.dispatchEvent(new Event('playchange', { bubbles: true }))
@@ -2545,6 +2691,17 @@ export const mountPlay = (root) => {
     e.stopPropagation()
     tryLaunch()
   })
+  ejectBtn?.addEventListener('pointerdown', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    ejectBtn.setPointerCapture?.(e.pointerId)
+    if (running && playing) setEjectHeld(true)
+  })
+  const releaseEject = () => setEjectHeld(false)
+  ejectBtn?.addEventListener('pointerup', releaseEject)
+  ejectBtn?.addEventListener('pointercancel', releaseEject)
+  ejectBtn?.addEventListener('lostpointercapture', releaseEject)
+  ejectBtn?.addEventListener('contextmenu', (e) => e.preventDefault())
 
   return { start, stop, kill }
 }
