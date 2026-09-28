@@ -95,13 +95,13 @@ const accentIcon = `
 `
 
 const accentPickerMarkup = ACCENT_PALETTE.map(
-  (color) => `
+  (color, index) => `
     <button
       type="button"
       class="accent-swatch"
       role="option"
       data-accent="${color}"
-      style="--swatch: ${color}"
+      style="--swatch: ${color}; --i: ${ACCENT_PALETTE.length - 1 - index}"
       aria-label="Accent ${color}"
       aria-selected="false"
     ></button>
@@ -327,10 +327,7 @@ app.innerHTML = `
             aria-label="Accent colours"
             hidden
           >
-            <div class="accent-picker__easel" aria-hidden="true">
-              <span class="accent-picker__blob"></span>
-            </div>
-            <div class="accent-picker__canvas">
+            <div class="accent-picker__canvas" style="--count: ${ACCENT_PALETTE.length}">
               ${accentPickerMarkup}
             </div>
           </div>
@@ -1057,11 +1054,30 @@ const getPreferredAccent = () => {
   return DEFAULT_ACCENT
 }
 
+const isAccentPickerOpen = () => Boolean(accentPicker?.classList.contains('is-open'))
+
+let accentPickerCloseToken = 0
+
 const setAccentPickerOpen = (open) => {
   const next = Boolean(open)
-  if (accentPicker) {
-    accentPicker.hidden = !next
+  if (accentPicker && next !== isAccentPickerOpen()) {
+    const token = ++accentPickerCloseToken
     accentPicker.classList.toggle('is-open', next)
+    accentPicker.classList.toggle('is-closing', !next)
+    if (next) {
+      accentPicker.hidden = false
+    } else {
+      const exits = accentPicker
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation.animationName === 'accent-swatch-out')
+      Promise.all(exits.map((animation) => animation.finished))
+        .catch(() => {})
+        .then(() => {
+          if (token !== accentPickerCloseToken) return
+          accentPicker.hidden = true
+          accentPicker.classList.remove('is-closing')
+        })
+    }
   }
   accentToggle?.setAttribute('aria-expanded', next ? 'true' : 'false')
   accentToggle?.setAttribute(
@@ -1088,7 +1104,7 @@ applyAccent(getPreferredAccent())
 
 accentToggle?.addEventListener('click', (event) => {
   event.stopPropagation()
-  setAccentPickerOpen(Boolean(accentPicker?.hidden))
+  setAccentPickerOpen(!isAccentPickerOpen())
 })
 
 accentPicker?.addEventListener('click', (event) => {
@@ -1105,7 +1121,7 @@ const cornerMenu = document.querySelector('.corner-menu')
 const mobileMenuMq = window.matchMedia('(max-width: 48rem)')
 
 document.addEventListener('pointerdown', (event) => {
-  if (!accentPicker || accentPicker.hidden) return
+  if (!isAccentPickerOpen()) return
   const target = event.target
   if (!(target instanceof Node)) return
   if (accentPicker.contains(target) || accentToggle?.contains(target)) return
@@ -1569,7 +1585,7 @@ document.querySelector('.play-root')?.addEventListener('playchange', () => {
 
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return
-  if (accentPicker && !accentPicker.hidden) {
+  if (isAccentPickerOpen()) {
     closeAccentPicker()
     accentToggle?.focus({ preventScroll: true })
     return
