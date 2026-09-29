@@ -235,7 +235,7 @@ export const mountPlay = (root) => {
   const hint = document.createElement('p')
   hint.className = 'play-hint'
   hint.innerHTML = `
-    <span class="play-hint--desktop">space — shoot · click — boost</span>
+    <span class="play-hint--desktop">space = shoot · click = boost</span>
   `
 
   const hud = document.createElement('div')
