@@ -499,7 +499,19 @@ const connectRemote = async (handlers) => {
   let latestCells = null
   let latestFood = null
   let serverOffset = 0
+  let hostLoaded = false
+  let presenceLoaded = false
+  let slotsLoaded = false
+  let electing = false
+  let markSeatsReady = () => {}
+  const seatsReady = new Promise((resolve) => {
+    markSeatsReady = resolve
+  })
   const unsubs = []
+
+  const checkSeatsReady = () => {
+    if (slotsLoaded && presenceLoaded) markSeatsReady()
+  }
 
   const serverNow = () => Date.now() + serverOffset
 
@@ -531,16 +543,25 @@ const connectRemote = async (handlers) => {
   })
 
   const becomeHost = async () => {
+    if (electing) return
+    electing = true
     try {
-      await runTransaction(hostRef, (current) => {
-        if (current?.clientId && current.clientId !== uid && hostIsLive(current)) return current
-        if (!current?.clientId && current?.uid && current.uid !== authUid && hostIsLive(current)) {
-          return current
-        }
-        return hostPayload()
-      })
+      // Optimistic local events would briefly report this client as host before the server agrees.
+      await runTransaction(
+        hostRef,
+        (current) => {
+          if (current?.clientId && current.clientId !== uid && hostIsLive(current)) return
+          if (!current?.clientId && current?.uid && current.uid !== authUid && hostIsLive(current)) {
+            return
+          }
+          return hostPayload()
+        },
+        { applyLocally: false },
+      )
     } catch (err) {
       warnWrite('becomeHost')(err)
+    } finally {
+      electing = false
     }
   }
 
@@ -582,6 +603,7 @@ const connectRemote = async (handlers) => {
 
   const worldInUse = () => {
     // Stale human seats without live presence do not count — those are abandoned.
+    if (!presenceLoaded) return true
     if (claimedSlot >= 0) return true
     if (otherLive().length) return true
     return false
@@ -683,7 +705,7 @@ const connectRemote = async (handlers) => {
   }
 
   const syncHost = () => {
-    if (closed) return
+    if (closed || !hostLoaded || !presenceLoaded) return
     if (!hostIsLive(latestHost)) becomeHost()
     setHostState(latestHost?.clientId === uid && hostIsLive(latestHost))
   }
@@ -728,6 +750,7 @@ const connectRemote = async (handlers) => {
     onValue(hostRef, (snap) => {
       if (closed) return
       latestHost = snap.val()
+      hostLoaded = true
       syncHost()
     }),
   )
@@ -736,6 +759,8 @@ const connectRemote = async (handlers) => {
     onValue(slotsRef, (snap) => {
       if (closed) return
       latestSlots = { ...defaultSlots(), ...(snap.val() || {}) }
+      slotsLoaded = true
+      checkSeatsReady()
       handlers.onSlots?.(latestSlots)
     }),
   )
@@ -771,6 +796,8 @@ const connectRemote = async (handlers) => {
     onValue(allPresenceRef, (snap) => {
       if (closed) return
       latestPresence = snap.val() || {}
+      presenceLoaded = true
+      checkSeatsReady()
       emitLivePresence()
       syncHost()
     }),
@@ -782,14 +809,13 @@ const connectRemote = async (handlers) => {
   }
   document.addEventListener('visibilitychange', onVisible)
 
-  // Don't block session readiness on host election — play can claim a seat either way.
-  becomeHost().catch(warnWrite('becomeHost'))
-
   return {
     uid,
     isHost: () => hostNow,
     getSlots: () => latestSlots,
     async claimSlot(preferredSlot = -1) {
+      // Without loaded presence every seat looks abandoned and could be stolen.
+      await seatsReady
       const existing = slotOfUid(latestSlots, uid)
       if (existing >= 0) {
         claimedSlot = existing
