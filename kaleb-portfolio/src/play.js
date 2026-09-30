@@ -235,7 +235,7 @@ export const mountPlay = (root) => {
   const hint = document.createElement('p')
   hint.className = 'play-hint'
   hint.innerHTML = `
-    <span class="play-hint--desktop">space — shoot · click — boost</span>
+    <span class="play-hint--desktop">space = shoot · click = boost</span>
   `
 
   const hud = document.createElement('div')
@@ -615,6 +615,14 @@ export const mountPlay = (root) => {
     )
     aiRespawnAt.delete(owner)
     aiLaunchCool.set(owner, 1.2 + Math.random() * 2)
+  }
+
+  const seatHuman = (owner, uid) => {
+    netSlots = { ...netSlots, [owner]: { kind: 'human', uid, at: Date.now() } }
+    session?.writeSlots(netSlots)
+    cells = cells.filter((c) => Number(c.owner) !== Number(owner))
+    aiRespawnAt.delete(owner)
+    aiLaunchCool.delete(owner)
   }
 
   const clearArena = () => {
@@ -1285,11 +1293,7 @@ export const mountPlay = (root) => {
         if (held?.kind === 'human' && held.uid && held.uid !== uid && netPresence[held.uid]) {
           continue
         }
-        if (held?.kind !== 'human' || held?.uid !== uid) {
-          const next = { ...netSlots, [owner]: { kind: 'human', uid, at: Date.now() } }
-          netSlots = next
-          session?.writeSlots(next)
-        }
+        if (held?.kind !== 'human' || held?.uid !== uid) seatHuman(owner, uid)
         const life = Number(presence.life) > 0 ? Number(presence.life) : 1
         const last = remotePlayLife.get(owner) ?? 0
         if (life > last) {
@@ -1439,9 +1443,7 @@ export const mountPlay = (root) => {
     const row = netSlots[owner]
     if (row?.kind === 'human' && row.uid && row.uid !== uid && netPresence[row.uid]) return
     if (row?.kind === 'human' && row.uid === uid) return
-    const next = { ...netSlots, [owner]: { kind: 'human', uid, at: Date.now() } }
-    netSlots = next
-    session?.writeSlots(next)
+    seatHuman(owner, uid)
   }
 
   const steerRemoteHumans = (dt) => {
@@ -1528,7 +1530,7 @@ export const mountPlay = (root) => {
 
   const steerAI = (dt) => {
     for (let owner = 1; owner <= AI_COUNT; owner++) {
-      if (!isAIOwner(owner)) continue
+      if (!isAIOwner(owner) || owner === localOwner) continue
       for (const cell of ownerCells(owner)) {
         const goal = resolveAIGoal(cell)
         if (!goal) continue
@@ -1818,7 +1820,8 @@ export const mountPlay = (root) => {
 
   const drawCellBadges = (cell, leader) => {
     const r = radiusOf(cell.mass)
-    if (isAIOwner(cell.owner)) {
+    const aiBadge = isAIOwner(cell.owner) && Number(cell.owner) !== Number(localOwner)
+    if (aiBadge) {
       const size = Math.max(5, r * 0.3)
       ctx.save()
       ctx.translate(cell.x, cell.y)
@@ -1828,7 +1831,7 @@ export const mountPlay = (root) => {
     }
     if (playing && cell === leader) {
       const size = Math.max(6, r * 0.34)
-      const lift = isAIOwner(cell.owner) ? r * 0.42 : 0
+      const lift = aiBadge ? r * 0.42 : 0
       ctx.save()
       ctx.translate(cell.x, cell.y - lift)
       ctx.globalAlpha = 0.78
@@ -2478,7 +2481,11 @@ export const mountPlay = (root) => {
       }
       setMapFull(false)
       localOwner = result.slot
-      hadLocalCells = ownerCells(localOwner).length > 0
+      netSlots = { ...netSlots, [localOwner]: { kind: 'human', uid: session.uid, at: Date.now() } }
+      cells = cells.filter((c) => Number(c.owner) !== Number(localOwner))
+      aiRespawnAt.delete(localOwner)
+      aiLaunchCool.delete(localOwner)
+      hadLocalCells = false
       resumePlay()
     } catch {
       setPlayError("couldn't join — try again")
@@ -2521,6 +2528,13 @@ export const mountPlay = (root) => {
     handleLocalDeath()
   }
 
+  const finishEmptyLobby = () => {
+    // Wipe abandoned human seats left behind when nobody is live.
+    session.writeSlots(defaultSlots())
+    slotDiffEnabled = true
+    emptyLobby = false
+  }
+
   const bindSession = async () => {
     session = await connectPlaySession({
       onHostChange(next, meta) {
@@ -2540,6 +2554,7 @@ export const mountPlay = (root) => {
           clearArena()
           lastCellPub = 0
           lastFoodPub = 0
+          if (session) finishEmptyLobby()
         } else if (next) {
           slotDiffEnabled = true
           syncArena()
@@ -2558,14 +2573,8 @@ export const mountPlay = (root) => {
         syncArena()
       },
     })
-    if (emptyLobby) {
-      // Wipe abandoned human seats left behind when nobody is live.
-      session.writeSlots(defaultSlots())
-      slotDiffEnabled = true
-      emptyLobby = false
-    } else {
-      slotDiffEnabled = isHost
-    }
+    if (emptyLobby) finishEmptyLobby()
+    else slotDiffEnabled = isHost
     syncLiveCount()
     return session
   }
