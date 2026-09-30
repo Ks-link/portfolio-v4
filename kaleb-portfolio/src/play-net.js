@@ -529,10 +529,9 @@ const connectRemote = async (handlers) => {
 
   const presenceIsLive = (row) => presenceRowIsLive(row, serverNow())
 
+  // Only an acting host refreshes `at`; live presence alone can belong to a client that never simulates.
   const hostIsLive = (host) => {
     if (!host?.uid && !host?.clientId) return false
-    if (presenceIsLive(latestPresence[host.clientId])) return true
-    if (presenceIsLive(latestPresence[host.uid])) return true
     return stampIsLive(host.at)
   }
 
