@@ -1278,6 +1278,9 @@ export const mountPlay = (root) => {
     }
 
     if (isHost) {
+      if (cells.some((c) => Number(c.owner) !== localOwner && netSlots[c.owner]?.kind === 'empty')) {
+        cells = cells.filter((c) => Number(c.owner) === localOwner || netSlots[c.owner]?.kind !== 'empty')
+      }
       for (const [uid, presence] of Object.entries(netPresence)) {
         if (!uid || uid === session?.uid) continue
         const owner = ownerForRemote(uid, presence)

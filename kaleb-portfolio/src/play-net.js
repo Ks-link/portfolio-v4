@@ -529,10 +529,9 @@ const connectRemote = async (handlers) => {
 
   const presenceIsLive = (row) => presenceRowIsLive(row, serverNow())
 
+  // Only an acting host refreshes `at`; live presence alone can belong to a client that never simulates.
   const hostIsLive = (host) => {
     if (!host?.uid && !host?.clientId) return false
-    if (presenceIsLive(latestPresence[host.clientId])) return true
-    if (presenceIsLive(latestPresence[host.uid])) return true
     return stampIsLive(host.at)
   }
 
@@ -547,7 +546,7 @@ const connectRemote = async (handlers) => {
     electing = true
     try {
       // Optimistic local events would briefly report this client as host before the server agrees.
-      await runTransaction(
+      const { committed, snapshot } = await runTransaction(
         hostRef,
         (current) => {
           if (current?.clientId && current.clientId !== uid && hostIsLive(current)) return
@@ -558,6 +557,11 @@ const connectRemote = async (handlers) => {
         },
         { applyLocally: false },
       )
+      // Hidden writes raise no listener event on commit and the server doesn't echo them back.
+      if (committed && !closed) {
+        latestHost = snapshot.val()
+        syncHost()
+      }
     } catch (err) {
       warnWrite('becomeHost')(err)
     } finally {
