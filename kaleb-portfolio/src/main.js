@@ -437,6 +437,9 @@ app.innerHTML = `
       </span>
     </div>
   </aside>
+  <div class="legal-cat" aria-hidden="true">
+    <img class="legal-cat__img" alt="" width="200" height="338" decoding="async" />
+  </div>
   <nav class="stage-map" aria-label="Site map">
     <p class="stage-map__title">Mini Map</p>
     <div class="stage-map__scale">
@@ -1982,6 +1985,55 @@ const trackSpaPageView = () => {
   })
 }
 
+const legalCat = document.querySelector('.legal-cat')
+const legalCatImg = legalCat?.querySelector('.legal-cat__img')
+const LEGAL_CAT_SRC = '/legal/clapping-cat.webp'
+/** Total frame duration of clapping-cat.webp (one full loop). Update if the animation changes. */
+const LEGAL_CAT_MS = 6869
+let legalCatTimer = 0
+let legalCatShowId = 0
+let legalCatBlob = null
+let legalCatUrl = ''
+
+const loadLegalCatBlob = () => {
+  legalCatBlob ??= fetch(LEGAL_CAT_SRC)
+    .then((res) => {
+      if (!res.ok) throw new Error(`clapping cat ${res.status}`)
+      return res.blob()
+    })
+    .catch((err) => {
+      legalCatBlob = null
+      throw err
+    })
+  return legalCatBlob
+}
+
+const hideLegalCat = () => {
+  legalCatShowId += 1
+  window.clearTimeout(legalCatTimer)
+  legalCat?.classList.remove('is-visible')
+}
+
+const showLegalCat = () => {
+  if (!legalCat || !legalCatImg) return
+  hideLegalCat()
+  const showId = legalCatShowId
+  loadLegalCatBlob()
+    .then((blob) => {
+      if (showId !== legalCatShowId) return
+      // A fresh object URL makes the browser restart the GIF from frame one.
+      if (legalCatUrl) URL.revokeObjectURL(legalCatUrl)
+      legalCatUrl = URL.createObjectURL(blob)
+      legalCatImg.onload = () => {
+        if (showId !== legalCatShowId) return
+        legalCat.classList.add('is-visible')
+        legalCatTimer = window.setTimeout(hideLegalCat, LEGAL_CAT_MS)
+      }
+      legalCatImg.src = legalCatUrl
+    })
+    .catch(() => {})
+}
+
 const setRoute = (screen, project = '', { push = false, focus = false } = {}) => {
   if (!screens.has(screen)) {
     screen = 'home'
@@ -1998,6 +2050,8 @@ const setRoute = (screen, project = '', { push = false, focus = false } = {}) =>
   const opening = Boolean(project) && !prevProject
 
   app.dataset.screen = screen
+  if (lockedScreens.has(screen) && screen !== prevScreen) showLegalCat()
+  else if (!lockedScreens.has(screen)) hideLegalCat()
   closeCornerMenu()
   closeBrandMark()
   app.style.setProperty('--work-swipe', '0px')
