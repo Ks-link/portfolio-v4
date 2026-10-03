@@ -1363,6 +1363,20 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   }
 }
 
+@keyframes accent-swatch-border-in {
+  0%,
+  99.9% {
+    box-shadow: none;
+  }
+}
+
+@keyframes accent-swatch-border-out {
+  0.1%,
+  100% {
+    box-shadow: none;
+  }
+}
+
 .accent-toggle .accent-toggle__blob {
   width: 1.1rem;
   height: 1.1rem;
@@ -1394,6 +1408,7 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   appearance: none;
   animation:
     accent-swatch-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * 0.025s) both,
+    accent-swatch-border-in 0.27s linear calc(var(--i) * 0.025s) both,
     blob-morph 7s ease-in-out var(--morph-delay) infinite;
   transition:
     transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
@@ -1409,6 +1424,7 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   animation:
     accent-swatch-out 0.35s cubic-bezier(0.64, 0, 0.78, 0)
       calc((var(--count) - 1 - var(--i)) * 0.025s) both,
+    accent-swatch-border-out 0.35s linear calc((var(--count) - 1 - var(--i)) * 0.025s) both,
     blob-morph 7s ease-in-out var(--morph-delay) infinite;
 }
 
@@ -2772,23 +2788,36 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
 .brand-mark__meta {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.75rem;
   font-weight: 400;
   font-size: 0.68rem;
   letter-spacing: 0.02em;
+}
+
+.brand-mark__copy {
   opacity: 0.62;
 }
 
 .brand-mark__link {
   color: inherit;
-  text-decoration: none;
+  font-weight: 500;
+  opacity: 0.9;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease,
+    text-decoration-color 0.2s ease;
 }
 
 .brand-mark__link:hover,
 .brand-mark__link:focus-visible {
   color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
+  opacity: 1;
+  text-decoration-color: currentColor;
 }
 
 .brand-mark__link:focus-visible {
@@ -3997,6 +4026,44 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
     margin 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.contact-list__email .contact-list__detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.contact-list__copy-icon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 0.95em;
+  height: 0.95em;
+}
+
+.contact-list__copy-icon svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.contact-list__copy-icon-check {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.contact-list__email.is-copied .contact-list__copy-icon-copy {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.contact-list__email.is-copied .contact-list__copy-icon-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
 .contact-list .project-desc-arrow-track {
   position: relative;
   flex: 0 0 auto;
@@ -4017,23 +4084,43 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
     opacity 0.2s ease;
 }
 
-.contact-list a:hover,
-.contact-list a:focus-visible {
+.contact-list a:focus-visible,
+.contact-list a.is-expanded,
+.contact-list a.is-copied {
   opacity: 1;
   color: var(--accent);
 }
 
-.contact-list a:hover .contact-list__detail,
-.contact-list a:focus-visible .contact-list__detail {
+.contact-list a:focus-visible .contact-list__detail,
+.contact-list a.is-expanded .contact-list__detail,
+.contact-list a.is-copied .contact-list__detail {
   max-width: 16rem;
   opacity: 1;
   margin-left: 0.65rem;
 }
 
-.contact-list a:hover .project-desc-arrow,
-.contact-list a:focus-visible .project-desc-arrow {
+.contact-list a:focus-visible .project-desc-arrow,
+.contact-list a.is-expanded .project-desc-arrow {
   opacity: 0.9;
   transform: translateY(0.08em) translateX(0.2rem);
+}
+
+@media (hover: hover) {
+  .contact-list a:hover {
+    opacity: 1;
+    color: var(--accent);
+  }
+
+  .contact-list a:hover .contact-list__detail {
+    max-width: 16rem;
+    opacity: 1;
+    margin-left: 0.65rem;
+  }
+
+  .contact-list a:hover .project-desc-arrow {
+    opacity: 0.9;
+    transform: translateY(0.08em) translateX(0.2rem);
+  }
 }
 
 .contact-list a:focus-visible {
@@ -4518,6 +4605,10 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
 
   .brand-mark--corner {
     z-index: 11;
+    width: calc(
+      100vw - max(1.25rem, env(safe-area-inset-left)) -
+        max(1.25rem, env(safe-area-inset-right)) + 4px
+    );
     max-width: 1.85rem;
     left: calc(max(1.25rem, env(safe-area-inset-left)) - 2px);
     bottom: calc(max(1.25rem, env(safe-area-inset-bottom)) - 4px);
@@ -4538,6 +4629,7 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   }
 
   .brand-mark--corner .brand-mark__label {
+    flex: 1 0 auto;
     flex-direction: row;
     align-items: center;
     gap: 0.5rem;
@@ -4549,14 +4641,15 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   }
 
   .brand-mark--corner .brand-mark__meta {
+    flex: 1 0 auto;
+    justify-content: flex-start;
     font-size: 0.64rem;
-    gap: 0.75rem;
   }
 
   .brand-mark--corner[aria-expanded="true"] {
     max-width: calc(
       100vw - max(1.25rem, env(safe-area-inset-left)) -
-        max(1.25rem, env(safe-area-inset-right))
+        max(1.25rem, env(safe-area-inset-right)) + 4px
     );
     gap: 0.5rem;
   }
