@@ -1363,6 +1363,20 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   }
 }
 
+@keyframes accent-swatch-border-in {
+  0%,
+  99.9% {
+    box-shadow: none;
+  }
+}
+
+@keyframes accent-swatch-border-out {
+  0.1%,
+  100% {
+    box-shadow: none;
+  }
+}
+
 .accent-toggle .accent-toggle__blob {
   width: 1.1rem;
   height: 1.1rem;
@@ -1394,6 +1408,7 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   appearance: none;
   animation:
     accent-swatch-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * 0.025s) both,
+    accent-swatch-border-in 0.27s linear calc(var(--i) * 0.025s) both,
     blob-morph 7s ease-in-out var(--morph-delay) infinite;
   transition:
     transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
@@ -1409,6 +1424,7 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   animation:
     accent-swatch-out 0.35s cubic-bezier(0.64, 0, 0.78, 0)
       calc((var(--count) - 1 - var(--i)) * 0.025s) both,
+    accent-swatch-border-out 0.35s linear calc((var(--count) - 1 - var(--i)) * 0.025s) both,
     blob-morph 7s ease-in-out var(--morph-delay) infinite;
 }
 
