@@ -596,10 +596,37 @@ app.innerHTML = `
     <section class="screen screen--about" aria-labelledby="about-heading">
         <div class="screen-inner about-layout">
           <h2 id="about-heading" class="screen-title">About</h2>
-          <p class="about-bio">
-            Hey there, I'm Kaleb  👋  
-            <br>I'm a web developer based in Abbotsford.
-          </p>
+          <div class="about-copy">
+            <p class="about-intro">
+              Hey there, I'm Kaleb
+              <svg class="about-wave" viewBox="0 0 24 24" aria-hidden="true">
+                <g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 11V6a2 2 0 0 0-4 0"/>
+                  <path d="M14 10V4a2 2 0 0 0-4 0v2"/>
+                  <path d="M10 10.5V6a2 2 0 0 0-4 0v8"/>
+                  <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+                </g>
+              </svg>
+            </p>
+            <p class="about-bio">
+              I'm a web developer based in Abbotsford, BC, building fast, search-friendly
+              sites that help local businesses grow online. These days I lead web
+              development at Stoney Hill Marketing.
+            </p>
+            <div class="about-stack-wrap">
+              <p class="about-label" id="about-stack-label">Toolkit</p>
+              <ul class="about-stack" aria-labelledby="about-stack-label">
+                <li class="about-stack__chip">WordPress</li>
+                <li class="about-stack__chip">JavaScript</li>
+                <li class="about-stack__chip">PHP</li>
+                <li class="about-stack__chip">HTML</li>
+                <li class="about-stack__chip">CSS</li>
+                <li class="about-stack__chip">SEO</li>
+                <li class="about-stack__chip">Google Workspace</li>
+              </ul>
+            </div>
+            <p class="about-caption" aria-live="polite" hidden></p>
+          </div>
           <div class="profile-blob">
             <span class="profile-blob-shape" role="button" tabindex="0" aria-label="Split portrait">
               <img
@@ -2979,10 +3006,77 @@ const PROFILE_A11Y = [
     core: 'Drums photo assembling',
   },
 ]
+const PROFILE_CAPTIONS = [
+  {
+    caption: "That's me",
+    fact: "I've been building websites since I was a teenager tinkering with HTML.",
+  },
+  {
+    caption: 'Off the clock: salmon fishing',
+    fact: 'My favourite spot is out on the Fraser River at sunrise.',
+  },
+  {
+    caption: 'Behind the kit',
+    fact: "I've been playing drums for over ten years.",
+  },
+]
 
 const profileWrap = document.querySelector('.profile-blob')
 const profileShapes = [...(profileWrap?.querySelectorAll('.profile-blob-shape') ?? [])]
 const randInt = (min, max) => Math.floor(rand(min, max + 1))
+
+const aboutWave = document.querySelector('.about-wave')
+document.querySelector('.about-intro')?.addEventListener('pointerenter', () => {
+  const wave = aboutWave?.getAnimations().find((a) => a.animationName === 'about-wave')
+  if (!wave || wave.playState !== 'finished') return
+  wave.currentTime = wave.effect.getTiming().delay
+  wave.play()
+})
+
+const aboutCaption = document.querySelector('.about-caption')
+let captionHoverId = null
+const captionFactIds = []
+
+const renderAboutCaption = () => {
+  if (!aboutCaption) return
+  const factId = captionFactIds.at(-1)
+  const id = factId ?? captionHoverId
+  const copy = id == null ? null : PROFILE_CAPTIONS[id]
+  if (!copy) {
+    aboutCaption.hidden = true
+    aboutCaption.textContent = ''
+    return
+  }
+  const text = factId != null ? copy.fact : copy.caption
+  const isFact = factId != null
+  if (!aboutCaption.hidden && aboutCaption.textContent === text) return
+  aboutCaption.textContent = text
+  aboutCaption.classList.toggle('is-fact', isFact)
+  aboutCaption.style.animation = 'none'
+  void aboutCaption.offsetWidth
+  aboutCaption.style.animation = ''
+  aboutCaption.hidden = false
+}
+
+const pinCaptionFact = (id) => {
+  const i = captionFactIds.indexOf(id)
+  if (i >= 0) captionFactIds.splice(i, 1)
+  captionFactIds.push(id)
+  renderAboutCaption()
+}
+
+const unpinCaptionFact = (id) => {
+  const i = captionFactIds.indexOf(id)
+  if (i < 0) return
+  captionFactIds.splice(i, 1)
+  renderAboutCaption()
+}
+
+const setCaptionHover = (id) => {
+  if (captionHoverId === id) return
+  captionHoverId = id
+  renderAboutCaption()
+}
 
 const makeProfileShape = () => {
   const lump = rand(3, 6)
@@ -3465,6 +3559,7 @@ const restoreFamilyWhole = (family) => {
   family.pieceCount = 1
   family.mergedCount = 1
   updateProfileA11y(origin)
+  unpinCaptionFact(family.id)
   const cw = profileWrap.clientWidth
   const ch = profileWrap.clientHeight
   origin.s = profileSizePx(origin, cw, ch)
@@ -3525,6 +3620,7 @@ const explodeFamily = (family, instant) => {
   family.pieceCount = n
   family.mergedCount = 0
   family.core = null
+  pinCaptionFact(family.id)
 
   const pieces = [origin]
   for (let i = 1; i < n; i++) {
@@ -3744,6 +3840,19 @@ if (profileWrap) {
     requestAnimationFrame(() => {
       profileKeyActivated = false
     })
+  })
+
+  const captionIdFor = (target) => {
+    const shape = target instanceof Element ? target.closest('.profile-blob-shape') : null
+    if (!shape || !profileWrap.contains(shape)) return null
+    return blobFromShape(shape)?.familyId ?? null
+  }
+
+  profileWrap.addEventListener('pointerover', (e) => setCaptionHover(captionIdFor(e.target)))
+  profileWrap.addEventListener('pointerleave', () => setCaptionHover(null))
+  profileWrap.addEventListener('focusin', (e) => setCaptionHover(captionIdFor(e.target)))
+  profileWrap.addEventListener('focusout', (e) => {
+    if (!profileWrap.contains(e.relatedTarget)) setCaptionHover(null)
   })
 }
 
