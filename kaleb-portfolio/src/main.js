@@ -642,9 +642,20 @@ app.innerHTML = `
         <h2 id="contact-heading" class="screen-title">Get In Touch</h2>
         <ul class="contact-list">
           <li>
-            <a href="mailto:contact@kaleblink.com">
+            <a class="contact-list__email" href="mailto:contact@kaleblink.com">
               <span class="contact-list__label">Email</span>
-              <span class="contact-list__detail">contact@kaleblink.com</span>
+              <span class="contact-list__detail">
+                <span class="contact-list__copy-icon" aria-hidden="true">
+                  <svg class="contact-list__copy-icon-copy" viewBox="0 0 24 24">
+                    <rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+                    <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/>
+                  </svg>
+                  <svg class="contact-list__copy-icon-check" viewBox="0 0 24 24">
+                    <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/>
+                  </svg>
+                </span>
+                <span class="contact-list__email-text" aria-live="polite">contact@kaleblink.com</span>
+              </span>
               ${projectArrow}
             </a>
           </li>
@@ -4335,6 +4346,51 @@ if (blobCursorRoot && blobCursorMotion) {
 
   document.documentElement.addEventListener('mouseleave', hideCursor)
 }
+
+const CONTACT_EMAIL = 'contact@kaleblink.com'
+const CONTACT_EMAIL_COPIED_MS = 2000
+const contactEmailLink = document.querySelector('.contact-list__email')
+const contactEmailText = contactEmailLink?.querySelector('.contact-list__email-text')
+let contactEmailResetTimer = 0
+
+const copyText = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    let copied = false
+    try {
+      copied = document.execCommand('copy')
+    } catch {
+      copied = false
+    }
+    textarea.remove()
+    return copied
+  }
+}
+
+contactEmailLink?.addEventListener('click', async (e) => {
+  e.preventDefault()
+  const copied = await copyText(CONTACT_EMAIL)
+  if (!copied) {
+    window.location.href = `mailto:${CONTACT_EMAIL}`
+    return
+  }
+  clearTimeout(contactEmailResetTimer)
+  if (contactEmailText) contactEmailText.textContent = 'email copied!'
+  contactEmailLink.classList.add('is-copied')
+  contactEmailResetTimer = setTimeout(() => {
+    if (contactEmailText) contactEmailText.textContent = CONTACT_EMAIL
+    contactEmailLink.classList.remove('is-copied')
+  }, CONTACT_EMAIL_COPIED_MS)
+})
 
 const contactStatus = document.querySelector('.contact-form__status')
 const contactSubmit = document.querySelector('.contact-form__submit')
