@@ -3985,10 +3985,10 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
 
 .about-wave {
   flex: none;
-  width: 1.2em;
-  height: 1.2em;
+  width: 1.35em;
+  height: 1.35em;
   color: var(--accent);
-  transform-origin: 60% 90%;
+  transform-origin: 40% 95%;
 }
 
 #app[data-screen="about"] .about-intro {
@@ -4074,14 +4074,11 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   visibility: hidden;
 }
 
-.about-caption.is-fact {
-  font-style: normal;
-  opacity: 0.85;
-}
-
-.about-caption.is-fact::before {
-  content: "Fun fact: ";
+.about-caption.is-ouch {
   font-weight: 400;
+  font-style: normal;
+  opacity: 1;
+  animation: about-slide-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes about-caption-in {
@@ -4658,6 +4655,7 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   }
 
   .about-caption,
+  .about-caption.is-ouch,
   #app[data-screen="about"] .about-intro,
   #app[data-screen="about"] .about-wave {
     animation: none;
@@ -4845,7 +4843,6 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   }
 
   .about-caption {
-    min-height: 3em;
     font-size: 0.85rem;
   }
 
@@ -4856,10 +4853,6 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
 
     .about-label {
       display: none;
-    }
-
-    .about-caption {
-      min-height: 1.5em;
     }
   }
 
