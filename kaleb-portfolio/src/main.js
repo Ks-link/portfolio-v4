@@ -4392,6 +4392,29 @@ contactEmailLink?.addEventListener('click', async (e) => {
   }, CONTACT_EMAIL_COPIED_MS)
 })
 
+const contactList = document.querySelector('.contact-list')
+let expandedContactLink = null
+
+const setExpandedContactLink = (link) => {
+  expandedContactLink?.classList.remove('is-expanded')
+  expandedContactLink = link
+  link?.classList.add('is-expanded')
+}
+
+contactList?.addEventListener('click', (e) => {
+  if (hoverPreviewMq.matches) return
+  const link = e.target.closest('a')
+  if (!link || link === expandedContactLink) return
+  e.preventDefault()
+  e.stopPropagation()
+  setExpandedContactLink(link)
+}, true)
+
+document.addEventListener('pointerdown', (e) => {
+  if (!expandedContactLink || e.target.closest?.('.contact-list a')) return
+  setExpandedContactLink(null)
+}, true)
+
 const contactStatus = document.querySelector('.contact-form__status')
 const contactSubmit = document.querySelector('.contact-form__submit')
 

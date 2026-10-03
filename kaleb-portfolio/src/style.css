@@ -4084,25 +4084,43 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
     opacity 0.2s ease;
 }
 
-.contact-list a:hover,
 .contact-list a:focus-visible,
+.contact-list a.is-expanded,
 .contact-list a.is-copied {
   opacity: 1;
   color: var(--accent);
 }
 
-.contact-list a:hover .contact-list__detail,
 .contact-list a:focus-visible .contact-list__detail,
+.contact-list a.is-expanded .contact-list__detail,
 .contact-list a.is-copied .contact-list__detail {
   max-width: 16rem;
   opacity: 1;
   margin-left: 0.65rem;
 }
 
-.contact-list a:hover .project-desc-arrow,
-.contact-list a:focus-visible .project-desc-arrow {
+.contact-list a:focus-visible .project-desc-arrow,
+.contact-list a.is-expanded .project-desc-arrow {
   opacity: 0.9;
   transform: translateY(0.08em) translateX(0.2rem);
+}
+
+@media (hover: hover) {
+  .contact-list a:hover {
+    opacity: 1;
+    color: var(--accent);
+  }
+
+  .contact-list a:hover .contact-list__detail {
+    max-width: 16rem;
+    opacity: 1;
+    margin-left: 0.65rem;
+  }
+
+  .contact-list a:hover .project-desc-arrow {
+    opacity: 0.9;
+    transform: translateY(0.08em) translateX(0.2rem);
+  }
 }
 
 .contact-list a:focus-visible {
