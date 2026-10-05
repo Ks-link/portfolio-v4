@@ -119,6 +119,37 @@ const cursorIcon = `
   </svg>
 `
 
+const instagramIcon = `
+  <svg class="about-socials__icon" viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.9"/>
+    <circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="1.9"/>
+    <circle cx="17.4" cy="6.6" r="1.2" fill="currentColor"/>
+  </svg>
+`
+
+const pinterestIcon = `
+  <svg class="about-socials__icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="currentColor"
+      d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z"/>
+  </svg>
+`
+
+const letterboxdIcon = `
+  <svg class="about-socials__icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="4.6" cy="12" r="3.4" fill="currentColor"/>
+    <circle cx="12" cy="12" r="3.4" fill="currentColor"/>
+    <circle cx="19.4" cy="12" r="3.4" fill="currentColor"/>
+  </svg>
+`
+
+const chessIcon = `
+  <svg class="about-socials__icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="5.4" r="3.6" fill="currentColor"/>
+    <path fill="currentColor" d="M8 9.8h8l-1 1.9c1.7 1.7 2.6 3.9 2.9 6.4H6.1c.3-2.5 1.2-4.7 2.9-6.4z"/>
+    <rect x="4.4" y="19" width="15.2" height="3" rx="1.3" fill="currentColor"/>
+  </svg>
+`
+
 const faviconArrowPath = 'M3 2.5 19.1 10.9 11.05 13.8 7.4 20.1Z'
 
 /* Click lines are drawn from the inner end outward so the dash animation bursts away from the tip. */
@@ -606,6 +637,28 @@ app.innerHTML = `
             <p class="about-bio">
               I'm a web developer based in Abbotsford, BC. Movie buff, fortnite gamer, high handicap golfer and karaoke drummer. Big fan of lava lamps.
             </p>
+            <ul class="about-socials">
+              <li>
+                <a class="about-socials__link" target="_blank" rel="noopener noreferrer" href="https://www.instagram.com/ks_link_/" aria-label="Instagram">
+                  ${instagramIcon}
+                </a>
+              </li>
+              <li>
+                <a class="about-socials__link" target="_blank" rel="noopener noreferrer" href="https://www.pinterest.com/ks_link/" aria-label="Pinterest">
+                  ${pinterestIcon}
+                </a>
+              </li>
+              <li>
+                <a class="about-socials__link" target="_blank" rel="noopener noreferrer" href="https://boxd.it/jPee1" aria-label="Letterboxd">
+                  ${letterboxdIcon}
+                </a>
+              </li>
+              <li>
+                <a class="about-socials__link" target="_blank" rel="noopener noreferrer" href="https://www.chess.com/member/k_link" aria-label="Chess.com">
+                  ${chessIcon}
+                </a>
+              </li>
+            </ul>
             <div class="about-stack-wrap">
               <p class="about-label" id="about-stack-label">Toolkit</p>
               <ul class="about-stack" aria-labelledby="about-stack-label">

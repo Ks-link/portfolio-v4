@@ -4062,6 +4062,42 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   padding: 0;
 }
 
+.about-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.about-socials__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  color: var(--text);
+  background: var(--nav-blob);
+  transition: color 0.2s ease;
+}
+
+.about-socials__icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.about-socials__link:hover,
+.about-socials__link:focus-visible {
+  color: var(--accent);
+}
+
+.about-socials__link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .about-caption {
   margin: 0;
   min-height: 1.5em;
@@ -4852,6 +4888,16 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
 
   .about-caption {
     font-size: 0.85rem;
+  }
+
+  .about-socials__link {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .about-socials__icon {
+    width: 1rem;
+    height: 1rem;
   }
 
   @media (max-height: 720px) {
