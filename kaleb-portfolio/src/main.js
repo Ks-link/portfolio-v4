@@ -119,14 +119,6 @@ const cursorIcon = `
   </svg>
 `
 
-const instagramIcon = `
-  <svg class="about-socials__icon" viewBox="0 0 24 24" aria-hidden="true">
-    <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.9"/>
-    <circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="1.9"/>
-    <circle cx="17.4" cy="6.6" r="1.2" fill="currentColor"/>
-  </svg>
-`
-
 const pinterestIcon = `
   <svg class="about-socials__icon" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="currentColor"
@@ -638,11 +630,6 @@ app.innerHTML = `
               I'm a web developer based in Abbotsford, BC. Movie buff, fortnite gamer, high handicap golfer and karaoke drummer. Big fan of lava lamps.
             </p>
             <ul class="about-socials">
-              <li>
-                <a class="about-socials__link" target="_blank" rel="noopener noreferrer" href="https://www.instagram.com/ks_link_/" aria-label="Instagram">
-                  ${instagramIcon}
-                </a>
-              </li>
               <li>
                 <a class="about-socials__link" target="_blank" rel="noopener noreferrer" href="https://www.pinterest.com/ks_link/" aria-label="Pinterest">
                   ${pinterestIcon}
