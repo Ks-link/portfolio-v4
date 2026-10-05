@@ -627,7 +627,7 @@ app.innerHTML = `
               </svg>
             </p>
             <p class="about-bio">
-              I'm a web developer based in Abbotsford, BC. Movie buff, Nintendo kid, high handicap golfer and karaoke drummer. Big fan of lava lamps.
+              I'm a web developer based in Abbotsford, BC. Movie buff, Nintendo kid, high handicap golfer and karaoke drummer. Website design is my passion!
             </p>
             <ul class="about-socials">
               <li>
