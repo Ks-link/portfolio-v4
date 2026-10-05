@@ -596,10 +596,31 @@ app.innerHTML = `
     <section class="screen screen--about" aria-labelledby="about-heading">
         <div class="screen-inner about-layout">
           <h2 id="about-heading" class="screen-title">About</h2>
-          <p class="about-bio">
-            Hey there, I'm Kaleb  👋  
-            <br>I'm a web developer based in Abbotsford.
-          </p>
+          <div class="about-copy">
+            <p class="about-intro">
+              Hey there, I'm Kaleb
+              <svg class="about-wave" viewBox="36 38 210 214" aria-hidden="true">
+                <path fill="currentColor" fill-rule="evenodd" stroke="currentColor" stroke-width="8" stroke-linejoin="round" d="M132.3 48.6C125.7 51.9 124.8 54.3 113.5 98.8C106.7 125.2 104.2 132.2 98.8 138.4L95.5 142.1 92.1 134.9C83.6 117.2 64.2 106.2 52.3 112.4C44.8 116.2 44 122.6 50 131.3C55.5 139.4 57.9 146.5 59.1 158.3C61.7 184.4 64.1 193.6 71.4 206.1C79.7 220.3 97 232.1 116.4 237C145.9 244.4 170.1 229.4 190 191.5C195 182.1 196.5 180.3 216 160.5C233.4 142.9 236.9 138.9 237.4 135.9C238.6 129.2 233.6 121.6 227.3 120.4C221.2 119.3 217.7 120.7 208.1 128.6C203 132.7 198.6 136 198.4 135.8C198.2 135.6 203.7 126.4 210.5 115.5C217.4 104.5 223.3 94 223.6 92.3C225.5 82.4 216.6 73.5 206.7 75.4C201.5 76.4 199.1 78.8 189 93C183.9 100.1 179.7 106 179.5 106C179.3 106 182.3 98.7 186.2 89.8C197.5 63.5 198 60.7 192.3 53.9C184.8 45 171.2 46.8 166.1 57.2C165 59.6 160.3 69.8 155.6 80C150.9 90.2 147 98.3 147 98C147 97.7 148.6 89.5 150.4 79.7C153.2 65.3 153.6 61.2 152.8 58.2C150.3 49.1 140.6 44.5 132.3 48.6M134 55.8C131.7 57.7 124.2 83.1 118 110.5C114.7 124.6 109.4 137.2 104.1 143.2C100.2 147.6 100.2 147.6 104.8 149.9C117.7 156.6 126.7 173.9 124.5 187.8C123.4 194.8 123 195.8 121.4 196.4C118 197.7 117 195.2 117 185.6C117 169.1 112 161.1 97.6 154.5C90.8 151.3 90.3 150.8 89.1 146.8C84.3 130.7 71.8 118 60.6 118C53.1 118 51 121.4 55.4 126.7C61.8 134.3 65.1 145.3 67 165.4C70 196.3 80 213 102.1 223.9C137.4 241.4 163.3 229.3 185.7 184.6C190 176.1 191.3 174.6 210.1 156.2C227.9 138.9 230 136.4 230 133.5C230 129.8 227.4 127 223.9 127C222.2 127 215.3 131.9 202.1 142.5C181.4 159.1 181.9 158.8 179.6 156.4C177.6 154.4 176.7 156 198.9 120.5C208.9 104.5 217 90.5 217 89.2C217 86.2 212.7 82 209.6 82C205.9 82 203.3 84.9 190.9 102.5C177.4 121.7 168.1 134.8 165.8 137.9C163.8 140.7 159.6 140.5 159.2 137.5C159.1 136.4 163.9 123.8 170 109.5C188.9 65.3 189.5 63.7 187.9 60.4C185.2 54.8 178.2 53.5 174.4 57.9C173.5 58.9 165.5 75.6 156.5 95.1C141.6 127.2 139.9 130.5 137.5 130.8C135.9 131 134.8 130.6 134.4 129.5C134 128.7 136.5 113.8 139.9 96.6C143.2 79.4 146 63.7 146 61.7C146 55.4 138.9 51.9 134 55.8"/>
+              </svg>
+            </p>
+            <p class="about-bio">
+              I'm a web developer based in Abbotsford, BC. Movie buff, fortnite gamer, high handicap golfer and karaoke drummer. Big fan of lava lamps.
+            </p>
+            <div class="about-stack-wrap">
+              <p class="about-label" id="about-stack-label">Toolkit</p>
+              <ul class="about-stack" aria-labelledby="about-stack-label">
+                <li class="about-stack__chip">WordPress</li>
+                <li class="about-stack__chip">JavaScript</li>
+                <li class="about-stack__chip">Shopify</li>
+                <li class="about-stack__chip">PHP</li>
+                <li class="about-stack__chip">HTML</li>
+                <li class="about-stack__chip">CSS</li>
+                <li class="about-stack__chip">SEO</li>
+                <li class="about-stack__chip">Google Analytics</li>
+              </ul>
+            </div>
+            <p class="about-caption" aria-live="polite" hidden></p>
+          </div>
           <div class="profile-blob">
             <span class="profile-blob-shape" role="button" tabindex="0" aria-label="Split portrait">
               <img
@@ -1171,7 +1192,7 @@ const setAccentPickerOpen = (open) => {
         .getAnimations({ subtree: true })
         .filter((animation) => animation.animationName === 'accent-swatch-out')
       Promise.all(exits.map((animation) => animation.finished))
-        .catch(() => {})
+        .catch(() => { })
         .then(() => {
           if (token !== accentPickerCloseToken) return
           accentPicker.hidden = true
@@ -1245,7 +1266,7 @@ const setCursorPickerOpen = (open) => {
         .getAnimations({ subtree: true })
         .filter((animation) => animation.animationName === 'accent-swatch-out')
       Promise.all(exits.map((animation) => animation.finished))
-        .catch(() => {})
+        .catch(() => { })
         .then(() => {
           if (token !== cursorPickerCloseToken) return
           cursorPicker.hidden = true
@@ -2042,7 +2063,7 @@ const showLegalCat = () => {
       }
       legalCatImg.src = legalCatUrl
     })
-    .catch(() => {})
+    .catch(() => { })
 }
 
 const setRoute = (screen, project = '', { push = false, focus = false } = {}) => {
@@ -2979,10 +3000,74 @@ const PROFILE_A11Y = [
     core: 'Drums photo assembling',
   },
 ]
+const PROFILE_CAPTIONS = ["That's me", 'I like fishing too', 'Posing for the camera']
+const PROFILE_OUCHES = [
+  'Ouch!',
+  'That tickles',
+  'YEEEEOOOOOOCH',
+  'Ow ow ow ow',
+  'Hey, careful now',
+  'Ouchie',
+  'Oof',
+  'AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH',
+]
 
 const profileWrap = document.querySelector('.profile-blob')
 const profileShapes = [...(profileWrap?.querySelectorAll('.profile-blob-shape') ?? [])]
 const randInt = (min, max) => Math.floor(rand(min, max + 1))
+
+const aboutWave = document.querySelector('.about-wave')
+document.querySelector('.about-intro')?.addEventListener('pointerenter', () => {
+  const wave = aboutWave?.getAnimations().find((a) => a.animationName === 'about-wave')
+  if (!wave || wave.playState !== 'finished') return
+  wave.currentTime = wave.effect.getTiming().delay
+  wave.play()
+})
+
+const aboutCaption = document.querySelector('.about-caption')
+let captionHoverId = null
+const captionOuches = []
+let lastOuch = ''
+
+const renderAboutCaption = () => {
+  if (!aboutCaption) return
+  const ouch = captionOuches.at(-1)?.text
+  const text = ouch ?? (captionHoverId == null ? null : PROFILE_CAPTIONS[captionHoverId])
+  if (!text) {
+    aboutCaption.hidden = true
+    aboutCaption.textContent = ''
+    return
+  }
+  if (!aboutCaption.hidden && aboutCaption.textContent === text) return
+  aboutCaption.textContent = text
+  aboutCaption.classList.toggle('is-ouch', ouch != null)
+  aboutCaption.style.animation = 'none'
+  void aboutCaption.offsetWidth
+  aboutCaption.style.animation = ''
+  aboutCaption.hidden = false
+}
+
+const pinCaptionOuch = (id) => {
+  const options = PROFILE_OUCHES.filter((text) => text !== lastOuch)
+  lastOuch = options[randInt(0, options.length - 1)]
+  const i = captionOuches.findIndex((entry) => entry.id === id)
+  if (i >= 0) captionOuches.splice(i, 1)
+  captionOuches.push({ id, text: lastOuch })
+  renderAboutCaption()
+}
+
+const unpinCaptionOuch = (id) => {
+  const i = captionOuches.findIndex((entry) => entry.id === id)
+  if (i < 0) return
+  captionOuches.splice(i, 1)
+  renderAboutCaption()
+}
+
+const setCaptionHover = (id) => {
+  if (captionHoverId === id) return
+  captionHoverId = id
+  renderAboutCaption()
+}
 
 const makeProfileShape = () => {
   const lump = rand(3, 6)
@@ -3465,6 +3550,7 @@ const restoreFamilyWhole = (family) => {
   family.pieceCount = 1
   family.mergedCount = 1
   updateProfileA11y(origin)
+  unpinCaptionOuch(family.id)
   const cw = profileWrap.clientWidth
   const ch = profileWrap.clientHeight
   origin.s = profileSizePx(origin, cw, ch)
@@ -3525,6 +3611,7 @@ const explodeFamily = (family, instant) => {
   family.pieceCount = n
   family.mergedCount = 0
   family.core = null
+  pinCaptionOuch(family.id)
 
   const pieces = [origin]
   for (let i = 1; i < n; i++) {
@@ -3744,6 +3831,19 @@ if (profileWrap) {
     requestAnimationFrame(() => {
       profileKeyActivated = false
     })
+  })
+
+  const captionIdFor = (target) => {
+    const shape = target instanceof Element ? target.closest('.profile-blob-shape') : null
+    if (!shape || !profileWrap.contains(shape)) return null
+    return blobFromShape(shape)?.familyId ?? null
+  }
+
+  profileWrap.addEventListener('pointerover', (e) => setCaptionHover(captionIdFor(e.target)))
+  profileWrap.addEventListener('pointerleave', () => setCaptionHover(null))
+  profileWrap.addEventListener('focusin', (e) => setCaptionHover(captionIdFor(e.target)))
+  profileWrap.addEventListener('focusout', (e) => {
+    if (!profileWrap.contains(e.relatedTarget)) setCaptionHover(null)
   })
 }
 
@@ -4393,12 +4493,36 @@ contactEmailLink?.addEventListener('click', async (e) => {
 })
 
 const contactList = document.querySelector('.contact-list')
+// Matches the .contact-list__detail expand/collapse transition.
+const CONTACT_LINK_EXPAND_MS = 450
 let expandedContactLink = null
+let contactExpandTimer = 0
+let contactExpandReadyAt = 0
 
 const setExpandedContactLink = (link) => {
   expandedContactLink?.classList.remove('is-expanded')
   expandedContactLink = link
   link?.classList.add('is-expanded')
+}
+
+const collapseExpandedContactLink = () => {
+  if (!expandedContactLink) return
+  setExpandedContactLink(null)
+  contactExpandReadyAt = Date.now() + CONTACT_LINK_EXPAND_MS
+}
+
+const openContactLinkAfterCollapse = (link) => {
+  clearTimeout(contactExpandTimer)
+  const wait = Math.max(0, contactExpandReadyAt - Date.now())
+  const open = () => {
+    contactExpandTimer = 0
+    setExpandedContactLink(link)
+  }
+  if (!wait) {
+    open()
+    return
+  }
+  contactExpandTimer = window.setTimeout(open, wait)
 }
 
 contactList?.addEventListener('click', (e) => {
@@ -4407,12 +4531,15 @@ contactList?.addEventListener('click', (e) => {
   if (!link || link === expandedContactLink) return
   e.preventDefault()
   e.stopPropagation()
-  setExpandedContactLink(link)
+  collapseExpandedContactLink()
+  openContactLinkAfterCollapse(link)
 }, true)
 
 document.addEventListener('pointerdown', (e) => {
-  if (!expandedContactLink || e.target.closest?.('.contact-list a')) return
-  setExpandedContactLink(null)
+  if ((!expandedContactLink && !contactExpandTimer) || e.target.closest?.('.contact-list a')) return
+  clearTimeout(contactExpandTimer)
+  contactExpandTimer = 0
+  collapseExpandedContactLink()
 }, true)
 
 const contactStatus = document.querySelector('.contact-form__status')
