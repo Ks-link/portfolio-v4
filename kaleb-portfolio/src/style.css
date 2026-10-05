@@ -121,17 +121,11 @@ body {
 }
 
 #app[data-screen="terms"] .stage {
-  transform: translate(
-    var(--swipe-x),
-    calc(-100dvh + var(--swipe-y))
-  );
+  transform: translate(var(--swipe-x), calc(-100dvh + var(--swipe-y)));
 }
 
 #app[data-screen="privacy"] .stage {
-  transform: translate(
-    var(--swipe-x),
-    calc(-200dvh + var(--swipe-y))
-  );
+  transform: translate(var(--swipe-x), calc(-200dvh + var(--swipe-y)));
 }
 
 .screen {
@@ -1093,7 +1087,8 @@ html[data-cursor="favicon"] .blob-cursor {
   --arrow-size: 18px;
   width: var(--arrow-size);
   height: var(--arrow-size);
-  margin: calc(var(--arrow-size) * -2.5 / 24) 0 0 calc(var(--arrow-size) * -3 / 24);
+  margin: calc(var(--arrow-size) * -2.5 / 24) 0 0
+    calc(var(--arrow-size) * -3 / 24);
 }
 
 html[data-cursor="favicon"] .blob-cursor-shape {
@@ -1138,11 +1133,17 @@ html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path {
   animation: cursor-click-burst 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path:nth-child(2) {
+html[data-cursor="favicon"]
+  .blob-cursor.is-clicking
+  .cursor-arrow-clicks
+  path:nth-child(2) {
   animation-delay: 0.03s;
 }
 
-html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path:nth-child(3) {
+html[data-cursor="favicon"]
+  .blob-cursor.is-clicking
+  .cursor-arrow-clicks
+  path:nth-child(3) {
   animation-delay: 0.06s;
 }
 
@@ -1407,7 +1408,8 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   cursor: pointer;
   appearance: none;
   animation:
-    accent-swatch-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * 0.025s) both,
+    accent-swatch-in 0.45s cubic-bezier(0.22, 1, 0.36, 1)
+      calc(var(--i) * 0.025s) both,
     accent-swatch-border-in 0.27s linear calc(var(--i) * 0.025s) both,
     blob-morph 7s ease-in-out var(--morph-delay) infinite;
   transition:
@@ -1424,7 +1426,8 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   animation:
     accent-swatch-out 0.35s cubic-bezier(0.64, 0, 0.78, 0)
       calc((var(--count) - 1 - var(--i)) * 0.025s) both,
-    accent-swatch-border-out 0.35s linear calc((var(--count) - 1 - var(--i)) * 0.025s) both,
+    accent-swatch-border-out 0.35s linear
+      calc((var(--count) - 1 - var(--i)) * 0.025s) both,
     blob-morph 7s ease-in-out var(--morph-delay) infinite;
 }
 
@@ -1501,7 +1504,8 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   color: var(--text);
   cursor: pointer;
   appearance: none;
-  animation: accent-swatch-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * 0.025s) both;
+  animation: accent-swatch-in 0.45s cubic-bezier(0.22, 1, 0.36, 1)
+    calc(var(--i) * 0.025s) both;
   transition:
     transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
     background-color 0.2s ease;
@@ -2691,9 +2695,7 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
 
   #app[data-stage-map="open"] .stage-map__blob--locked.is-traveling {
     width: calc(1.1rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
-    height: calc(
-      1.1rem * var(--stage-map-scale) * var(--stage-map-blob-scale)
-    );
+    height: calc(1.1rem * var(--stage-map-scale) * var(--stage-map-blob-scale));
   }
 
   /* Selected destination: nav-blob fill + accent arrow (like desktop nav blobs). */
@@ -2855,7 +2857,8 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
 }
 
 @media (min-width: 48rem) {
-  #app[data-cookie-banner="open"]:not([data-screen="play"]) .corner-cluster--controls {
+  #app[data-cookie-banner="open"]:not([data-screen="play"])
+    .corner-cluster--controls {
     bottom: calc(
       var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
         0.35rem
@@ -3502,7 +3505,8 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
 
 .work-kicker,
 .work-back,
-.title {
+.title,
+.about-label {
   margin: 0;
   font-family: var(--sans);
   font-weight: 500;
@@ -4040,13 +4044,13 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   opacity: 0.85;
 }
 
+.about-stack-wrap {
+  margin-top: 0.5rem;
+}
+
 .about-label {
   margin: 0 0 0.5rem;
-  font-weight: 300;
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.55;
+  padding-left: 0.2rem;
 }
 
 .about-stack {
@@ -4665,7 +4669,10 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
     display: none;
   }
 
-  html[data-cursor="favicon"] .blob-cursor.is-clicking .cursor-arrow-clicks path {
+  html[data-cursor="favicon"]
+    .blob-cursor.is-clicking
+    .cursor-arrow-clicks
+    path {
     animation: none;
   }
 
@@ -4737,7 +4744,8 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
     bottom: calc(max(1.25rem, env(safe-area-inset-bottom)) - 4px);
   }
 
-  #app[data-cookie-banner="open"]:not([data-screen="play"]) .brand-mark--corner {
+  #app[data-cookie-banner="open"]:not([data-screen="play"])
+    .brand-mark--corner {
     bottom: calc(
       var(--cookie-banner-h, 2.75rem) + var(--cookie-banner-gap, 0.15rem) +
         0.35rem - 4px

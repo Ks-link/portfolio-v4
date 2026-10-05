@@ -604,20 +604,19 @@ app.innerHTML = `
               </svg>
             </p>
             <p class="about-bio">
-              I'm a web developer based in Abbotsford, BC, building fast, search-friendly
-              sites that help local businesses grow online. These days I lead web
-              development at Stoney Hill Marketing.
+              I'm a web developer based in Abbotsford, BC. Movie buff, fortnite gamer, high handicap golfer and karaoke drummer. Big fan of lava lamps.
             </p>
             <div class="about-stack-wrap">
-              <p class="about-label" id="about-stack-label">Practical technologies</p>
+              <p class="about-label" id="about-stack-label">Toolkit</p>
               <ul class="about-stack" aria-labelledby="about-stack-label">
                 <li class="about-stack__chip">WordPress</li>
                 <li class="about-stack__chip">JavaScript</li>
+                <li class="about-stack__chip">Shopify</li>
                 <li class="about-stack__chip">PHP</li>
                 <li class="about-stack__chip">HTML</li>
                 <li class="about-stack__chip">CSS</li>
                 <li class="about-stack__chip">SEO</li>
-                <li class="about-stack__chip">Google Workspace</li>
+                <li class="about-stack__chip">Google Analytics</li>
               </ul>
             </div>
             <p class="about-caption" aria-live="polite" hidden></p>
@@ -1193,7 +1192,7 @@ const setAccentPickerOpen = (open) => {
         .getAnimations({ subtree: true })
         .filter((animation) => animation.animationName === 'accent-swatch-out')
       Promise.all(exits.map((animation) => animation.finished))
-        .catch(() => {})
+        .catch(() => { })
         .then(() => {
           if (token !== accentPickerCloseToken) return
           accentPicker.hidden = true
@@ -1267,7 +1266,7 @@ const setCursorPickerOpen = (open) => {
         .getAnimations({ subtree: true })
         .filter((animation) => animation.animationName === 'accent-swatch-out')
       Promise.all(exits.map((animation) => animation.finished))
-        .catch(() => {})
+        .catch(() => { })
         .then(() => {
           if (token !== cursorPickerCloseToken) return
           cursorPicker.hidden = true
@@ -2064,7 +2063,7 @@ const showLegalCat = () => {
       }
       legalCatImg.src = legalCatUrl
     })
-    .catch(() => {})
+    .catch(() => { })
 }
 
 const setRoute = (screen, project = '', { push = false, focus = false } = {}) => {
@@ -3001,16 +3000,16 @@ const PROFILE_A11Y = [
     core: 'Drums photo assembling',
   },
 ]
-const PROFILE_CAPTIONS = ["That's me", 'Off the clock: salmon fishing', 'Behind the kit']
+const PROFILE_CAPTIONS = ["That's me", 'I like fishing too', 'Posing for the camera']
 const PROFILE_OUCHES = [
   'Ouch!',
   'Youch!',
-  'That tickles!',
-  'YEEEOOOOCH',
-  'Owie.',
+  'That tickles',
+  'YEEEEOOOOOCH',
+  'Owie',
   'Ow ow ow ow',
-  'Hey, careful!',
-  'Oof.',
+  'Hey, careful now',
+  'Oof',
 ]
 
 const profileWrap = document.querySelector('.profile-blob')
@@ -4494,12 +4493,36 @@ contactEmailLink?.addEventListener('click', async (e) => {
 })
 
 const contactList = document.querySelector('.contact-list')
+// Matches the .contact-list__detail expand/collapse transition.
+const CONTACT_LINK_EXPAND_MS = 450
 let expandedContactLink = null
+let contactExpandTimer = 0
+let contactExpandReadyAt = 0
 
 const setExpandedContactLink = (link) => {
   expandedContactLink?.classList.remove('is-expanded')
   expandedContactLink = link
   link?.classList.add('is-expanded')
+}
+
+const collapseExpandedContactLink = () => {
+  if (!expandedContactLink) return
+  setExpandedContactLink(null)
+  contactExpandReadyAt = Date.now() + CONTACT_LINK_EXPAND_MS
+}
+
+const openContactLinkAfterCollapse = (link) => {
+  clearTimeout(contactExpandTimer)
+  const wait = Math.max(0, contactExpandReadyAt - Date.now())
+  const open = () => {
+    contactExpandTimer = 0
+    setExpandedContactLink(link)
+  }
+  if (!wait) {
+    open()
+    return
+  }
+  contactExpandTimer = window.setTimeout(open, wait)
 }
 
 contactList?.addEventListener('click', (e) => {
@@ -4508,12 +4531,15 @@ contactList?.addEventListener('click', (e) => {
   if (!link || link === expandedContactLink) return
   e.preventDefault()
   e.stopPropagation()
-  setExpandedContactLink(link)
+  collapseExpandedContactLink()
+  openContactLinkAfterCollapse(link)
 }, true)
 
 document.addEventListener('pointerdown', (e) => {
-  if (!expandedContactLink || e.target.closest?.('.contact-list a')) return
-  setExpandedContactLink(null)
+  if ((!expandedContactLink && !contactExpandTimer) || e.target.closest?.('.contact-list a')) return
+  clearTimeout(contactExpandTimer)
+  contactExpandTimer = 0
+  collapseExpandedContactLink()
 }, true)
 
 const contactStatus = document.querySelector('.contact-form__status')
