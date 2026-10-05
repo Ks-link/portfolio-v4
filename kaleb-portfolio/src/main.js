@@ -3003,13 +3003,13 @@ const PROFILE_A11Y = [
 const PROFILE_CAPTIONS = ["That's me", 'I like fishing too', 'Posing for the camera']
 const PROFILE_OUCHES = [
   'Ouch!',
-  'Youch!',
   'That tickles',
-  'YEEEEOOOOOCH',
-  'Owie',
+  'YEEEEOOOOOOCH',
   'Ow ow ow ow',
   'Hey, careful now',
+  'Ouchie',
   'Oof',
+  'AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH',
 ]
 
 const profileWrap = document.querySelector('.profile-blob')
