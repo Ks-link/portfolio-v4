@@ -119,6 +119,31 @@ const cursorIcon = `
   </svg>
 `
 
+const pinterestIcon = `
+  <svg class="profile-social__icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="10.5" fill="#fff"/>
+    <path fill="#e60023"
+      d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z"/>
+  </svg>
+`
+
+const letterboxdIcon = `
+  <svg class="profile-social__icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="4.45" cy="12" r="4.444" fill="#ff8000"/>
+    <circle cx="12" cy="12" r="4.444" fill="#00e054"/>
+    <circle cx="19.55" cy="12" r="4.444" fill="#40bcf4"/>
+    <path fill="#fff"
+      d="M8.224 9.648c.427.682.674 1.488.674 2.352s-.247 1.67-.674 2.352c-.427-.682-.673-1.488-.673-2.352s.246-1.67.673-2.352zM15.776 9.648c.427.682.673 1.488.673 2.352s-.246 1.67-.673 2.352c-.427-.682-.675-1.488-.675-2.352s.248-1.67.675-2.352z"/>
+  </svg>
+`
+
+const chessIcon = `
+  <svg class="profile-social__icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="#81b64c"
+      d="M12 0a3.85 3.85 0 0 0-3.875 3.846A3.84 3.84 0 0 0 9.73 6.969l-2.79 1.85c0 .622.144 1.114.434 1.649H9.83c-.014.245-.014.549-.014.925 0 .025.003.048.006.071-.064 1.353-.507 3.472-3.62 5.842-.816.625-1.423 1.495-1.806 2.533a.33.33 0 0 0-.045.084 8.124 8.124 0 0 0-.39 2.516c0 .1.216 1.561 8.038 1.561s8.038-1.46 8.038-1.561c0-2.227-.824-4.048-2.24-5.133-4.034-3.08-3.586-5.74-3.644-6.838h2.458c.29-.535.434-1.027.434-1.649l-2.79-1.836a3.86 3.86 0 0 0 1.604-3.123A3.873 3.873 0 0 0 13.445.275c-.004-.002-.01.004-.015.004A3.76 3.76 0 0 0 12 0Z"/>
+  </svg>
+`
+
 const faviconArrowPath = 'M3 2.5 19.1 10.9 11.05 13.8 7.4 20.1Z'
 
 /* Click lines are drawn from the inner end outward so the dash animation bursts away from the tip. */
@@ -604,7 +629,7 @@ app.innerHTML = `
               </svg>
             </p>
             <p class="about-bio">
-              I'm a web developer based in Abbotsford, BC. Movie buff, fortnite gamer, high handicap golfer and karaoke drummer. Big fan of lava lamps.
+              I'm a web developer based in Abbotsford, BC. Movie buff, Nintendo kid, high handicap golfer and karaoke drummer. Website design is my passion!
             </p>
             <div class="about-stack-wrap">
               <p class="about-label" id="about-stack-label">Toolkit</p>
@@ -655,6 +680,23 @@ app.innerHTML = `
                 draggable="false"
               />
             </span>
+            <ul class="profile-socials" aria-label="Social profiles">
+              <li>
+                <a class="profile-social" target="_blank" rel="noopener noreferrer" href="https://www.pinterest.com/ks_link/" aria-label="Pinterest">
+                  ${pinterestIcon}
+                </a>
+              </li>
+              <li>
+                <a class="profile-social" target="_blank" rel="noopener noreferrer" href="https://boxd.it/jPee1" aria-label="Letterboxd">
+                  ${letterboxdIcon}
+                </a>
+              </li>
+              <li>
+                <a class="profile-social" target="_blank" rel="noopener noreferrer" href="https://www.chess.com/member/k_link" aria-label="Chess.com">
+                  ${chessIcon}
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
     </section>
@@ -2972,6 +3014,20 @@ const PROFILE_ORBITS = [
   { angle: 0, speed: 0.07, rx: 0.58, ry: 0.66, dir: 1 },
   { angle: Math.PI, speed: 0.055, rx: 0.56, ry: 0.62, dir: 1 },
 ]
+const PROFILE_SOCIAL_SIZE = 0.2
+const PROFILE_SOCIAL_MIN = 44
+const PROFILE_SOCIAL_MAX = 60
+const PROFILE_SOCIAL_PUSH = 0.35
+const PROFILE_SOCIAL_ORBITS = [
+  { angle: Math.PI * 0.5, speed: 0.05, rx: 0.62, ry: 0.72 },
+  { angle: Math.PI * 1.25, speed: 0.045, rx: 0.64, ry: 0.7 },
+  { angle: Math.PI * 1.8, speed: 0.055, rx: 0.6, ry: 0.74 },
+]
+const PROFILE_SOCIAL_STATIC_OFFSETS = [
+  { fx: 0.92, fy: 0.12 },
+  { fx: 0.06, fy: 0.62 },
+  { fx: 0.9, fy: 0.84 },
+]
 const PROFILE_SEPARATE = 1.28
 const PROFILE_SEPARATE_RATE = 7
 const PROFILE_MOON_MIN_ANGLE = 1.05
@@ -3064,6 +3120,7 @@ const unpinCaptionOuch = (id) => {
 }
 
 const setCaptionHover = (id) => {
+  if (swipeMq.matches) id = null
   if (captionHoverId === id) return
   captionHoverId = id
   renderAboutCaption()
@@ -3213,7 +3270,40 @@ const profileFamilies = profileBlobs.map((blob) => {
   }
 })
 
+const createProfileSocial = (el, i) => {
+  const orbit = PROFILE_SOCIAL_ORBITS[i % PROFILE_SOCIAL_ORBITS.length]
+  const social = {
+    ...createProfileBlob(el, PROFILE_ORBITS.length + i),
+    social: true,
+    familyId: null,
+    isOrigin: false,
+    host: false,
+    mode: 'social',
+    held: false,
+    angle: orbit.angle,
+    orbitSpeed: orbit.speed + rand(-0.006, 0.006),
+    orbitDir: 1,
+    orbitRx: orbit.rx,
+    orbitRy: orbit.ry,
+  }
+  const hold = (held) => () => {
+    social.held = held
+  }
+  el.addEventListener('pointerenter', hold(true))
+  el.addEventListener('pointerleave', hold(false))
+  el.addEventListener('focus', hold(true))
+  el.addEventListener('blur', hold(false))
+  return social
+}
+
+const profileSocials = profileWrap
+  ? [...profileWrap.querySelectorAll('.profile-social')].map(createProfileSocial)
+  : []
+
 const profileSizePx = (blob, cw, ch) => {
+  if (blob.social) {
+    return Math.min(PROFILE_SOCIAL_MAX, Math.max(PROFILE_SOCIAL_MIN, Math.min(cw, ch) * PROFILE_SOCIAL_SIZE))
+  }
   const sizes = swipeMq.matches ? PROFILE_BLOB_SIZES_MOBILE : PROFILE_BLOB_SIZES
   let base = Math.min(cw, ch) * (sizes[blob.sizeIndex] ?? blob.size)
   if (swipeMq.matches) base = Math.min(base, PROFILE_BLOB_MAX_MOBILE)
@@ -3290,6 +3380,16 @@ const placeStaticProfile = () => {
     }
     clampProfileInBox(blob, cw, ch)
     paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob))
+  })
+
+  profileSocials.forEach((social, i) => {
+    const off = PROFILE_SOCIAL_STATIC_OFFSETS[i % PROFILE_SOCIAL_STATIC_OFFSETS.length]
+    social.s = profileSizePx(social, cw, ch)
+    social.left = Math.max(0, cw - social.s) * off.fx
+    social.top = Math.max(0, ch - social.s) * off.fy
+    social.x = social.left + social.s / 2
+    social.y = social.top + social.s / 2
+    paintProfileBlob(social, social.left, social.top, social.s, profileBlobRadius(social))
   })
 }
 
@@ -3752,28 +3852,42 @@ const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
 
   tickProfileBlob(hostAnchor, t, dt, mouseX, mouseY, blobReach, blobPush)
 
-  if (!hideMoons) {
-    const moonAnchors = profileFamilies.filter((family) => !family.host).map((family) => family.anchor)
-    const angleGain = 1 - Math.exp(-Math.max(dt, 0.001) * PROFILE_MOON_ANGLE_RATE)
-    for (let i = 0; i < moonAnchors.length; i++) {
-      for (let j = i + 1; j < moonAnchors.length; j++) {
-        const a = moonAnchors[i]
-        const b = moonAnchors[j]
-        let dAngle = b.angle - a.angle
-        while (dAngle > Math.PI) dAngle -= Math.PI * 2
-        while (dAngle < -Math.PI) dAngle += Math.PI * 2
-        const abs = Math.abs(dAngle) || 0.001
-        if (abs >= PROFILE_MOON_MIN_ANGLE) continue
-        const push = (PROFILE_MOON_MIN_ANGLE - abs) * angleGain
-        const sign = dAngle >= 0 ? 1 : -1
-        a.angle -= sign * push * 0.5
-        b.angle += sign * push * 0.5
-      }
+  const moonAnchors = [
+    ...(hideMoons ? [] : profileFamilies.filter((family) => !family.host).map((family) => family.anchor)),
+    ...profileSocials,
+  ]
+  const angleGain = 1 - Math.exp(-Math.max(dt, 0.001) * PROFILE_MOON_ANGLE_RATE)
+  for (let i = 0; i < moonAnchors.length; i++) {
+    for (let j = i + 1; j < moonAnchors.length; j++) {
+      const a = moonAnchors[i]
+      const b = moonAnchors[j]
+      let dAngle = b.angle - a.angle
+      while (dAngle > Math.PI) dAngle -= Math.PI * 2
+      while (dAngle < -Math.PI) dAngle += Math.PI * 2
+      const abs = Math.abs(dAngle) || 0.001
+      if (abs >= PROFILE_MOON_MIN_ANGLE) continue
+      const push = (PROFILE_MOON_MIN_ANGLE - abs) * angleGain
+      const sign = dAngle >= 0 ? 1 : -1
+      if (!a.held) a.angle -= sign * push * 0.5
+      if (!b.held) b.angle += sign * push * 0.5
     }
-    moonAnchors.forEach((anchor) => {
-      tickProfileOrbit(anchor, hostAnchor, t, dt, mouseX, mouseY, blobReach, blobPush)
-    })
   }
+  moonAnchors.forEach((anchor) => {
+    if (anchor.social) {
+      tickProfileOrbit(
+        anchor,
+        hostAnchor,
+        t,
+        anchor.held ? 0 : dt,
+        mouseX,
+        mouseY,
+        blobReach,
+        blobPush * PROFILE_SOCIAL_PUSH,
+      )
+    } else {
+      tickProfileOrbit(anchor, hostAnchor, t, dt, mouseX, mouseY, blobReach, blobPush)
+    }
+  })
 
   const visible = profileBlobs.filter((blob) => !(hideMoons && blob.familyId !== 0))
 
@@ -3798,13 +3912,13 @@ const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
     .forEach((blob) => absorbIfClose(blob))
 
   const stillVisible = profileBlobs.filter((blob) => !(hideMoons && blob.familyId !== 0))
-  separateProfileBlobs(
-    dt,
-    stillVisible.filter((blob) => blob.mode !== 'merging'),
-  )
-  stillVisible.forEach((blob) => {
+  separateProfileBlobs(dt, [
+    ...stillVisible.filter((blob) => blob.mode !== 'merging'),
+    ...profileSocials,
+  ])
+  for (const blob of [...stillVisible, ...profileSocials]) {
     paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob, t))
-  })
+  }
 }
 
 const blobFromShape = (el) => profileBlobs.find((blob) => blob.el === el)
