@@ -3954,6 +3954,49 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   padding: 0.28rem;
 }
 
+.profile-socials {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-social {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  background: var(--nav-blob);
+  border-radius: 54% 50% 52% 48% / 50% 54% 48% 52%;
+  will-change: transform, border-radius;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+.profile-social__icon {
+  width: 46%;
+  height: 46%;
+  transition: transform 0.2s ease;
+}
+
+.profile-social:hover .profile-social__icon,
+.profile-social:focus-visible .profile-social__icon {
+  transform: scale(1.15);
+}
+
+.profile-social:focus {
+  outline: none;
+}
+
+.profile-social:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .profile-blob-img {
   display: block;
   width: 100%;
@@ -4060,42 +4103,6 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.about-socials {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.about-socials__link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 50%;
-  color: var(--text);
-  background: var(--nav-blob);
-  transition: color 0.2s ease;
-}
-
-.about-socials__icon {
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
-.about-socials__link:hover,
-.about-socials__link:focus-visible {
-  color: var(--accent);
-}
-
-.about-socials__link:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
 }
 
 .about-caption {
@@ -4890,23 +4897,13 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
     font-size: 0.85rem;
   }
 
-  .about-socials__link {
-    width: 2rem;
-    height: 2rem;
-  }
-
-  .about-socials__icon {
-    width: 1rem;
-    height: 1rem;
+  .about-stack-wrap {
+    display: none;
   }
 
   @media (max-height: 720px) {
     .about-copy {
       gap: 0.5rem;
-    }
-
-    .about-label {
-      display: none;
     }
   }
 
