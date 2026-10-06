@@ -637,7 +637,7 @@ app.innerHTML = `
               </svg>
             </p>
             <p class="about-bio">
-              I'm a web developer based in Abbotsford, BC. I'm a retired hip-hop dancer, high handicap golfer and karaoke drummer. Web design is my passion!
+              I'm a web developer based in Abbotsford, BC. I'm a <button type="button" class="about-bio-flip">retired hip-hop dancer</button>, high handicap golfer and karaoke drummer. Web design is my passion!
             </p>
             <div class="about-stack-wrap">
               <p class="about-label" id="about-stack-label">Toolkit</p>
@@ -660,6 +660,15 @@ app.innerHTML = `
                 class="profile-blob-img"
                 src="/profile.jpg"
                 alt="Portrait of Kaleb Link"
+                width="460"
+                height="460"
+                decoding="async"
+                draggable="false"
+              />
+              <img
+                class="profile-blob-img profile-blob-img--back"
+                src="/about-dance.jpg"
+                alt="Young Kaleb striking a hip-hop pose in front of a graffiti wall"
                 width="460"
                 height="460"
                 decoding="async"
@@ -3072,6 +3081,8 @@ const PROFILE_A11Y = [
   },
 ]
 const PROFILE_CAPTIONS = ["That's me", 'I like fishing too', 'Posing for the camera']
+const PROFILE_FLIP_TURN = 0.7
+const PROFILE_FLIP_HOLD = 3
 const PROFILE_OUCHES = [
   'Ouch!',
   'That tickles',
@@ -3345,13 +3356,45 @@ const bounceProfile = (blob, t, atBottom) => {
   blob.accelChangeAt = t + rand(0.5, 2)
 }
 
-const paintProfileBlob = (blob, x, y, s, radius) => {
+const paintProfileBlob = (blob, x, y, s, radius, flip = 0) => {
   const { el, img } = blob
   el.style.width = `${s}px`
   el.style.height = `${s}px`
   el.style.borderRadius = radius
   if (img) img.style.borderRadius = radius
-  el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`
+  const turn = flip ? ` perspective(${(s * 4).toFixed(0)}px) rotateY(${flip.toFixed(2)}deg)` : ''
+  el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)${turn}`
+  const showBack = flip > 90 && flip < 270
+  if (blob.showBack !== showBack) {
+    blob.showBack = showBack
+    el.classList.toggle('is-flipped', showBack)
+  }
+}
+
+let profileFlipStart = null
+
+const easeInOutCubic = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2)
+
+const profileFlipAngle = (t) => {
+  if (profileFlipStart == null) return 0
+  const e = t - profileFlipStart
+  if (reduceMotion) {
+    if (e < PROFILE_FLIP_HOLD) return 180
+  } else if (e < PROFILE_FLIP_TURN) {
+    return 180 * easeInOutCubic(e / PROFILE_FLIP_TURN)
+  } else if (e < PROFILE_FLIP_TURN + PROFILE_FLIP_HOLD) {
+    return 180
+  } else if (e < PROFILE_FLIP_TURN * 2 + PROFILE_FLIP_HOLD) {
+    return 180 + 180 * easeInOutCubic((e - PROFILE_FLIP_TURN - PROFILE_FLIP_HOLD) / PROFILE_FLIP_TURN)
+  }
+  profileFlipStart = null
+  return 0
+}
+
+const hostFlipFor = (blob, t) => {
+  const family = profileFamilies[0]
+  if (!family || blob !== family.origin || family.mode !== 'whole') return 0
+  return profileFlipAngle(t)
 }
 
 const clampProfileInBox = (blob, cw, ch) => {
@@ -3394,7 +3437,8 @@ const placeStaticProfile = () => {
       blob.y = family.anchor.y
     }
     clampProfileInBox(blob, cw, ch)
-    paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob))
+    const flip = hostFlipFor(blob, performance.now() / 1000)
+    paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob), flip)
   })
 
   profileSocials.forEach((social, i) => {
@@ -3782,6 +3826,7 @@ const startProfileMerge = (blob) => {
 
 const activateProfileBlob = (blob) => {
   if (hideProfileMoons() && blob.familyId !== 0) return
+  if (blob.familyId === 0 && profileFlipStart != null) return
   const family = profileFamilies[blob.familyId]
   if (blob.mode === 'whole') explodeFamily(family, reduceMotion)
   else if (blob.mode === 'fragment') startProfileMerge(blob)
@@ -3933,9 +3978,22 @@ const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
     ...profileSocials,
   ])
   for (const blob of [...stillVisible, ...profileSocials]) {
-    paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob, t))
+    paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob, t), hostFlipFor(blob, t))
   }
 }
+
+const flipProfileHost = () => {
+  const family = profileFamilies[0]
+  if (!family || profileFlipStart != null) return
+  if (family.mode !== 'whole') restoreFamilyWhole(family)
+  profileFlipStart = performance.now() / 1000
+  if (reduceMotion) {
+    placeStaticProfile()
+    setTimeout(placeStaticProfile, PROFILE_FLIP_HOLD * 1000 + 50)
+  }
+}
+
+document.querySelector('.about-bio-flip')?.addEventListener('click', flipProfileHost)
 
 const blobFromShape = (el) => profileBlobs.find((blob) => blob.el === el)
 
