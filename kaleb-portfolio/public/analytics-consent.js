@@ -42,7 +42,7 @@
     }
 
     global.gtag('js', new Date())
-    global.gtag('config', MEASUREMENT_ID)
+    global.gtag('config', MEASUREMENT_ID, { allow_google_signals: false })
 
     const script = document.createElement('script')
     script.async = true
