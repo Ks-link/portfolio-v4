@@ -4894,7 +4894,10 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   }
 
   .about-caption {
+    width: 0;
+    min-width: 100%;
     font-size: 0.85rem;
+    white-space: nowrap;
   }
 
   .about-stack-wrap {
