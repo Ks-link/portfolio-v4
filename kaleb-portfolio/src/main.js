@@ -3021,6 +3021,9 @@ const PROFILE_BLOB_SIZES = [0.88, 0.42, 0.38]
 const PROFILE_BLOB_SIZES_MOBILE = [0.92, 0.54, 0.5]
 /** Matches `.profile-blob-shape` max size at `(max-width: 48rem)` in style.css */
 const PROFILE_BLOB_MAX_MOBILE = 150
+const PROFILE_SIZE_REF_MIN = 220
+const PROFILE_SIZE_REF_MAX = 300
+const PROFILE_SIZE_REF_VIEW = 0.3
 const PROFILE_BLOB_STARTS = [
   { progress: 0.5, lane: 0.5 },
   { progress: 0.18, lane: 0.22 },
@@ -3031,6 +3034,16 @@ const PROFILE_STATIC_OFFSETS = [
   { fx: 0.12, fy: 0.06 },
   { fx: 0.88, fy: 0.94 },
 ]
+const PROFILE_STATIC_OFFSETS_DESKTOP = [
+  { fx: 0.8, fy: 0.5 },
+  { fx: 0.64, fy: 0.12 },
+  { fx: 0.66, fy: 0.9 },
+]
+const PROFILE_LANE_RETARGET = 0.25
+const PROFILE_CONTENT_GAP = 16
+const PROFILE_FOLLOW_RATE = 6
+const PROFILE_FOLLOW_MAX = 160
+const PROFILE_SWAY_REF = 2.5
 const PROFILE_ORBITS = [
   null,
   { angle: 0, speed: 0.07, rx: 0.58, ry: 0.66, dir: 1 },
@@ -3039,7 +3052,11 @@ const PROFILE_ORBITS = [
 const PROFILE_SOCIAL_SIZE = 0.2
 const PROFILE_SOCIAL_MIN = 44
 const PROFILE_SOCIAL_MAX = 60
-const PROFILE_SOCIAL_PUSH = 0.35
+const PROFILE_PULL = 0.3
+const PROFILE_PULL_REACH = 360
+const PROFILE_PULL_RATE = 2.5
+const PROFILE_FRAGMENT_PULL = 90
+const PROFILE_MOTION = 0.8
 const PROFILE_SOCIAL_ORBITS = [
   { angle: Math.PI * 0.5, speed: 0.05, rx: 0.62, ry: 0.72 },
   { angle: Math.PI * 1.25, speed: 0.045, rx: 0.64, ry: 0.7 },
@@ -3097,6 +3114,146 @@ const PROFILE_OUCHES = [
 const profileWrap = document.querySelector('.profile-blob')
 const profileShapes = [...(profileWrap?.querySelectorAll('.profile-blob-shape') ?? [])]
 const randInt = (min, max) => Math.floor(rand(min, max + 1))
+
+const profileTitle = document.getElementById('about-heading')
+const profileCopy = document.querySelector('.about-copy')
+let profileContentRect = null
+
+const measureProfileContent = () => {
+  if (!profileWrap || !profileCopy || swipeMq.matches) {
+    profileContentRect = null
+    return
+  }
+  const wrap = profileWrap.getBoundingClientRect()
+  let { left, top, right, bottom } = profileCopy.getBoundingClientRect()
+  if (profileTitle) {
+    const title = profileTitle.getBoundingClientRect()
+    const range = document.createRange()
+    range.selectNodeContents(profileTitle)
+    left = Math.min(left, title.left)
+    top = Math.min(top, title.top)
+    right = Math.max(right, range.getBoundingClientRect().right)
+  }
+  profileContentRect = {
+    left: left - wrap.left - PROFILE_CONTENT_GAP,
+    top: top - wrap.top - PROFILE_CONTENT_GAP,
+    right: right - wrap.left + PROFILE_CONTENT_GAP,
+    bottom: bottom - wrap.top + PROFILE_CONTENT_GAP,
+  }
+}
+
+if (profileWrap) {
+  measureProfileContent()
+  const remeasure = () => {
+    measureProfileContent()
+    if (reduceMotion) placeStaticProfile()
+  }
+  const contentObserver = new ResizeObserver(remeasure)
+  ;[profileWrap, profileWrap.parentElement, profileCopy, profileTitle].forEach(
+    (el) => el && contentObserver.observe(el),
+  )
+  swipeMq.addEventListener('change', remeasure)
+}
+
+const profileFits = (x, y, r, cw, ch) =>
+  x >= r - 0.5 && x <= cw - r + 0.5 && y >= r - 0.5 && y <= ch - r + 0.5
+
+/** Pushes a blob out of the text block. Returns the outward normal, or null if clear. */
+const resolveProfileContent = (blob, refX, refY, cw, ch) => {
+  const rect = profileContentRect
+  if (!rect) return null
+  const r = blob.s / 2
+  const nearX = Math.min(rect.right, Math.max(rect.left, blob.x))
+  const nearY = Math.min(rect.bottom, Math.max(rect.top, blob.y))
+  const dx = blob.x - nearX
+  const dy = blob.y - nearY
+  const dist = Math.hypot(dx, dy)
+  if (dist >= r) return null
+  if (dist > 0) {
+    const nx = dx / dist
+    const ny = dy / dist
+    const x = nearX + nx * r
+    const y = nearY + ny * r
+    if (profileFits(x, y, r, cw, ch)) {
+      blob.x = x
+      blob.y = y
+      return { nx, ny }
+    }
+  }
+  const sides = [
+    { x: rect.left - r, y: blob.y, nx: -1, ny: 0 },
+    { x: rect.right + r, y: blob.y, nx: 1, ny: 0 },
+    { x: blob.x, y: rect.top - r, nx: 0, ny: -1 },
+    { x: blob.x, y: rect.bottom + r, nx: 0, ny: 1 },
+  ]
+  const open = sides.filter((side) => profileFits(side.x, side.y, r, cw, ch))
+  const pool = open.length ? open : sides
+  let best = pool[0]
+  let bestDist = Infinity
+  for (const side of pool) {
+    const d = Math.hypot(side.x - refX, side.y - refY)
+    if (d < bestDist) {
+      best = side
+      bestDist = d
+    }
+  }
+  blob.x = best.x
+  blob.y = best.y
+  return best
+}
+
+/** Eases a blob from its last spot toward its new target, sliding around the text block instead of jumping across it. */
+const settleProfile = (blob, prevX, prevY, cw, ch, dt, homeX = blob.x, homeY = blob.y) => {
+  if (!profileContentRect) {
+    blob.settled = false
+    return null
+  }
+  if (!blob.settled) {
+    prevX = homeX
+    prevY = homeY
+  } else {
+    const gain = 1 - Math.exp(-Math.max(dt, 0) * PROFILE_FOLLOW_RATE)
+    let sx = (blob.x - prevX) * gain
+    let sy = (blob.y - prevY) * gain
+    const len = Math.hypot(sx, sy)
+    const cap = PROFILE_FOLLOW_MAX * Math.max(dt, 0)
+    if (len > cap) {
+      sx *= cap / len
+      sy *= cap / len
+    }
+    blob.x = prevX + sx
+    blob.y = prevY + sy
+  }
+  blob.settled = true
+  const hit = resolveProfileContent(blob, prevX, prevY, cw, ch)
+  clampProfileInBox(blob, cw, ch)
+  return hit
+}
+
+const keepProfileClearOfContent = (list, cw, ch) => {
+  if (!profileContentRect) return
+  list.forEach((blob) => {
+    if (resolveProfileContent(blob, blob.x, blob.y, cw, ch)) clampProfileInBox(blob, cw, ch)
+  })
+}
+
+/** Random lane for the host that keeps it beside the text block, on the side it's already on. */
+const pickProfileLane = (blob, cw) => {
+  const rect = profileContentRect
+  const fallback = rand(0.04, 0.96)
+  if (!rect) return fallback
+  const s = blob.s
+  const travelX = Math.max(1, cw - s)
+  const regions = []
+  const leftMax = Math.min(0.96, (rect.left - s) / travelX)
+  if (leftMax > 0.04) regions.push({ min: 0.04, max: leftMax, side: -1 })
+  const rightMin = Math.max(0.04, rect.right / travelX)
+  if (rightMin < 0.96) regions.push({ min: rightMin, max: 0.96, side: 1 })
+  if (!regions.length) return fallback
+  const side = blob.x < (rect.left + rect.right) / 2 ? -1 : 1
+  const region = regions.find((entry) => entry.side === side) ?? regions[0]
+  return rand(region.min, region.max)
+}
 
 const aboutWave = document.querySelector('.about-wave')
 document.querySelector('.about-intro')?.addEventListener('pointerenter', () => {
@@ -3326,12 +3483,19 @@ const profileSocials = profileWrap
   ? [...profileWrap.querySelectorAll('.profile-social')].map(createProfileSocial)
   : []
 
+const profileSizeRef = (cw, ch) => {
+  if (swipeMq.matches) return Math.min(cw, ch)
+  const view = Math.min(window.innerWidth, window.innerHeight) * PROFILE_SIZE_REF_VIEW
+  return Math.min(PROFILE_SIZE_REF_MAX, Math.max(PROFILE_SIZE_REF_MIN, view))
+}
+
 const profileSizePx = (blob, cw, ch) => {
+  const ref = profileSizeRef(cw, ch)
   if (blob.social) {
-    return Math.min(PROFILE_SOCIAL_MAX, Math.max(PROFILE_SOCIAL_MIN, Math.min(cw, ch) * PROFILE_SOCIAL_SIZE))
+    return Math.min(PROFILE_SOCIAL_MAX, Math.max(PROFILE_SOCIAL_MIN, ref * PROFILE_SOCIAL_SIZE))
   }
   const sizes = swipeMq.matches ? PROFILE_BLOB_SIZES_MOBILE : PROFILE_BLOB_SIZES
-  let base = Math.min(cw, ch) * (sizes[blob.sizeIndex] ?? blob.size)
+  let base = ref * (sizes[blob.sizeIndex] ?? blob.size)
   if (swipeMq.matches) base = Math.min(base, PROFILE_BLOB_MAX_MOBILE)
   return base * (blob.sizeScale ?? 1)
 }
@@ -3350,7 +3514,7 @@ const bounceProfile = (blob, t, atBottom) => {
   const mobile = swipeMq.matches
   blob.progress = atBottom ? 1 : 0
   blob.dir = atBottom ? -1 : 1
-  blob.targetLane = mobile ? rand(0.04, 0.96) : rand(0.22, 0.78)
+  blob.targetLane = mobile ? rand(0.04, 0.96) : pickProfileLane(blob, blob.wrap.clientWidth)
   blob.speed = mobile ? rand(0.014, 0.038) : rand(0.008, 0.024)
   blob.targetAccel = atBottom ? rand(-0.02, 0.01) : rand(-0.01, 0.022)
   blob.accelChangeAt = t + rand(0.5, 2)
@@ -3420,12 +3584,15 @@ const placeStaticProfile = () => {
     const s = profileSizePx({ ...family.anchor, sizeScale: 1 }, cw, ch)
     const travelX = Math.max(0, cw - s)
     const travelY = Math.max(0, ch - s)
-    const off = PROFILE_STATIC_OFFSETS[family.id] ?? { fx: 0.5, fy: 0.5 }
+    const offsets = swipeMq.matches ? PROFILE_STATIC_OFFSETS : PROFILE_STATIC_OFFSETS_DESKTOP
+    const off = offsets[family.id] ?? { fx: 0.5, fy: 0.5 }
     family.anchor.s = s
     family.anchor.left = travelX * off.fx
     family.anchor.top = travelY * off.fy
     family.anchor.x = family.anchor.left + s / 2
     family.anchor.y = family.anchor.top + s / 2
+    resolveProfileContent(family.anchor, family.anchor.x, family.anchor.y, cw, ch)
+    clampProfileInBox(family.anchor, cw, ch)
   })
 
   profileBlobs.forEach((blob) => {
@@ -3436,6 +3603,8 @@ const placeStaticProfile = () => {
       blob.x = family.anchor.x
       blob.y = family.anchor.y
     }
+    clampProfileInBox(blob, cw, ch)
+    resolveProfileContent(blob, blob.x, blob.y, cw, ch)
     clampProfileInBox(blob, cw, ch)
     const flip = hostFlipFor(blob, performance.now() / 1000)
     paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob), flip)
@@ -3448,11 +3617,24 @@ const placeStaticProfile = () => {
     social.top = Math.max(0, ch - social.s) * off.fy
     social.x = social.left + social.s / 2
     social.y = social.top + social.s / 2
+    resolveProfileContent(social, social.x, social.y, cw, ch)
+    clampProfileInBox(social, cw, ch)
     paintProfileBlob(social, social.left, social.top, social.s, profileBlobRadius(social))
   })
 }
 
-const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
+/** Eases a blob's offset toward the cursor; the pull fades out both at the cursor and at the edge of its reach. */
+const pullProfileToCursor = (blob, mouseX, mouseY, dt, scale = 1) => {
+  const rect = blob.wrap.getBoundingClientRect()
+  const mdx = mouseX - (rect.left + blob.x)
+  const mdy = mouseY - (rect.top + blob.y)
+  const falloff = Math.max(0, 1 - Math.hypot(mdx, mdy) / PROFILE_PULL_REACH)
+  const gain = PROFILE_PULL * falloff * scale
+  blob.pushX = damp(blob.pushX, mdx * gain, PROFILE_PULL_RATE, dt)
+  blob.pushY = damp(blob.pushY, mdy * gain, PROFILE_PULL_RATE, dt)
+}
+
+const tickProfileBlob = (blob, t, dt) => {
   const { wrap } = blob
   const cw = wrap.clientWidth
   const ch = wrap.clientHeight
@@ -3461,6 +3643,8 @@ const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
   const mobile = swipeMq.matches
   const s = profileSizePx(blob, cw, ch)
   blob.s = s
+  const prevX = blob.x
+  const prevY = blob.y
   const speedScale = window.innerHeight / ch * (mobile ? 0.85 : 0.55)
 
   if (t >= blob.accelChangeAt) {
@@ -3468,58 +3652,56 @@ const tickProfileBlob = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
     if (surge < 0.2) blob.targetAccel = rand(-0.004, 0.004)
     else if (surge < 0.55) blob.targetAccel = rand(-0.014, 0.016)
     else blob.targetAccel = rand(-0.028, 0.032)
+    if (!mobile && Math.random() < PROFILE_LANE_RETARGET) blob.targetLane = pickProfileLane(blob, cw)
     blob.accelChangeAt = t + rand(0.8, 3.8)
   }
 
   blob.accel = damp(blob.accel, blob.targetAccel, 1.8, dt)
   blob.speed += blob.accel * dt
   blob.speed = Math.min(mobile ? 0.085 : 0.052, Math.max(0.004, blob.speed))
-  blob.progress += blob.dir * blob.speed * speedScale * dt
+  blob.progress += blob.dir * blob.speed * speedScale * PROFILE_MOTION * dt
 
   if (blob.progress >= 1) bounceProfile(blob, t, true)
   else if (blob.progress <= 0) bounceProfile(blob, t, false)
 
-  blob.lane = damp(blob.lane, blob.targetLane, mobile ? 0.85 : 0.55, dt)
+  blob.lane = damp(blob.lane, blob.targetLane, (mobile ? 0.85 : 0.12) * PROFILE_MOTION, dt)
 
   const travelX = Math.max(0, cw - s)
   const travelY = Math.max(0, ch - s)
-  const swayAmp = blob.sway * (mobile ? 2.6 : 1)
+  const swayAmp = blob.sway * (mobile ? 2.6 : 1) * PROFILE_MOTION
+  const swayW = mobile ? cw : Math.min(cw, profileSizeRef(cw, ch) * PROFILE_SWAY_REF)
   const swayX =
-    Math.sin(t * (0.18 + blob.wobble * 0.12) + blob.phase) * swayAmp * cw +
-    Math.sin(t * 0.09 + blob.phase * 1.7) * swayAmp * 0.35 * cw
-  const swayY = mobile
-    ? Math.sin(t * 0.15 + blob.phase * 1.3) * swayAmp * 0.55 * ch +
-    Math.sin(t * 0.07 + blob.phase * 0.8) * swayAmp * 0.2 * ch
-    : 0
+    Math.sin(t * (0.18 + blob.wobble * 0.12) + blob.phase) * swayAmp * swayW +
+    Math.sin(t * 0.09 + blob.phase * 1.7) * swayAmp * 0.35 * swayW
+  const swayYAmp = swayAmp * (mobile ? 1 : 0.6)
+  const swayY =
+    Math.sin(t * 0.15 + blob.phase * 1.3) * swayYAmp * 0.55 * ch +
+    Math.sin(t * 0.07 + blob.phase * 0.8) * swayYAmp * 0.2 * ch
 
   const localX = Math.min(travelX, Math.max(0, blob.lane * travelX + swayX))
   const localY = Math.min(travelY, Math.max(0, blob.progress * travelY + swayY))
   blob.x = localX + s / 2
   blob.y = localY + s / 2
-
-  const rect = wrap.getBoundingClientRect()
-  const screenX = rect.left + blob.x + blob.pushX
-  const screenY = rect.top + blob.y + blob.pushY
-  const mdx = mouseX - screenX
-  const mdy = mouseY - screenY
-  const dist = Math.hypot(mdx, mdy) || 1
-  const proximity = Math.max(0, 1 - dist / blobReach)
-  const force = blobPush * proximity * proximity
-  blob.pushX = damp(blob.pushX, (-mdx / dist) * force, 3.5, dt)
-  blob.pushY = damp(blob.pushY, (-mdy / dist) * force, 3.5, dt)
-
-  blob.x = localX + blob.pushX + s / 2
-  blob.y = localY + blob.pushY + s / 2
   clampProfileInBox(blob, cw, ch)
+
+  const hit = settleProfile(blob, prevX, prevY, cw, ch, dt)
+  if (!hit) return
+  if (t >= (blob.laneRetargetAt ?? 0)) {
+    blob.targetLane = pickProfileLane(blob, cw)
+    blob.laneRetargetAt = t + rand(3, 6)
+  }
+  if (Math.abs(hit.ny) > Math.abs(hit.nx) && Math.sign(hit.ny) === -blob.dir) blob.dir = -blob.dir
 }
 
-const tickProfileOrbit = (blob, host, t, dt, mouseX, mouseY, blobReach, blobPush) => {
+const tickProfileOrbit = (blob, host, t, dt, mouseX, mouseY) => {
   const { wrap } = blob
   const cw = wrap.clientWidth
   const ch = wrap.clientHeight
   if (cw < 2 || ch < 2 || !host.s) return
 
   blob.s = profileSizePx(blob, cw, ch)
+  const prevX = blob.x
+  const prevY = blob.y
 
   if (t >= blob.accelChangeAt) {
     blob.targetAccel = rand(-0.012, 0.014)
@@ -3530,7 +3712,7 @@ const tickProfileOrbit = (blob, host, t, dt, mouseX, mouseY, blobReach, blobPush
   blob.accel = damp(blob.accel, blob.targetAccel, 1.1, dt)
   blob.orbitSpeed = Math.min(0.11, Math.max(0.035, blob.orbitSpeed + blob.accel * dt))
   blob.orbitScale = damp(blob.orbitScale, blob.targetOrbitScale, 0.7, dt)
-  blob.angle += blob.orbitDir * blob.orbitSpeed * dt
+  blob.angle += blob.orbitDir * blob.orbitSpeed * PROFILE_MOTION * dt
 
   const breathe = 1 + Math.sin(t * (0.22 + blob.wobble * 0.2) + blob.phase) * 0.12
   const span = host.s + blob.s
@@ -3550,24 +3732,15 @@ const tickProfileOrbit = (blob, host, t, dt, mouseX, mouseY, blobReach, blobPush
 
   blob.x = localX
   blob.y = localY
-
-  const rect = wrap.getBoundingClientRect()
-  const screenX = rect.left + blob.x + blob.pushX
-  const screenY = rect.top + blob.y + blob.pushY
-  const mdx = mouseX - screenX
-  const mdy = mouseY - screenY
-  const dist = Math.hypot(mdx, mdy) || 1
-  const proximity = Math.max(0, 1 - dist / blobReach)
-  const force = blobPush * proximity * proximity
-  blob.pushX = damp(blob.pushX, (-mdx / dist) * force, 3.5, dt)
-  blob.pushY = damp(blob.pushY, (-mdy / dist) * force, 3.5, dt)
+  if (!blob.social) pullProfileToCursor(blob, mouseX, mouseY, dt)
 
   blob.x = localX + blob.pushX
   blob.y = localY + blob.pushY
   clampProfileInBox(blob, cw, ch)
+  settleProfile(blob, prevX, prevY, cw, ch, dt, host.x, host.y)
 }
 
-const tickProfileFragment = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) => {
+const tickProfileFragment = (blob, t, dt, mouseX, mouseY) => {
   const { wrap } = blob
   const cw = wrap.clientWidth
   const ch = wrap.clientHeight
@@ -3576,8 +3749,8 @@ const tickProfileFragment = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) =
   blob.s = profileSizePx(blob, cw, ch)
 
   if (t >= blob.accelChangeAt) {
-    blob.targetAccelX = rand(-55, 55)
-    blob.targetAccelY = rand(-55, 55)
+    blob.targetAccelX = rand(-55, 55) * PROFILE_MOTION
+    blob.targetAccelY = rand(-55, 55) * PROFILE_MOTION
     blob.accelChangeAt = t + rand(0.7, 2.6)
   }
 
@@ -3586,16 +3759,16 @@ const tickProfileFragment = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) =
   blob.vx += blob.ax * dt
   blob.vy += blob.ay * dt
 
-  const rect = wrap.getBoundingClientRect()
-  const screenX = rect.left + blob.x
-  const screenY = rect.top + blob.y
-  const mdx = mouseX - screenX
-  const mdy = mouseY - screenY
-  const dist = Math.hypot(mdx, mdy) || 1
-  const proximity = Math.max(0, 1 - dist / blobReach)
-  const force = blobPush * 12 * proximity * proximity
-  blob.vx += (-mdx / dist) * force * dt
-  blob.vy += (-mdy / dist) * force * dt
+  if (blob.familyId !== 0) {
+    const rect = wrap.getBoundingClientRect()
+    const mdx = mouseX - (rect.left + blob.x)
+    const mdy = mouseY - (rect.top + blob.y)
+    const dist = Math.hypot(mdx, mdy) || 1
+    const falloff = Math.max(0, 1 - dist / PROFILE_PULL_REACH)
+    const accel = PROFILE_FRAGMENT_PULL * falloff * Math.min(1, dist / blob.s)
+    blob.vx += (mdx / dist) * accel * dt
+    blob.vy += (mdy / dist) * accel * dt
+  }
 
   const drag = Math.exp(-Math.max(dt, 0.001) * 0.9)
   blob.vx *= drag
@@ -3607,6 +3780,8 @@ const tickProfileFragment = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) =
     blob.vy *= maxSpd / spd
   }
 
+  const fromX = blob.x
+  const fromY = blob.y
   blob.x += blob.vx * dt
   blob.y += blob.vy * dt
   blob.pushX = 0
@@ -3617,6 +3792,15 @@ const tickProfileFragment = (blob, t, dt, mouseX, mouseY, blobReach, blobPush) =
   clampProfileInBox(blob, cw, ch)
   if (blob.x !== prevX) blob.vx *= -0.62
   if (blob.y !== prevY) blob.vy *= -0.62
+
+  const hit = resolveProfileContent(blob, fromX, fromY, cw, ch)
+  if (!hit) return
+  clampProfileInBox(blob, cw, ch)
+  const vn = blob.vx * hit.nx + blob.vy * hit.ny
+  if (vn < 0) {
+    blob.vx -= 1.62 * vn * hit.nx
+    blob.vy -= 1.62 * vn * hit.ny
+  }
 }
 
 const tickProfileMerge = (blob, family, dt) => {
@@ -3763,7 +3947,7 @@ const explodeFamily = (family, instant) => {
   const ch = profileWrap.clientHeight
   const ox = origin.x || family.anchor.x
   const oy = origin.y || family.anchor.y
-  const burst = Math.min(cw, ch) * PROFILE_BURST
+  const burst = profileSizeRef(cw, ch) * PROFILE_BURST
   const scale = 1 / Math.sqrt(n)
 
   family.mode = 'exploded'
@@ -3900,7 +4084,7 @@ const separateProfileBlobs = (dt, list = profileBlobs) => {
   list.forEach((blob) => clampProfileInBox(blob, cw, ch))
 }
 
-const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
+const tickAllProfileBlobs = (t, dt, mouseX, mouseY) => {
   if (!profileBlobs.length || !profileWrap) return
   const cw = profileWrap.clientWidth
   const ch = profileWrap.clientHeight
@@ -3910,7 +4094,7 @@ const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
   const hostAnchor = profileFamilies[0]?.anchor
   if (!hostAnchor) return
 
-  tickProfileBlob(hostAnchor, t, dt, mouseX, mouseY, blobReach, blobPush)
+  tickProfileBlob(hostAnchor, t, dt)
 
   const moonAnchors = [
     ...(hideMoons ? [] : profileFamilies.filter((family) => !family.host).map((family) => family.anchor)),
@@ -3934,20 +4118,7 @@ const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
     }
   }
   moonAnchors.forEach((anchor) => {
-    if (anchor.social) {
-      tickProfileOrbit(
-        anchor,
-        hostAnchor,
-        t,
-        anchor.held ? 0 : dt,
-        mouseX,
-        mouseY,
-        blobReach,
-        blobPush * PROFILE_SOCIAL_PUSH,
-      )
-    } else {
-      tickProfileOrbit(anchor, hostAnchor, t, dt, mouseX, mouseY, blobReach, blobPush)
-    }
+    tickProfileOrbit(anchor, hostAnchor, t, anchor.held ? 0 : dt, mouseX, mouseY)
   })
 
   const visible = profileBlobs.filter((blob) => !(hideMoons && blob.familyId !== 0))
@@ -3964,7 +4135,7 @@ const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
     } else if (blob.mode === 'merging') {
       tickProfileMerge(blob, family, dt)
     } else {
-      tickProfileFragment(blob, t, dt, mouseX, mouseY, blobReach, blobPush)
+      tickProfileFragment(blob, t, dt, mouseX, mouseY)
     }
   })
 
@@ -3973,10 +4144,9 @@ const tickAllProfileBlobs = (t, dt, mouseX, mouseY, blobReach, blobPush) => {
     .forEach((blob) => absorbIfClose(blob))
 
   const stillVisible = profileBlobs.filter((blob) => !(hideMoons && blob.familyId !== 0))
-  separateProfileBlobs(dt, [
-    ...stillVisible.filter((blob) => blob.mode !== 'merging'),
-    ...profileSocials,
-  ])
+  const solid = [...stillVisible.filter((blob) => blob.mode !== 'merging'), ...profileSocials]
+  separateProfileBlobs(dt, solid)
+  keepProfileClearOfContent(solid, cw, ch)
   for (const blob of [...stillVisible, ...profileSocials]) {
     paintProfileBlob(blob, blob.left, blob.top, blob.s, profileBlobRadius(blob, t), hostFlipFor(blob, t))
   }
@@ -4245,7 +4415,7 @@ if (reduceMotion) {
 
   blobs.forEach(syncBlobSize)
   layoutEndcaps()
-  tickAllProfileBlobs(0, 0, mouseX, mouseY, blobReach, blobPush)
+  tickAllProfileBlobs(0, 0, mouseX, mouseY)
 
   window.addEventListener('pointermove', (e) => {
     mouseX = e.clientX
@@ -4498,7 +4668,7 @@ if (reduceMotion) {
     })
 
     paintMetaballs(t)
-    tickAllProfileBlobs(t, dt, mouseX, mouseY, blobReach, blobPush)
+    tickAllProfileBlobs(t, dt, mouseX, mouseY)
     tickUnderlines(t, dt, mouseX, mouseY)
     tickProjectFrame(t)
 
