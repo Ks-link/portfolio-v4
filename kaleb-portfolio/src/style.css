@@ -435,6 +435,14 @@ body {
   pointer-events: none;
 }
 
+.play-hint-boost {
+  transition: opacity 0.3s ease;
+}
+
+.play-root.is-split .play-hint-boost {
+  opacity: 0.3;
+}
+
 @media (hover: none) {
   .play-hint {
     display: none;
@@ -585,6 +593,11 @@ body {
   bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 3.75rem + 0.45rem);
   padding: 3.25rem 3.5rem 0.45rem max(1rem, env(safe-area-inset-left));
   touch-action: none;
+  transition: opacity 0.3s ease;
+}
+
+.play-root.is-split .play-eject {
+  opacity: 0.35;
 }
 
 .play-shoot-shape,

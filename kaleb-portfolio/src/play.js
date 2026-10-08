@@ -38,7 +38,7 @@ const MERGE_SEEK = 24
 const LAUNCH_SPEED = 960
 const EJECT_RATE = 14
 const EJECT_MIN_MASS = 20
-const EJECT_BOOST = 1.7
+const EJECT_BOOST = 2.4
 const EJECT_SAFE = 0.6
 const EJECT_SLIDE = 0.18
 const EJECT_SEQ_MAX = 40
@@ -235,7 +235,7 @@ export const mountPlay = (root) => {
   const hint = document.createElement('p')
   hint.className = 'play-hint'
   hint.innerHTML = `
-    <span class="play-hint--desktop">space = shoot · click = boost</span>
+    <span class="play-hint--desktop">space = shoot · <span class="play-hint-boost">click = boost</span></span>
   `
 
   const hud = document.createElement('div')
@@ -317,6 +317,7 @@ export const mountPlay = (root) => {
   let ejectHeld = false
   let ejectCarry = 0
   let boost = 0
+  let split = false
   let aiLaunchCool = new Map()
   let kills = 0
   let peakScore = 0
@@ -1396,11 +1397,19 @@ export const mountPlay = (root) => {
 
   const canEject = (cell) => cell.mass - FOOD_MASS >= EJECT_MIN_MASS
 
+  const syncSplit = () => {
+    const next = playing && localOwner >= 0 && ownerCells(localOwner).length > 1
+    if (next === split) return
+    split = next
+    root.classList.toggle('is-split', split)
+  }
+
   const tickEject = (dt) => {
+    syncSplit()
     let ejecting = false
     if (ejectHeld && playing && localOwner >= 0) {
       const player = ownerCells(localOwner)
-      if (player.some(canEject)) {
+      if (player.length === 1 && canEject(player[0])) {
         ejecting = true
         ejectCarry += dt * EJECT_RATE
         const aim = shootAim(player)
@@ -2509,6 +2518,7 @@ export const mountPlay = (root) => {
     tap.id = null
     setEjectHeld(false)
     boost = 0
+    syncSplit()
     hideStick()
     heading.alpha = 0
     pointer.valid = false
@@ -2661,6 +2671,7 @@ export const mountPlay = (root) => {
     tap.id = null
     setEjectHeld(false)
     boost = 0
+    syncSplit()
     hideStick()
     heading.alpha = 0
     root.dispatchEvent(new Event('playchange', { bubbles: true }))
