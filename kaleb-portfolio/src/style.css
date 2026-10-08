@@ -831,7 +831,7 @@ body {
 
 .screen-inner {
   --screen-pad-top: 15dvh;
-  max-width: 40rem;
+  max-width: 46rem;
   margin: 0 auto;
   padding: var(--screen-pad-top) 0.5rem 4rem;
 }
