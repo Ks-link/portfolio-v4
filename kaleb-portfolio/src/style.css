@@ -4190,18 +4190,24 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
 @media (min-width: 48rem) {
   .about-layout {
     grid-template-columns: minmax(0, 1fr) 16.5rem;
-    grid-template-rows: auto auto minmax(0, 1fr);
     gap: 1.5rem 2.25rem;
+    pointer-events: none;
   }
 
   .about-layout > :not(.profile-blob) {
     grid-column: 1;
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
   }
 
   .profile-blob {
-    grid-column: 2;
-    grid-row: 1 / -1;
+    position: absolute;
+    inset: 5rem;
+    z-index: 0;
     width: auto;
+    height: auto;
+    pointer-events: auto;
   }
 }
 
