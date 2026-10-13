@@ -4360,6 +4360,12 @@ html[data-cursor="ring"] .blob-cursor.is-down .blob-cursor-shape {
   padding-bottom: 1rem;
 }
 
+@media (min-width: 48rem) {
+  .screen--contact .contact-layout {
+    max-width: 40rem;
+  }
+}
+
 .contact-form-wrap {
   position: relative;
   display: flex;
