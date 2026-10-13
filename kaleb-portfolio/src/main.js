@@ -3102,7 +3102,6 @@ const PROFILE_FLIP_TURN = 0.7
 const PROFILE_FLIP_HOLD = 3
 const PROFILE_OUCHES = [
   'Ouch!',
-  'That tickles',
   'YEEEEOOOOOOCH',
   'Ow ow ow ow',
   'Hey, careful now',
