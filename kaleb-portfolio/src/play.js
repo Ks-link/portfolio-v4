@@ -29,6 +29,9 @@ const FOOD_MASS = 1.15
 const START_MASS = 42
 const MIN_SPLIT_MASS = 36
 const MAX_CELLS = 8
+// Three splits fill 8 pieces. A bigger blob may keep going: the cap doubles
+// each time total mass can still cover another full set of minimum-size pieces.
+const MAX_CELL_CAP = 32
 const EAT_RATIO = 1.15
 const MERGE_DELAY = 10
 const MERGE_TOUCH = 1.02
@@ -96,6 +99,16 @@ const dampAngle = (current, target, lambda, dt) => {
 
 const radiusOf = (mass) => Math.sqrt(Math.max(mass, 0.2)) * 4.15
 const speedOf = (mass) => 620 / Math.pow(mass + 28, 0.38)
+
+const cellLimitForMass = (mass) => {
+  let limit = MAX_CELLS
+  let need = MIN_SPLIT_MASS * MAX_CELLS
+  while (limit < MAX_CELL_CAP && mass >= need) {
+    limit *= 2
+    need *= 2
+  }
+  return limit
+}
 
 const pointOn = (x, y, angle, r) => [x + Math.cos(angle) * r, y + Math.sin(angle) * r]
 
@@ -731,7 +744,10 @@ export const mountPlay = (root) => {
 
   const splitCell = (cell, dirX, dirY) => {
     if (cell.mass < MIN_SPLIT_MASS) return false
-    if (ownerCells(cell.owner).length >= MAX_CELLS) return false
+    const mine = ownerCells(cell.owner)
+    let mass = 0
+    for (const piece of mine) mass += piece.mass
+    if (mine.length >= cellLimitForMass(mass)) return false
     const dist = hypot(dirX, dirY) || 1
     const nx = dirX / dist
     const ny = dirY / dist
