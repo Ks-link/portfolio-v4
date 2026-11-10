@@ -1,6 +1,8 @@
 import './style.css'
 import { createMetaballs, parseCssColor } from './metaballs.js'
 import { mountPlay } from './play.js'
+import { mountChat } from './chat.js'
+import { submitContact } from './contact.js'
 import { ACCENT_PALETTE, DEFAULT_ACCENT } from './blob-colors.js'
 
 const sunIcon = `
@@ -972,7 +974,7 @@ app.innerHTML = `
         <button type="button" class="legal-back" data-to="home">Back</button>
         <h2 id="privacy-heading" class="legal-title">Privacy Policy</h2>
         <p class="legal-lede">Link Web Development</p>
-        <p class="legal-updated">Last updated: 22 September 2026</p>
+        <p class="legal-updated">Last updated: 9 November 2026</p>
 
         <h3 class="legal-heading">1. Who we are</h3>
         <p>
@@ -993,6 +995,11 @@ app.innerHTML = `
           <li>
             <strong>Contact form data.</strong> If you send a message, we receive
             your name, email address, and message content.
+          </li>
+          <li>
+            <strong>Help chat.</strong> If you use the help bot, the text you type
+            is sent to Google (Firebase AI Logic / Gemini) to generate a reply.
+            The Site does not store that chat.
           </li>
           <li>
             <strong>Analytics data.</strong> If you accept analytics cookies, we
@@ -1054,6 +1061,11 @@ app.innerHTML = `
           <li>
             <strong>Google Firebase</strong> (Authentication, Firestore, Realtime
             Database) — play accounts, game state, and leaderboard data
+          </li>
+          <li>
+            <strong>Google Firebase AI Logic (Gemini)</strong> — replies in the
+            help chat. Chat text is sent to generate a reply and is not stored
+            by the Site.
           </li>
         </ul>
         <p>
@@ -1138,6 +1150,7 @@ app.innerHTML = `
 `
 
 const play = mountPlay(document.querySelector('.play-root'))
+mountChat(app, { onNavigate: (screen) => setScreen(screen, { push: true }) })
 const root = document.documentElement
 const toggle = document.querySelector('.theme-toggle')
 const blobsRoot = document.querySelector('.blobs')
@@ -2381,6 +2394,7 @@ const PLAY_START_SWIPE_PAD = 56
 const isInteractiveTarget = (el) => {
   if (!el?.closest) return false
   if (el.closest('.profile-blob-shape')) return true
+  if (el.closest('.chat')) return true
   // Gameplay captures gestures; welcome screen allows swipe-back to home
   if (el.closest('.play-root.is-playing')) return true
   // Keep play CTA / naming / leaderboard from starting page swipes
@@ -4913,10 +4927,6 @@ document.addEventListener('pointerdown', (e) => {
 const contactStatus = document.querySelector('.contact-form__status')
 const contactSubmit = document.querySelector('.contact-form__submit')
 
-const CONTACT_LIMITS = { name: 100, email: 254, message: 2000 }
-const CONTACT_COOLDOWN_MS = 30_000
-let lastContactSubmitAt = 0
-
 const setContactStatus = (message, type = '') => {
   if (!contactStatus) return
   contactStatus.hidden = !message
@@ -4933,65 +4943,27 @@ contactForm?.addEventListener('submit', async (e) => {
     return
   }
 
-  const cooldownLeft = lastContactSubmitAt + CONTACT_COOLDOWN_MS - Date.now()
-  if (cooldownLeft > 0) {
-    const seconds = Math.ceil(cooldownLeft / 1000)
-    setContactStatus(`Please wait ${seconds}s before sending another message.`, 'error')
-    return
-  }
-
-  const accessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY
-  if (!accessKey) {
-    setContactStatus('Contact form is not configured yet.', 'error')
-    return
-  }
-
   const formData = new FormData(contactForm)
-  if (formData.get('botcheck')) return
-
-  const name = String(formData.get('name') || '').trim()
-  const email = String(formData.get('email') || '').trim()
-  const message = String(formData.get('message') || '').trim()
-
-  if (!name || !email || !message) {
-    setContactStatus('Please fill out all fields.', 'error')
-    return
-  }
-  if (name.length > CONTACT_LIMITS.name || email.length > CONTACT_LIMITS.email || message.length > CONTACT_LIMITS.message) {
-    setContactStatus('One or more fields are too long.', 'error')
-    return
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    setContactStatus('Please enter a valid email address.', 'error')
-    return
-  }
-
-  const payload = new FormData()
-  payload.append('access_key', accessKey)
-  payload.append('name', name)
-  payload.append('email', email)
-  payload.append('message', message)
-  payload.append('subject', 'Portfolio contact')
-  payload.append('botcheck', '')
-
   contactSubmit.disabled = true
-  setContactStatus('Sending…')
-
-  try {
-    const res = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      body: payload,
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok || data.success === false) {
-      throw new Error(data.message || 'Request failed')
-    }
-    contactForm.reset()
-    lastContactSubmitAt = Date.now()
-    setContactStatus('Thanks, your message is on the way.', 'success')
-  } catch {
-    setContactStatus('Something went wrong. Please try again or email me at contact@kaleblink.com.', 'error')
-  } finally {
-    contactSubmit.disabled = false
+  const result = await submitContact(
+    {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      message: formData.get('message'),
+      subject: 'Portfolio contact',
+      botcheck: formData.get('botcheck'),
+    },
+    { onSending: () => setContactStatus('Sending…') },
+  )
+  contactSubmit.disabled = false
+  if (result.ignored) {
+    setContactStatus('')
+    return
   }
+  if (!result.ok) {
+    setContactStatus(result.error, 'error')
+    return
+  }
+  contactForm.reset()
+  setContactStatus('Thanks, your message is on the way.', 'success')
 })
