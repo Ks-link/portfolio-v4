@@ -1002,7 +1002,7 @@ app.innerHTML = `
           </li>
           <li>
             <strong>Local preferences.</strong> We store preferences in your
-            browser (for example theme, blob animation preference, and cookie
+            browser (for example blob animation preference and cookie
             consent choice) using local storage.
           </li>
           <li>
@@ -1036,7 +1036,7 @@ app.innerHTML = `
           we will attempt to clear related Google Analytics cookies.
         </p>
         <p>
-          Preference storage (theme, animation, consent) uses browser local
+          Preference storage (animation, consent) uses browser local
           storage rather than advertising cookies. You can clear cookies and site
           data in your browser settings at any time.
         </p>
@@ -1160,27 +1160,34 @@ if (metaballsRenderer) {
   syncMetaballColor()
 }
 
-const getPreferredTheme = () => {
-  const stored = localStorage.getItem('theme')
-  if (stored === 'light' || stored === 'dark') return stored
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
+const colorScheme = window.matchMedia('(prefers-color-scheme: dark)')
+
+const browserTheme = () => (colorScheme.matches ? 'dark' : 'light')
 
 const brandMarkIcons = document.querySelectorAll('.brand-mark__icon')
-let themeFaviconLink = document.querySelector('link[rel="icon"][type="image/png"]:not([media])')
-if (!themeFaviconLink) {
-  themeFaviconLink = document.createElement('link')
-  themeFaviconLink.rel = 'icon'
-  themeFaviconLink.type = 'image/png'
-  document.head.appendChild(themeFaviconLink)
-}
 
 const faviconForTheme = (theme) =>
   theme === 'dark' ? '/favicon-dark.png' : '/favicon-light.png'
 
+// Tab icon follows the browser: light mark in dark mode, dark mark in light mode.
+const faviconForBrowser = () =>
+  colorScheme.matches ? '/favicon-dark.png' : '/favicon-light.png'
+
+let browserFaviconLink = document.querySelector('link[rel="icon"][data-browser-favicon]')
+if (!browserFaviconLink) {
+  browserFaviconLink = document.createElement('link')
+  browserFaviconLink.rel = 'icon'
+  browserFaviconLink.type = 'image/png'
+  browserFaviconLink.dataset.browserFavicon = ''
+  document.head.appendChild(browserFaviconLink)
+}
+
+const syncBrowserFavicon = () => {
+  browserFaviconLink.href = faviconForBrowser()
+}
+
 const applyTheme = (theme) => {
   root.setAttribute('data-theme', theme)
-  localStorage.setItem('theme', theme)
   const isDark = theme === 'dark'
   toggle.innerHTML = isDark ? sunIcon : moonIcon
   toggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode')
@@ -1188,19 +1195,23 @@ const applyTheme = (theme) => {
   brandMarkIcons.forEach((icon) => {
     icon.src = iconSrc
   })
-  // Drop OS media-query icons so the tab follows the in-app theme.
-  document.querySelectorAll('link[rel="icon"][media]').forEach((link) => link.remove())
-  themeFaviconLink.href = iconSrc
   syncMetaballColor()
 }
 
-applyTheme(getPreferredTheme())
+localStorage.removeItem('theme')
+applyTheme(browserTheme())
+syncBrowserFavicon()
 
 window.AnalyticsConsent?.mountBanner(app, { injectStyles: false })
 
 toggle.addEventListener('click', () => {
   const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
   applyTheme(next)
+})
+
+colorScheme.addEventListener('change', () => {
+  syncBrowserFavicon()
+  applyTheme(browserTheme())
 })
 
 const blobsToggle = document.querySelector('.blobs-toggle')

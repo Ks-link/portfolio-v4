@@ -7,10 +7,8 @@
     window.AnalyticsConsent?.initFromStorage()
   </script>
   <meta charset="UTF-8" />
-  <link rel="icon" href="/favicon.ico" sizes="48x48" />
   <link rel="icon" type="image/png" href="/favicon-light.png" media="(prefers-color-scheme: light)" />
   <link rel="icon" type="image/png" href="/favicon-dark.png" media="(prefers-color-scheme: dark)" />
-  <link rel="icon" type="image/png" href="/favicon-light.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fffff4" />
@@ -103,13 +101,8 @@
     rel="stylesheet" />
   <script>
     ; (() => {
-      const stored = localStorage.getItem('theme')
-      const theme =
-        stored === 'light' || stored === 'dark'
-          ? stored
-          : window.matchMedia('(prefers-color-scheme: dark)').matches
-            ? 'dark'
-            : 'light'
+      localStorage.removeItem('theme')
+      const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
       document.documentElement.setAttribute('data-theme', theme)
 
       const accents = [
